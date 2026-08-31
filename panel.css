@@ -1,0 +1,223 @@
+/* ══════════════════════════════════════════
+   Slide-in Side Panel  (About Me + future cards)
+   ══════════════════════════════════════════ */
+
+/* Dark scrim that dims the carousel behind the panel */
+.sp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.sp-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* The panel itself — slides in from the right */
+.sp-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(600px, 58vw);
+    background: #1a1a1a;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 201;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
+}
+.sp-panel.open {
+    transform: translateX(0);
+}
+
+/* ── Header bar ── */
+.sp-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+}
+
+.sp-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 150ms ease, transform 150ms ease;
+}
+.sp-back:hover {
+    background: rgba(255, 255, 255, 0.13);
+    transform: translateX(-2px);
+}
+
+.sp-title {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.3px;
+}
+
+.sp-tags {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.40);
+    letter-spacing: 0.2px;
+}
+
+/* ── Scrollable body ── */
+.sp-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.sp-body::-webkit-scrollbar { width: 4px; }
+.sp-body::-webkit-scrollbar-track { background: transparent; }
+.sp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+/* ── Hero image ── */
+.sp-hero-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #2a2a2a;
+}
+.sp-hero-wrap.sp-hero-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.2);
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 13px;
+}
+.sp-hero-wrap.sp-hero-placeholder::after {
+    content: 'photo coming soon';
+}
+.sp-hero {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ── Sections ── */
+.sp-section {
+    padding: 28px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sp-section:last-child {
+    border-bottom: none;
+}
+
+.sp-h2 {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fffa50;
+    margin: 0 0 14px;
+    line-height: 1.2;
+}
+
+.sp-h3 {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    font-style: italic;
+    color: #5e81e2;
+    margin: 0 0 12px;
+}
+
+.sp-p {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.80);
+    margin: 0;
+}
+
+.sp-quote {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+    padding-left: 16px;
+    border-left: 2px solid rgba(94, 129, 226, 0.40);
+}
+
+/* ── Currently at logos ── */
+.sp-label {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0 0 16px;
+}
+.sp-logos {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.sp-logo {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
+    opacity: 0.80;
+}
+
+/* ── Link buttons ── */
+.sp-link-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.sp-link-btn {
+    font-family: 'Play', system-ui, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    padding: 8px 18px;
+    text-decoration: none;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.sp-link-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .sp-panel {
+        width: 100vw;
+        border-left: none;
+    }
+    .sp-section {
+        padding: 22px 20px;
+    }
+    .sp-h2 {
+        font-size: 24px;
+    }
+}

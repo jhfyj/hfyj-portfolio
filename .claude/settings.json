@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright available'\\)}catch\\(e\\){console.log\\('no playwright in project'\\)}\")",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\measure.js\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\measure.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\click-test.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\drag-test.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\fling-test.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\debug-hit.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\fling-test2.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\fling-test3.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\debug-hit2.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\touch-test.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\spinhint-test.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\spinhint-mobile.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\diag.cjs\")",
+      "Bash(node \"C:\\\\Users\\\\jenni\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--dev-website-intro\\\\bf17536c-7975-4c5e-bcfe-d7df1c9621ee\\\\scratchpad\\\\newsite-smoketest.cjs\")",
+      "Bash(claude mcp *)",
+      "PowerShell(claude mcp list)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(Get-Command claude -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command npm -ErrorAction SilentlyContinue)",
+      "PowerShell(npm config get prefix 2>$null)",
+      "Bash(node grid-hero-check.js)",
+      "Bash(npm root *)",
+      "Bash(node grid-hero-anim.js)",
+      "Bash(node grid-hero-anim2.js)",
+      "Bash(node preview-shot.js)"
+    ]
+  }
+}

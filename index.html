@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>3D Card Carousel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #FCFCFE;
+        }
+
+        canvas.threejs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+    <!-- project stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./panel.css">
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loader">
+        <div id="loader-cards">
+            <div class="shuffle-card"></div>
+            <div class="shuffle-card"></div>
+            <div class="shuffle-card"></div>
+        </div>
+        <p id="loader-quote">You can&rsquo;t control the cards you&rsquo;re dealt, just how you play the hand.</p>
+        <div id="loader-progress">
+            <div id="loader-progress-bar"></div>
+        </div>
+    </div>
+
+    <canvas class="threejs"></canvas>
+
+    <!-- Shown while the carousel is spinning fast (fling in progress) -->
+    <p id="spin-hint">See which one it lands on!</p>
+
+    <!-- About Me intro panels — visible during waitForScroll, hidden when dealing starts -->
+    <div id="about-panels">
+      <div id="panel-left">
+        <p class="panel-name">Hi! I'm HFYJ/<br>Jennifer Huang</p>
+      </div>
+      <div id="panel-right">
+        <p class="panel-bio">I design as if playing with cards, with
+          <span class="highlight">intentionality, playfulness, and the desire to challenge.</span>
+        </p>
+        <div class="currently-at">
+          <p class="currently-at-label">Previously at</p>
+          <div class="currently-at-logos">
+            <img class="company-pill" src="Company logo\logo1.avif" alt="Company 1">
+            <img class="company-pill" src="Company logo\logo2.png" alt="Company 2">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top nav bar -->
+    <div id="top-nav">
+        <div id="nav-links">
+            <a class="nav-link" href="https://hfyj-art.com/aboutme" data-card-index="0">About</a>
+            <a class="nav-link" href="https://hfyj-art.com/sketchbook" data-card-index="1">sketchbook</a>
+        </div>
+        <div id="view-toggle">
+            <button class="toggle-btn active" data-view="cards" title="Card view">
+                <svg width="26" height="18" viewBox="-4 0 26 18" fill="none" style="overflow:visible">
+                    <rect class="card-left" x="3" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="rgba(240,240,244,0.92)"/>
+                    <rect class="card-right" x="6" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="rgba(240,240,244,0.92)"/>
+                </svg>
+            </button>
+            <button class="toggle-btn" data-view="grid" title="Grid view">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <rect class="grid-tl" x="2" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                    <rect class="grid-tr" x="10" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                    <rect class="grid-bl" x="2" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                    <rect class="grid-br" x="10" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Grid view overlay -->
+    <div id="grid-view">
+        <div id="grid-hero">
+            <div class="gh-reveal-mask" id="gh-reveal-mask"><div class="gh-reveal-inner">
+            <p class="gh-greeting">Hey I'm <span class="gh-typewriter" id="gh-typewriter"></span><span class="gh-typewriter-cursor"></span>,</p>
+            <p class="gh-statement"><span class="gh-connector">I treat my</span>
+                <span class="gh-boxed">designs<span class="gh-handle tl"></span><span class="gh-handle tr"></span><span class="gh-handle bl"></span><span class="gh-handle br"></span></span>
+                <span class="gh-connector">like playing with</span>
+                <span class="gh-art">cards<svg class="gh-doodle gh-green gh-green-1" viewBox="0 0 19 20" aria-hidden="true"><path d="M6.53084 0.0665563C16.1752 1.15882 19.3384 11.2093 18.7553 15.0663C16.8223 17.4924 12.0184 5.78142 3.32126 6.49243C-1.91957 6.92088 -1.03682 -0.790509 6.53084 0.0665563Z" fill="#00D343"/></svg><svg class="gh-doodle gh-green gh-green-2" viewBox="0 0 19 20" aria-hidden="true"><path d="M4.43367 9.69887C10.4996 10.0001 14.8588 14.219 15 17.0001C14.0277 18.96 8.94587 12.9658 3.15268 14.6331C-0.33826 15.6378 -0.822394 9.43785 4.43367 9.69887Z" fill="#00D343"/></svg><svg class="gh-doodle gh-orange" viewBox="0 0 51 26" fill="none" aria-hidden="true"><path d="M1.5 21.5C5.34588 14.5742 18.1301 0.882322 38.5 1.52163" stroke="#F5B846" stroke-width="3" stroke-linecap="round"/><path d="M17.6291 15.9956C22.0879 12.0775 34.639 5.62319 49.173 11.1502" stroke="#F5B846" stroke-width="3" stroke-linecap="round"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-bottom" viewBox="0 0 8 8" fill="none" aria-hidden="true"><circle cx="4" cy="4" r="3" stroke="#F54672"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-middle" viewBox="0 0 7 7" fill="none" aria-hidden="true"><circle cx="3.5" cy="3.5" r="2.5" stroke="#F54672"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-top" viewBox="0 0 7 7" aria-hidden="true"><circle cx="3.5" cy="3.5" r="2.5" fill="#F54672"/></svg><svg class="gh-squiggle" viewBox="0 0 100 16" aria-hidden="true"><path d="M2,9 Q10,1 18,9 T34,9 T50,9 T66,9 T82,9 T98,9"/></svg></span>,
+                <span class="gh-connector">with</span><span class="gh-sel-pink"> intentionality,</span><span class="gh-sel-green"> playfulness, and</span><span class="gh-sel-orange"> the desire to challenge.</span>
+                <span class="gh-muted"><span class="gh-muted-text">Previously shuffling pixels around at BMW Designwork</span><span class="gh-card-hover"><span class="gh-card-icon-stack"><img class="gh-end-icon" src="./assets/card.svg" alt=""><span class="gh-card-tooltip-icon"><span class="gh-card-tooltip-card back"></span><span class="gh-card-tooltip-card front"></span></span></span><a class="gh-card-label" href="mailto:jenniferhuang724@163.com">Shuffling up something? Get in touch!</a></span></span>
+            </p>
+            </div></div>
+        </div>
+        <div class="grid-container">
+            <a class="grid-card" href="#" data-coming-soon>
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp" alt="BMW Designworks">
+                    <span class="grid-card-number">#006</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">BMW Designworks<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">Product Design Internship across B2B, SAS, consumer, and more at BMW Designworks</p>
+                </div>
+            </a>
+            <a class="grid-card" href="#" data-coming-soon>
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp" alt="Nenos Inc.">
+                    <span class="grid-card-number">#007</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">Nenos Inc.<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">Design Manager working with 7 designers to design the Places feature in a B2C product, from ideation to handoff</p>
+                </div>
+            </a>
+            <a class="grid-card" href="https://hfyj-art.com/puregym">
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/image/puregym.gif" alt="PureGym">
+                    <span class="grid-card-number">#003</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">PureGym<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">Recognize, understand, research, and iterate</p>
+                </div>
+            </a>
+            <a class="grid-card" href="https://hfyj-art.com/clarusai">
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/image/clarus.gif" alt="Clarus AI" loading="lazy">
+                    <span class="grid-card-number">#002</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">Clarus AI<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">An interactive way to recognize AI energy consumption</p>
+                </div>
+            </a>
+            <a class="grid-card" href="https://hfyj-art.com/povi">
+                <div class="grid-card-image grid-card-image--padded">
+                    <img src="https://jhfyj.github.io/New-Website-Code/image/POVI.gif" alt="POVI">
+                    <span class="grid-card-number">#004</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">POVI<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">Speculative design that reimagines the future of wearable technology</p>
+                </div>
+            </a>
+            <!-- TODO: swap image src once the-dial.gif is provided -->
+            <a class="grid-card" href="https://hfyj-art.com/the-dial">
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/image/the-dial.gif" alt="The Dial">
+                    <span class="grid-card-number">#005</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">The Dial<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc grid-card-desc--accent-blue">Open Doors x Framer Challenge</p>
+                </div>
+            </a>
+            <a class="grid-card" href="https://hfyj-art.com/techatnyu">
+                <div class="grid-card-image">
+                    <img src="https://jhfyj.github.io/New-Website-Code/image/tech.gif" alt="tech@nyu">
+                    <span class="grid-card-number">#001</span>
+                </div>
+                <div class="grid-card-info">
+                    <h3 class="grid-card-title">tech@nyu<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
+                    <p class="grid-card-desc">Redefining not just a brand, but a vision</p>
+                </div>
+            </a>
+        </div>
+
+        <footer id="grid-footer">
+            <div class="gf-section gf-section--left">
+                <p class="gf-quote">"Life is like a game of cards. The hand you are dealt is determinism; the way you play it is free will."</p>
+                <p class="gf-quote-attr">— Jawaharlal Nehru</p>
+                <div class="gf-times">
+                    <div class="gf-time"><span class="gf-time-value" data-tz="America/New_York">--:--:--</span><span class="gf-time-city">NEW YORK</span></div>
+                    <div class="gf-time"><span class="gf-time-value" data-tz="America/Los_Angeles">--:--:--</span><span class="gf-time-city">LOS ANGELES</span></div>
+                    <div class="gf-time"><span class="gf-time-value" data-tz="Asia/Shanghai">--:--:--</span><span class="gf-time-city">CHENGDU</span></div>
+                </div>
+                <div class="gf-status-block">
+                    <p class="gf-status">SHOUTOUT TO POKEMON TCG</p>
+                    <p class="gf-updated">Last updated --</p>
+                </div>
+            </div>
+
+            <div class="gf-section gf-section--right">
+                <nav class="gf-col gf-col--nav">
+                    <a class="gf-nav-link" href="#" data-action="home">HOME</a>
+                    <a class="gf-nav-link" href="#" data-action="project">PROJECT</a>
+                    <a class="gf-nav-link" href="https://hfyj-art.com/sketchbook" data-card-index="1">SKETCHBOOK</a>
+                    <a class="gf-nav-link" href="https://hfyj-art.com/aboutme"    data-card-index="0">ABOUT</a>
+                </nav>
+
+                <div class="gf-col gf-col--contact">
+                    <div class="gf-contact-group">
+                        <p class="gf-contact-prompt">Have an idea? Let's chat!</p>
+                        <a class="gf-email" href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com</a>
+                    </div>
+                    <div class="gf-socials">
+                        <a class="gf-social social-link" href="#" parent-href="https://www.instagram.com/_hfyj_art/" title="Instagram"><img src="./Icon/Instagram.svg" width="18" height="18" alt=""></a>
+                        <a class="gf-social social-link" href="#" parent-href="https://docs.google.com/document/d/1VFvkLfi2TPt2vQzcCVAwY3iL0IkAyuJzTHCABYqLN80/edit?usp=sharing" title="Resume"><img src="./Icon/Document.svg" width="18" height="18" alt=""></a>
+                        <a class="gf-social social-link" href="#" parent-href="https://www.linkedin.com/in/jennifer-huang-30a8b3246/" title="LinkedIn"><img src="./Icon/Linkedin.svg" width="18" height="18" alt=""></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scrubber: card name + tick-track at bottom-right -->
+    <div id="scrubber">
+        <div id="scrubber-label">Placeholder</div>
+        <div id="scrubber-track-wrap">
+            <div id="scrubber-track"></div>
+            <div id="scrubber-playhead"></div>
+        </div>
+    </div>
+
+    <!-- Floating social buttons: replace the data-href values with your links -->
+    <div id="social-links" aria-label="Social links">
+        <a class="social-link" href="#" parent-href="https://www.instagram.com/_hfyj_art/" title="Instagram" rel="noopener noreferrer">
+            <img src="./Icon/Instagram.svg" width="18" height="18" aria-hidden="true">
+        </a>
+        <a class="social-link" href="#" parent-href="https://docs.google.com/document/d/1VFvkLfi2TPt2vQzcCVAwY3iL0IkAyuJzTHCABYqLN80/edit?usp=sharing" title="Save" rel="noopener noreferrer">
+            <img src="./Icon/Document.svg" width="18" height="18" aria-hidden="true">
+        </a>
+        <a class="social-link" href="#" parent-href="https://www.linkedin.com/in/jennifer-huang-30a8b3246/" title="LinkedIn" rel="noopener noreferrer">
+            <img src="./Icon/Linkedin.svg" width="18" height="18" aria-hidden="true">
+        </a>
+    </div>
+
+    <script type="module" src="./script.js"></script>
+</body>
+</html>

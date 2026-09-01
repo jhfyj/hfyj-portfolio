@@ -1,8 +1,23 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+// ── Theme (light ↔ dark) ──────────────────────────────────────────────────────
+const THEME_KEY = 'theme';
+function getStoredTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+}
+let currentTheme = getStoredTheme();
+document.documentElement.setAttribute('data-theme', currentTheme);
+
+const THEME_COLORS = {
+    light: { fog: 0xFCFCFE, accent: '#5E81E2', cardBg: '#f8f8f8' },
+    dark:  { fog: 0x121212, accent: '#FFFA50', cardBg: '#373737' },
+};
+
 // Scene
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xFCFCFE, 3, 7); // subtle fog — back cards fade toward bg color
+scene.fog = new THREE.Fog(THEME_COLORS[currentTheme].fog, 3, 7); // subtle fog — back cards fade toward bg color
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const cardgroup = new THREE.Group();
@@ -339,12 +354,12 @@ cursorStyle.textContent = `
     top: 0;
     transform: translate(-50%, -50%);
     padding: 9px 20px;
-    background: rgba(240, 240, 244, 0.45);
+    background: rgba(var(--panel-rgb), 0.45);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(40, 40, 40, 0.12);
+    border: 1px solid rgba(var(--ink-rgb), 0.12);
     border-radius: 999px;
-    color: #282828;
+    color: var(--t1);
     font-family: "DM Sans", system-ui, sans-serif;
     font-size: 13px;
     letter-spacing: 0.8px;
@@ -366,7 +381,7 @@ cursorStyle.textContent = `
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #2C2C2C;
+    background: var(--t1);
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 999999;
@@ -484,13 +499,90 @@ function easeOutCubicInverse(y) {
 const texLoader = new THREE.TextureLoader();
 texLoader.crossOrigin = 'anonymous';
 
-// Pre-load shared card back texture — resolves as a promise so card loaders can await it
-const backTexturePromise = new Promise((resolve) => {
-    texLoader.load("https://jhfyj.github.io/New-Website-Code/Cards/back.jpg", (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        resolve(tex);
+// ── Card back texture (theme-aware, drawn procedurally) ──────────────────────
+// Mirrors the Figma card-back frames: light bg + blue border in light mode,
+// dark bg + yellow border in dark mode, with the HFYJ mark recolored to match.
+const CARD_BACK_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame
+const CARD_BACK_SCALE = 2;
+
+const hfyjMarkImg = new Image();
+hfyjMarkImg.src = './assets/hfyj-mark.svg';
+const hfyjMarkReady = new Promise((resolve) => { hfyjMarkImg.onload = resolve; });
+
+// Recolors a same-shape image by compositing a solid fill through its alpha —
+// lets one logo asset serve both the blue (light) and yellow (dark) card backs.
+function tintedImage(img, w, h, color) {
+    const off = document.createElement('canvas');
+    off.width = w;
+    off.height = h;
+    const octx = off.getContext('2d');
+    octx.drawImage(img, 0, 0, w, h);
+    octx.globalCompositeOperation = 'source-in';
+    octx.fillStyle = color;
+    octx.fillRect(0, 0, w, h);
+    return off;
+}
+
+function makeCardBackTexture(theme) {
+    const s = CARD_BACK_SCALE;
+    const w = CARD_BACK_DESIGN.w * s, h = CARD_BACK_DESIGN.h * s;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const { cardBg, accent } = THEME_COLORS[theme];
+    const outerR = 36 * s;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, outerR);
+    ctx.clip();
+    ctx.fillStyle = cardBg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    // Thin outer edge, matching the Figma frame's 1px black border
+    ctx.beginPath();
+    ctx.roundRect(0.5 * s, 0.5 * s, w - s, h - s, outerR);
+    ctx.lineWidth = s;
+    ctx.strokeStyle = '#000';
+    ctx.stroke();
+
+    // Thick inset accent border
+    const borderW = 25 * s;
+    const inset = 23 * s + borderW / 2;
+    ctx.beginPath();
+    ctx.roundRect(inset, inset, w - inset * 2, h - inset * 2, 24 * s);
+    ctx.lineWidth = borderW;
+    ctx.strokeStyle = accent;
+    ctx.stroke();
+
+    // Centered HFYJ mark, tinted to the accent color
+    const logoSize = 437 * s;
+    const logo = tintedImage(hfyjMarkImg, logoSize, logoSize, accent);
+    ctx.drawImage(logo, (w - logoSize) / 2, (h - logoSize) / 2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return tex;
+}
+
+// Every back-face material currently in the scene, so toggling the theme can
+// swap their texture live instead of only affecting cards created afterward.
+const cardBackMaterials = [];
+
+function updateCardBackTexture(theme) {
+    if (!hfyjMarkImg.complete) return; // not loaded yet — the initial texture below already awaits it
+    const tex = makeCardBackTexture(theme);
+    cardBackMaterials.forEach((mat) => {
+        mat.map = tex;
+        mat.needsUpdate = true;
     });
-});
+}
+
+// Pre-load shared card back texture — resolves as a promise so card loaders can await it
+const backTexturePromise = hfyjMarkReady.then(() => makeCardBackTexture(currentTheme));
 
 // Page URLs for each card — edit these to match your Framer pages
 const CARD_URLS = [
@@ -645,6 +737,7 @@ function _placeCard(i, group) {
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -0.001;
         group.add(backMesh);
+        cardBackMaterials.push(mat);
     });
 
     cards[i] = group;
@@ -1837,6 +1930,19 @@ window.addEventListener('keydown', (e) => {
         const idx = front.userData.cardIndex;
         if (!COMING_SOON_INDICES.has(idx)) window.open(CARD_URLS[idx], '_top');
     }
+});
+
+// ── Theme toggle (light ↔ dark) ───────────────────────────────────────────────
+function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+    scene.fog.color.set(THEME_COLORS[theme].fog);
+    updateCardBackTexture(theme);
+}
+
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 });
 
 // ── View toggle (cards ↔ grid) ───────────────────────────────────────────────

@@ -16,9 +16,31 @@
 }
 
 :root {
+  --bg: #FCFCFE;
+  --bg-alt: #F7F7F7;
+  --surface: #ffffff;
+  --placeholder: #e0e0e0;
+  --ink-rgb: 40,40,40;
+  --panel-rgb: 240,240,244;
   --t1: #282828;   /* primary text */
   --t2: #6b6b6b;   /* secondary text — a little less black */
   --t3: #a8a8ac;   /* tertiary / disabled text */
+  --accent: #5E81E2;
+  --accent-tint: #C7D2FE;
+}
+
+:root[data-theme="dark"] {
+  --bg: #121212;
+  --bg-alt: #181818;
+  --surface: #2a2a2a;
+  --placeholder: #333333;
+  --ink-rgb: 255,255,255;
+  --panel-rgb: 40,40,44;
+  --t1: #f2f2f2;
+  --t2: #a8a8a8;
+  --t3: #6b6b6b;
+  --accent: #FFFA50;
+  --accent-tint: #6b6a2c;
 }
 
 body {
@@ -28,8 +50,8 @@ body {
 
   margin: 0;
   overflow-x: hidden;
-  background-color: #FCFCFE;
-  color: #282828;
+  background-color: var(--bg);
+  color: var(--t1);
   line-height: 24px;
 }
 
@@ -101,7 +123,7 @@ canvas.threejs {
   position: absolute;
   width: 50%;
   height: 50%;
-  background: #FCFCFE;
+  background: var(--bg);
 
   opacity: 1;
   transform: scale(1);
@@ -183,7 +205,7 @@ canvas.threejs {
   font-size: clamp(18px, 2vw, 26px);
   font-weight: 700;
   line-height: 1.35;
-  color: #282828;
+  color: var(--t1);
   margin: 0;
 }
 
@@ -191,12 +213,12 @@ canvas.threejs {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: clamp(14px, 1.25vw, 24px);
   line-height: 1.65;
-  color: rgba(40,40,40,0.70);
+  color: rgba(var(--ink-rgb),0.70);
   margin: 2px 2px 14px;
 }
 
 .panel-bio strong {
-  color: #282828;
+  color: var(--t1);
   font-weight: 700;
 }
 
@@ -205,9 +227,9 @@ canvas.threejs {
   font-size: 10px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: rgba(40,40,40,0.40);
+  color: rgba(var(--ink-rgb),0.40);
   margin: 0 0 16px;
-  border-top: 1px solid rgba(40,40,40,0.10);
+  border-top: 1px solid rgba(var(--ink-rgb),0.10);
   padding-top: 24px;
 }
 
@@ -225,7 +247,7 @@ canvas.threejs {
   filter: grayscale(1);
 }
 
-.highlight { color: #282828; font-weight: 700; }
+.highlight { color: var(--t1); font-weight: 700; }
 
 
 #social-links {
@@ -248,9 +270,9 @@ canvas.threejs {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(40,40,40,0.04);
+  background: rgba(var(--ink-rgb),0.04);
   border-radius: 8px;
-  color: #282828;
+  color: var(--t1);
   transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
   text-align: center;
   cursor: pointer;
@@ -259,8 +281,8 @@ canvas.threejs {
 .social-link svg { width: 18px; height: 18px; display: block; }
 
 .social-link:hover {
-  background: rgba(40, 40, 40, 0.10);
-  border-color: rgba(40, 40, 40, 0.2);
+  background: rgba(var(--ink-rgb), 0.10);
+  border-color: rgba(var(--ink-rgb), 0.2);
   transform: translateY(-3px);
 }
 
@@ -307,7 +329,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   font-weight: 400;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: rgba(40,40,40,0.60);
+  color: rgba(var(--ink-rgb),0.60);
   width: 280px;
   text-align: center;
   transition: color 250ms ease;
@@ -319,10 +341,10 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   width: 280px;
   border-radius: 14px;
   overflow: hidden;
-  background: rgba(240,240,244,0.90);
+  background: rgba(var(--panel-rgb),0.90);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(40,40,40,0.10);
+  border: 1px solid rgba(var(--ink-rgb),0.10);
   cursor: grab;
   -webkit-mask-image: linear-gradient(to right,
     transparent 0%,
@@ -363,7 +385,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   left: 50%;
   width: 2px;
   transform: translateX(-50%);
-  background: rgba(40,40,40,0.85);
+  background: rgba(var(--ink-rgb),0.85);
   border-radius: 2px;
   pointer-events: none;
   z-index: 3;
@@ -372,12 +394,12 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
 .scrubber-tick {
   width: 2px;
   border-radius: 2px;
-  background: rgba(40,40,40,0.35);
+  background: rgba(var(--ink-rgb),0.35);
   flex-shrink: 0;
 }
 
 .scrubber-tick.active {
-  background: rgba(40,40,40,0.75);
+  background: rgba(var(--ink-rgb),0.75);
 }
 
 
@@ -472,7 +494,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
 #black-overlay {
   position: fixed;
   inset: 0;
-  background: #FCFCFE;
+  background: var(--bg);
   z-index: 9999;
   opacity: 1;
   pointer-events: none;
@@ -537,7 +559,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
 
 /* highlight words */
 .highlight {
-  color: #282828;
+  color: var(--t1);
 }
 
 #directions{
@@ -552,7 +574,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   padding: 14px 22px;
   border-radius: 999px;
 
-  background: rgba(240,240,244,0.75);
+  background: rgba(var(--panel-rgb),0.75);
   backdrop-filter: blur(10px);
 
   opacity: 0;
@@ -576,7 +598,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
 }
 
 #directions .dir-text{
-  color: #282828;
+  color: var(--t1);
   font-family: "DM Sans", system-ui, sans-serif;
   font-size: 18px;
   letter-spacing: 0.2px;
@@ -610,10 +632,10 @@ canvas.threejs {
   top: 0;
   transform: translate(-50%, -50%);
   padding: 9px 20px;
-  background: rgba(240, 240, 244, 0.85);
-  border: 1px solid rgba(40, 40, 40, 0.12);
+  background: rgba(var(--panel-rgb), 0.85);
+  border: 1px solid rgba(var(--ink-rgb), 0.12);
   border-radius: 999px;
-  color: #282828;
+  color: var(--t1);
   font-family: "DM Sans", system-ui, sans-serif;
   font-size: 13px;
   letter-spacing: 0.8px;
@@ -634,7 +656,7 @@ canvas.threejs {
 #loader {
   position: fixed;
   inset: 0;
-  background: #FCFCFE;
+  background: var(--bg);
   z-index: 1000000;
   display: flex;
   flex-direction: column;
@@ -658,9 +680,9 @@ canvas.threejs {
 .shuffle-card {
   position: absolute;
   inset: 0;
-  border: 1.5px solid #282828;
+  border: 1.5px solid var(--t1);
   border-radius: 7px;
-  background: #FCFCFE;
+  background: var(--bg);
   animation: card-shuffle 1.8s ease-in-out infinite;
 }
 
@@ -670,10 +692,10 @@ canvas.threejs {
   position: absolute;
   inset: 4px;
   border-radius: 4px;
-  border: 1px solid rgba(40, 40, 40, 0.35);
+  border: 1px solid rgba(var(--ink-rgb), 0.35);
   background:
-    repeating-linear-gradient(45deg,  rgba(40, 40, 40, 0.25) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(-45deg, rgba(40, 40, 40, 0.25) 0 1px, transparent 1px 5px);
+    repeating-linear-gradient(45deg,  rgba(var(--ink-rgb), 0.25) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(var(--ink-rgb), 0.25) 0 1px, transparent 1px 5px);
 }
 
 .shuffle-card:nth-child(1) { animation-delay: 0s; }
@@ -698,7 +720,7 @@ canvas.threejs {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: rgba(40, 40, 40, 0.55);
+  color: rgba(var(--ink-rgb), 0.55);
   letter-spacing: 0.3px;
   line-height: 1.5;
   /* Balances wrapped line widths so the top and bottom lines read as even,
@@ -710,7 +732,7 @@ canvas.threejs {
   width: 140px;
   height: 3px;
   border-radius: 999px;
-  background: rgba(40, 40, 40, 0.12);
+  background: rgba(var(--ink-rgb), 0.12);
   overflow: hidden;
 }
 
@@ -718,7 +740,7 @@ canvas.threejs {
   width: 0%;
   height: 100%;
   border-radius: 999px;
-  background: rgba(40, 40, 40, 0.55);
+  background: rgba(var(--ink-rgb), 0.55);
   transition: width 0.15s linear;
 }
 
@@ -754,14 +776,22 @@ canvas.threejs {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: rgba(40, 40, 40, 0.50);
+  color: rgba(var(--ink-rgb), 0.50);
   text-decoration: none;
   letter-spacing: 0.3px;
   transition: color 200ms ease;
 }
 
 .nav-link:hover {
-  color: #282828;
+  color: var(--t1);
+}
+
+/* ── Nav controls (view toggle + theme toggle) ── */
+#nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
 }
 
 /* ── View toggle ── */
@@ -769,11 +799,48 @@ canvas.threejs {
   display: flex;
   align-items: center;
   gap: 0;
-  background: rgba(240, 240, 244, 0.92);
-  border: 1px solid rgba(40, 40, 40, 0.08);
+  background: rgba(var(--panel-rgb), 0.92);
+  border: 1px solid rgba(var(--ink-rgb), 0.08);
   border-radius: 12px;
   padding: 4px 4px;
   pointer-events: auto;
+}
+
+/* ── Theme toggle ── */
+#theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(var(--ink-rgb), 0.08);
+  border-radius: 12px;
+  background: rgba(var(--panel-rgb), 0.92);
+  color: rgba(var(--ink-rgb), 0.6);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+#theme-toggle:hover {
+  color: rgba(var(--ink-rgb), 0.9);
+}
+
+#theme-icon-sun,
+#theme-icon-moon {
+  display: none;
+}
+
+:root #theme-icon-sun {
+  display: block;
+}
+
+:root[data-theme="dark"] #theme-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] #theme-icon-moon {
+  display: block;
 }
 
 .toggle-btn {
@@ -785,19 +852,19 @@ canvas.threejs {
   border: none;
   border-radius: 9px;
   background: transparent;
-  color: rgba(40, 40, 40, 0.35);
+  color: rgba(var(--ink-rgb), 0.35);
   cursor: pointer;
   overflow: visible;
   transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease;
 }
 
 .toggle-btn:hover {
-  color: rgba(40, 40, 40, 0.6);
+  color: rgba(var(--ink-rgb), 0.6);
 }
 
 .toggle-btn.active {
-  background: #fff;
-  color: rgba(40, 40, 40, 0.7);
+  background: var(--surface);
+  color: rgba(var(--ink-rgb), 0.7);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -851,7 +918,7 @@ canvas.threejs {
   position: fixed;
   inset: 0;
   z-index: 99998;
-  background: #FCFCFE;
+  background: var(--bg);
   overflow-y: auto;
   opacity: 0;
   pointer-events: none;
@@ -878,7 +945,7 @@ canvas.threejs {
   display: none;
   top: 0;
   height: 120px;
-  background: linear-gradient(to bottom, #FCFCFE 35%, transparent 100%);
+  background: linear-gradient(to bottom, var(--bg) 35%, transparent 100%);
 }
 
 @media (max-width: 1160px) {
@@ -944,7 +1011,7 @@ canvas.threejs {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: clamp(0.875em, 2.8vw, 1.5rem);
   font-weight: 500;
-  color: #282828;
+  color: var(--t1);
   line-height: 1.25;
   margin: 0;
   max-width: 1200px;
@@ -962,7 +1029,7 @@ canvas.threejs {
 .gh-muted {
   display: block;
   margin-top: 0.35em;
-  color: rgba(40, 40, 40, 0.35);
+  color: rgba(var(--ink-rgb), 0.35);
   font-weight: 300;
   font-size: clamp(0.825rem, 1.75vw, 1.125rem);
 }
@@ -1010,7 +1077,7 @@ canvas.threejs {
   /* drop-shadow (not box-shadow) so it follows the two cards' own alpha
      shape in the SVG instead of casting a shadow around the <img>'s full
      rectangular bounding box. */
-  filter: drop-shadow(0 1px 2px rgba(40, 40, 40, 0.2));
+  filter: drop-shadow(0 1px 2px rgba(var(--ink-rgb), 0.2));
 }
 
 /* Hovering the card morphs it in place into the shuffling two-card icon and
@@ -1086,7 +1153,7 @@ canvas.threejs {
   overflow: hidden;
   white-space: nowrap;
   opacity: 0;
-  color: #5E81E2;
+  color: var(--accent);
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -1117,12 +1184,12 @@ canvas.threejs {
 }
 
 .gh-card-tooltip-card.back {
-  background: #C7D2FE;
+  background: var(--accent-tint);
   animation: gh-tooltip-shuffle-back 1.8s ease-in-out infinite;
 }
 
 .gh-card-tooltip-card.front {
-  background: #5E81E2;
+  background: var(--accent);
   animation: gh-tooltip-shuffle-front 1.8s ease-in-out infinite;
 }
 
@@ -1162,7 +1229,7 @@ canvas.threejs {
      normal unitless line-height that scales down with the smaller font, so
      the box doesn't keep its full-size vertical padding around tiny text. */
   line-height: calc(1.2 / max(var(--gh-scale, 1), 1));
-  box-shadow: 0 0 0 2px #5E81E2;
+  box-shadow: 0 0 0 2px var(--accent);
   border-radius: 4px;
   /* em, not px, so the text-to-border gap scales with the word instead of
      staying a fixed 6px that looks huge once the text shrinks. */
@@ -1177,8 +1244,8 @@ canvas.threejs {
   position: absolute;
   width: 6px;
   height: 6px;
-  background: #fff;
-  border: 1.75px solid #5E81E2;
+  background: var(--surface);
+  border: 1.75px solid var(--accent);
   border-radius: 1px;
   pointer-events: none;
 }
@@ -1229,7 +1296,7 @@ html.gh-handle-drag .gh-handle.br::before {
   font-family: 'Caveat', cursive;
   font-weight: 600;
   font-size: 1.5em;
-  color: #5E81E2;
+  color: var(--accent);
   vertical-align: -0.05em;
   margin-right: 6px;
 }
@@ -1322,7 +1389,7 @@ html.gh-handle-drag .gh-handle.br::before {
 }
 .gh-squiggle path {
   fill: none;
-  stroke: #5E81E2;
+  stroke: var(--accent);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 120;
@@ -1434,7 +1501,7 @@ html.gh-handle-drag .gh-handle.br::before {
   width: 1em;
   height: 1em;
   font-size: clamp(0.875rem, 1.2vw, 0.9375rem);
-  color: #5e81e2;
+  color: var(--accent);
   margin-left: auto;
   align-self: center;
 }
@@ -1445,7 +1512,7 @@ html.gh-handle-drag .gh-handle.br::before {
   width: 100%;
   min-width: 0;
   aspect-ratio: 5 / 3;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.06);
@@ -1484,7 +1551,7 @@ html.gh-handle-drag .gh-handle.br::before {
   width: 100%;
   min-width: 0;
   aspect-ratio: 16 / 9;
-  background: #e0e0e0;
+  background: var(--placeholder);
   border-radius: 12px;
   overflow: hidden;
   transition: transform 250ms ease;
@@ -1528,7 +1595,7 @@ html.gh-handle-drag .gh-handle.br::before {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: inherit;
   font-weight: 500;
-  color: #282828;
+  color: var(--t1);
   margin: 0;
   line-height: 1.25;
   height: 100%;
@@ -1570,7 +1637,7 @@ html.gh-handle-drag .gh-handle.br::before {
 }
 
 .grid-card-desc--accent-blue {
-  color: #5E81E2;
+  color: var(--accent);
 }
 
 /* Single-column mode (incl. mobile, where hover doesn't fire on touch): show both texts stacked + visible. */
@@ -1639,9 +1706,9 @@ html.gh-handle-drag .gh-handle.br::before {
   max-width: 85vw;
   margin: 0 auto;
   padding: 60px 0 80px;
-  border-top: 1px solid rgba(40, 40, 40, 0.08);
+  border-top: 1px solid rgba(var(--ink-rgb), 0.08);
   font-family: 'DM Sans', system-ui, sans-serif;
-  color: #282828;
+  color: var(--t1);
   box-sizing: border-box;
 }
 .gf-section--left  { display: flex; flex-direction: column; gap: 0.5rem; max-width: 460px; flex: 0 1 auto; }
@@ -1653,29 +1720,29 @@ html.gh-handle-drag .gh-handle.br::before {
 #grid-view.visible ~ #social-links { display: none !important; }
 .gf-col { display: flex; flex-direction: column; gap: 0.5rem; }
 
-.gf-quote { font-size: clamp(0.75rem, 1vw, 0.875rem); font-style: italic; line-height: 1.5; margin: 0; color: rgba(40,40,40,0.75); }
+.gf-quote { font-size: clamp(0.75rem, 1vw, 0.875rem); font-style: italic; line-height: 1.5; margin: 0; color: rgba(var(--ink-rgb),0.75); }
 .gf-quote-attr {
   font-family: 'Caveat', cursive;
   font-size: 1.125rem;
   font-weight: 500;
   margin: 0.25rem 0 0.75rem;
-  color: rgba(40,40,40,0.55);
+  color: rgba(var(--ink-rgb),0.55);
 }
 .gf-times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0.25rem 0 0.75rem; }
 .gf-time { display: flex; flex-direction: column; gap: 2px; }
-.gf-time-value { font-size: 0.875rem; font-variant-numeric: tabular-nums; color: #282828; }
-.gf-time-city { font-size: 0.625rem; letter-spacing: 0.5px; color: rgba(40,40,40,0.45); }
+.gf-time-value { font-size: 0.875rem; font-variant-numeric: tabular-nums; color: var(--t1); }
+.gf-time-city { font-size: 0.625rem; letter-spacing: 0.5px; color: rgba(var(--ink-rgb),0.45); }
 .gf-status-block { display: flex; flex-direction: column; gap: 0rem; margin-top: 0.25rem; }
-.gf-status, .gf-updated { font-size: 0.625rem; letter-spacing: 0.5px; margin: 0; color: rgba(40,40,40,0.45); }
+.gf-status, .gf-updated { font-size: 0.625rem; letter-spacing: 0.5px; margin: 0; color: rgba(var(--ink-rgb),0.45); }
 .gf-updated { font-size: 0.5625rem; }
 
 .gf-col--nav { gap: 0.625rem; }
-.gf-nav-link { font-size: 0.75rem; letter-spacing: 1px; color: rgba(40,40,40,0.65); text-decoration: none; transition: color 150ms ease; cursor: pointer; }
-.gf-nav-link:hover { color: #282828; }
+.gf-nav-link { font-size: 0.75rem; letter-spacing: 1px; color: rgba(var(--ink-rgb),0.65); text-decoration: none; transition: color 150ms ease; cursor: pointer; }
+.gf-nav-link:hover { color: var(--t1); }
 
 .gf-contact-group { display: flex; flex-direction: column; gap: 0.125rem; margin-bottom: 0.5rem; }
-.gf-contact-prompt { font-size: 0.825rem; margin: 0; color: rgba(40,40,40,0.55); }
-.gf-email { font-size: 0.875rem; font-weight: 500; color: #282828; text-decoration: none; }
+.gf-contact-prompt { font-size: 0.825rem; margin: 0; color: rgba(var(--ink-rgb),0.55); }
+.gf-email { font-size: 0.875rem; font-weight: 500; color: var(--t1); text-decoration: none; }
 .gf-socials { display: flex; gap: 10px; }
 /* .gf-social inherits all styling (40x40, hover lift) from the .social-link
    class that's also applied to each icon. No further overrides needed here. */
@@ -1686,7 +1753,7 @@ html.gh-handle-drag .gh-handle.br::before {
     gap: 40px;
     padding: 40px 24px 2rem;
     max-width: none;
-    background: #F7F7F7;
+    background: var(--bg-alt);
   }
   .gf-section--right { flex-direction: row; gap: 48px; max-width: none; order: 0; }
   .gf-section--left { order: 1; }

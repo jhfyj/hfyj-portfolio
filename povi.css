@@ -1,0 +1,24 @@
+/* POVI case study — only what differs from the shared case-study components.
+   Components: case.css · chrome and type scale: site.css */
+
+:root {
+  --col: 717px;   /* the case-study column, measured off the Framer page at 1440 */
+}
+
+/* Meta column offsets measured off the original (Timeline 0, Team 184, Tools 388).
+   The fourth field, Event, wraps onto a second row under Timeline. Guarded so
+   it cannot outrank the stacked mobile grid in case.css, which this file would
+   otherwise win on source order alone. */
+@media (min-width: 761px) {
+  .meta { grid-template-columns: 184px 204px auto; gap: 18px 0; }
+}
+
+/* The hero clip is near-square rather than 16:9, letterboxed against black. */
+.hero-embed { --ratio: 0.976; }
+
+/* One clip runs narrower than the column and sits centred. */
+.inset {
+  width: 84.4%;   /* 605 of the 717 column, as measured */
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Dial — HFYJ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="the-dial.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="here">The Dial</span>
+    </div>
+    <div class="topbar-right">
+        <span>Interaction</span>
+        <span class="sep-lg">/</span>
+        <span>Competition</span>
+        <span class="sep-lg">/</span>
+        <span>Web Design</span>
+    </div>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Pinned table of contents; hidden once it would collide with the column. -->
+<aside id="toc" aria-label="Sections">
+    <a href="#context"><span class="suit">&spades;</span> CONTEXT</a>
+    <a href="#theask"><span class="suit">&hearts;</span> THE PROMPT</a>
+    <!-- the original's id really is mixed-case; kept so old links still land -->
+    <a href="#detailS"><span class="suit">&clubs;</span> THE DETAILS</a>
+    <a href="#gallery"><span class="suit">&diams;</span> GALLERY</a>
+    <a href="#process"><span class="suit">&spades;</span> PROCESS</a>
+    <a href="#reflections"><span class="suit">&hearts;</span> REFLECTIONS</a>
+</aside>
+
+<main class="case">
+
+    <header class="case-head">
+        <h1>The Dial</h1>
+        <p class="lede">Open Doors x Framer Student Challenge</p>
+
+        <!-- Four fields here, so the row wraps onto a second line. -->
+        <dl class="meta">
+            <div>
+                <dt>Timeline</dt>
+                <dd>June 2026</dd>
+            </div>
+            <div>
+                <dt>Team</dt>
+                <dd>Myself and a lot of coffee…</dd>
+            </div>
+            <div>
+                <dt>Tools</dt>
+                <dd>Framer, Figma, Claude</dd>
+            </div>
+            <div>
+                <dt>Award</dt>
+                <dd>1ST PLACE</dd>
+            </div>
+        </dl>
+    </header>
+
+    <!-- The hero clip carries its own light-grey surround; the ↗ opens the
+         live Framer site, as it does on the original. -->
+    <div class="frame frame-hero">
+        <video src="assets/the-dial/vid-01.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The Dial interaction, switching from light to dark mode"></video>
+        <a class="frame-link" href="https://the-dial.framer.website/" target="_blank" rel="noopener" data-cursor="open site" aria-label="Open the live site">&#8599;</a>
+    </div>
+
+    <section class="case-section" id="context">
+        <p class="eyebrow">Context</p>
+        <p class="statement">A competition submission that turned into something much more</p>
+        <p class="body-copy">1st place submission for the first <a class="accent" href="https://framer.opendoorscareers.com/" target="_blank" rel="noopener">Open Doors x Framer Challenge</a> revolved around the theme moments. We had a month to create any interaction on Framer that fit the theme. Rather than focusing on one interaction, I wanted to create an entire experience.</p>
+    </section>
+
+    <section class="case-section" id="theask">
+        <p class="eyebrow">THE PROMPT</p>
+        <p class="statement">MOMENTS: Express or capture one or multiple moments through an interaction</p>
+        <p class="body-copy">When I came across the moment, I thought to myself: how can I create something that express a moment by taking advantage of the unique advantages provided by working on a digital medium?</p>
+        <p class="body-copy">Inspired by <a class="accent" href="https://stripe.com/" target="_blank" rel="noopener">Stripe's landing page</a>, I wanted my interaction to be able to alter the moment as much as it can express it, and turning daytime into nighttime is something that is only possible on a digital screen.</p>
+        <figure class="shot">
+            <img src="assets/the-dial/img-01.png" alt="The planning mind map for The Dial, branching from the theme “moments”">
+        </figure>
+    </section>
+
+    <section class="case-section" id="detailS">
+        <p class="eyebrow">THE DETAILS✨</p>
+        <p class="body-copy">I wanted the daytime and nighttime interactions to feel completely different, but the small details are what separates the two. Switching between light mode and dark mode shouldn't just be a change in color; it should signify immersing the viewer in <span class="accent">two different worlds</span>, hence creating a moment in and of itself.</p>
+
+        <!-- Two halves of one image, butted together with no seam. -->
+        <div class="split">
+            <div class="card">
+                <video src="assets/the-dial/vid-02.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The daytime scene: sun and clouds"></video>
+                <p class="card-label">Daytime</p>
+            </div>
+            <div class="card is-dark">
+                <video src="assets/the-dial/vid-03.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The nighttime scene: stars and a shooting star"></video>
+                <p class="card-label">Night Time</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="case-section" id="gallery">
+        <p class="eyebrow">MICRO-INTERACTION GALLERY</p>
+
+        <!-- Two independent columns: the cards are different heights, so they
+             stagger rather than lining up in rows. -->
+        <div class="gallery">
+            <div class="gallery-col">
+                <div class="card">
+                    <video src="assets/the-dial/vid-04.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The icon switching animation"></video>
+                    <p class="card-label">Icon switching animation</p>
+                </div>
+                <div class="card">
+                    <video src="assets/the-dial/vid-06.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The custom cloud and shooting-star animation"></video>
+                    <p class="card-label">Custom Animation<span class="sub">Cloud for day, shooting star for night</span></p>
+                </div>
+            </div>
+            <div class="gallery-col">
+                <div class="card">
+                    <video src="assets/the-dial/vid-05.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The dial rotating between modes"></video>
+                    <p class="card-label">Dial Rotation</p>
+                </div>
+                <div class="card">
+                    <video src="assets/the-dial/vid-07.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The clock text changing with the hour"></video>
+                    <p class="card-label">Text Change<span class="sub">P.S. the text will change every hour depending on the time of day it is</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="case-section" id="process">
+        <p class="eyebrow">EXPLAINING THE PROCESS</p>
+        <p class="statement">The product is important, but so is the process</p>
+        <p class="body-copy">I made sure to include not just the interaction, but also the process on the website itself. Understanding the thought process, iterations, and explorations that went on under the cover is so important regardless of what you are designing: from a full-scale application down to a button.</p>
+        <p class="body-copy">In addition, the pop-up became an extension of the surface that allows the user another way to experience the interaction.</p>
+        <p class="body-copy">If you are curious, you can read about the process yourself on the <a class="accent" href="https://the-dial.framer.website/" target="_blank" rel="noopener">website</a>!</p>
+
+        <div class="embed process-embed">
+            <iframe src="https://www.youtube.com/embed/QRMyWW129xM?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=QRMyWW129xM"
+                    title="The Dial — walking through the process"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen loading="lazy"></iframe>
+        </div>
+    </section>
+
+    <section class="case-section" id="reflections">
+        <p class="eyebrow">REFLECTIONS</p>
+        <p class="statement">If I had more time: add sound🔊</p>
+        <p class="body-copy">Thank you so much to Florian and the Framer team for a wonderful experience. Working on this was a gradual process, with a lot of planning and continuously refining it over the course of a month.</p>
+        <p class="body-copy">If I had more time, I would love to explore sound design to make it a more comprehensive experience. Design is moving away fast from static screens into a whole experience that can touch different senses rather than just visual ones. I'm excited to keep exploring that direction as design continues to evolve.</p>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <!-- The slot holds the tilt; the card inside does the lift, so the two
+                 transforms never fight. data-cursor swaps the dot for a pill. -->
+            <div class="next-slot nc1">
+                <a class="next-card" href="puregym.html" data-cursor="open project">
+                    <img src="assets/cards/puregym.jpg" alt="Puregym Redesign">
+                </a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" href="povi.html" data-cursor="open project">
+                    <img src="assets/cards/povi.jpg" alt="POVI">
+                </a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+</body>
+</html>

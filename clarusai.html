@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clarus AI — HFYJ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="clarusai.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="here">Clarus Ai</span>
+    </div>
+    <div class="topbar-right">
+        <span>Installation</span>
+        <span class="sep-lg">/</span>
+        <span>UIUX</span>
+        <span class="sep-lg">/</span>
+        <span>Physical Computing</span>
+    </div>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Pinned table of contents; hidden once it would collide with the column. -->
+<aside id="toc" aria-label="Sections">
+    <a href="#context"><span class="suit">&spades;</span> CONTEXT</a>
+    <a href="#ideating"><span class="suit">&hearts;</span> IDEATING</a>
+    <a href="#prototyping"><span class="suit">&clubs;</span> PROTOTYPING</a>
+    <a href="#3dmodeling"><span class="suit">&diams;</span> 3D MODELING</a>
+    <a href="#process"><span class="suit">&spades;</span> PROCESS</a>
+    <a href="#interface"><span class="suit">&hearts;</span> INTERFACE</a>
+    <a href="#final"><span class="suit">&clubs;</span> FINAL</a>
+    <a href="#reflection"><span class="suit">&diams;</span> REFLECTIONS</a>
+</aside>
+
+<main class="case">
+
+    <header class="case-head">
+        <h1>Clarus AI</h1>
+        <p class="lede">An exploration of what it means to work for your energy</p>
+
+        <dl class="meta">
+            <div>
+                <dt>Timeline</dt>
+                <dd>September 2025 - December 2025</dd>
+            </div>
+            <div>
+                <dt>Team</dt>
+                <dd>Jiyoon</dd>
+            </div>
+            <div>
+                <dt>Tools</dt>
+                <dd>Arduino, Fabrication, Autocad, 3D Printing, Figma</dd>
+            </div>
+        </dl>
+    </header>
+
+    <!-- Hero is a YouTube embed on the original, letterboxed against black. -->
+    <div class="embed hero-embed">
+        <iframe src="https://www.youtube.com/embed/ehU53VefTDU?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=ehU53VefTDU"
+                title="Clarus AI — installation walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen loading="lazy"></iframe>
+    </div>
+
+    <section class="case-section" id="context">
+        <p class="eyebrow">Context</p>
+        <p class="statement">Using AI often feels as simple as typing a prompt and clicking a button... or at least that’s what we’ve come to expect.</p>
+        <p class="body-copy">With technology rapidly expanding, the energy required to sustain it grows alongside it. In response, my partner Jiyoon and I wanted to create an interactive installation that encourages participants to recognize the energy needed to generate the answer behind every AI prompt.</p>
+
+        <dl class="stats" style="--n: 3">
+            <div class="stat">
+                <dt>Median Energy Consumption per Prompt</dt>
+                <dd>0.24 watt-hours</dd>
+            </div>
+            <div class="stat">
+                <dt>Median Water Consumption per Prompt</dt>
+                <dd>0.26 milliliters of water</dd>
+            </div>
+            <div class="stat">
+                <dt>OpenAI receives</dt>
+                <dd>2.5 Billion Prompts</dd>
+            </div>
+        </dl>
+        <p class="source">Sources: <a href="https://www.extremetech.com/computing/chatgpt-receives-25-billion-prompts-per-day-openai-ceo-says" target="_blank" rel="noopener">Mit Technology Review, Extremetech</a></p>
+    </section>
+
+    <section class="case-section" id="ideating">
+        <p class="eyebrow">Sketching &amp; Ideating</p>
+        <p class="statement">Lots of sketches…</p>
+        <p class="body-copy">We slowly narrowed our focus, moving from broad ideas like sustainability and energy toward a clearer, more concrete direction. We landed on the idea of having the users generate energy themselves using three different types of mechanical movements, such as churning or pushing. The energy will be used to generate the responses for the LLM, providing insights as to the physical work behind every usage.</p>
+        <figure class="shot">
+            <img src="assets/clarusai/img-01.png" alt="A spread of hand sketches exploring the installation's mechanisms">
+        </figure>
+    </section>
+
+    <section class="case-section" id="prototyping">
+        <p class="eyebrow">Prototyping</p>
+        <p class="statement">3D print prototype, then cardboard, then actual parts</p>
+        <p class="body-copy">We first built a 3D model to check the dimension, overall balance, and the relative sizes. We then used carboard to build a rough prototype. After a couple of failed attempts, we had an exact template that we used to laser cut our frosted acrylic and wood panels.</p>
+        <figure class="shot">
+            <img src="assets/clarusai/img-02.png" alt="The 3D model, the cardboard mock-up and the laser-cut parts side by side">
+        </figure>
+    </section>
+
+    <section class="case-section" id="3dmodeling">
+        <p class="eyebrow">3D MODELING</p>
+        <p class="statement">Lots of Youtube tutorials...</p>
+        <p class="body-copy">I learned and experimented with Fusion360 from scratch. We incorporated springs and rubber bands to create resistance for the hand-powered linear-to-rotational movement mechanism.</p>
+        <!-- Three renders of different heights, sitting on a shared centre line. -->
+        <div class="media-row renders" style="--n: 3">
+            <img src="assets/clarusai/img-05.png" alt="Fusion360 render of the crank mechanism">
+            <img src="assets/clarusai/img-03.png" alt="Fusion360 render of the housing and gear assembly">
+            <img src="assets/clarusai/img-04.png" alt="Cutaway render of the internal gearing">
+        </div>
+    </section>
+
+    <section class="case-section" id="process">
+        <p class="eyebrow">Process Photos</p>
+        <p class="statement">Arduino, wiring, rotary motors, and serial communication</p>
+        <!-- One unbroken strip on the original: four photos butted edge to edge. -->
+        <div class="strip">
+            <img src="assets/clarusai/img-06.jpg" alt="The workbench mid-build">
+            <img src="assets/clarusai/img-07.jpg" alt="Laying out the laser-cut panels">
+            <img src="assets/clarusai/img-08.jpg" alt="The assembled housing">
+            <img src="assets/clarusai/img-09.jpg" alt="Arduino wiring and rotary motors">
+        </div>
+    </section>
+
+    <section class="case-section" id="interface">
+        <p class="eyebrow">INTERFACE</p>
+        <p class="statement">Building out the webpage/Clarus AI</p>
+        <p class="body-copy">Towards the end of the semester, we focused on designing the webpage. We took inspiration from existing AI tools, aiming for a clean UI while incorporating unique UX features such as a pop up for displaying the energy used to generate each response.</p>
+        <figure class="shot">
+            <img src="assets/clarusai/img-10.png" alt="The Clarus AI interface on a laptop: “What's on your mind today?”">
+        </figure>
+        <figure class="shot">
+            <img src="assets/clarusai/img-11.png" alt="The interface showing a generated response">
+        </figure>
+    </section>
+
+    <section class="case-section" id="final">
+        <p class="eyebrow">Final Documentation</p>
+        <p class="statement">Presenting our project at IMA/ITP Winter Show 2026</p>
+        <p class="body-copy">The response was overwhelmingly positive. Many people appreciated how we made the audience feel like they were earning their energy in a fun way, which helped make a serious topic more accessible. We also received valuable suggestions for further improving the project.</p>
+        <figure class="shot">
+            <img src="assets/clarusai/img-12.jpg" alt="The installation on show at the IMA/ITP Winter Show">
+        </figure>
+        <figure class="shot">
+            <img src="assets/clarusai/img-13.jpg" alt="A visitor turning the crank to generate energy">
+        </figure>
+        <figure class="shot">
+            <img src="assets/clarusai/img-14.jpg" alt="Visitors gathered around the installation">
+        </figure>
+        <figure class="shot">
+            <img src="assets/clarusai/img-15.jpg" alt="The installation lit up in the show space">
+        </figure>
+        <figure class="shot">
+            <img src="assets/clarusai/img-16.jpg" alt="A close view of the finished enclosure">
+        </figure>
+    </section>
+
+    <section class="case-section" id="reflection">
+        <p class="eyebrow">Reflection</p>
+        <p class="statement">If we were to take things one step further…</p>
+        <p class="body-copy">We would want to improve the Clarus.ai interface, allowing users to relate "words generated" and "energy used" to more familiar units (e.g., equivalent to lighting a bulb for 5 seconds or running a car engine for X amount of time).</p>
+        <p class="body-copy">This project has been incredibly rewarding, teaching me the <span class="mark">importance of prototyping and lo-fi testing</span> when working on large-scale projects. A special thanks to my partner, Jiyoon, for showing me the value of collaboration and how great teamwork can elevate a project.</p>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <!-- The slot holds the tilt; the card inside does the lift, so the two
+                 transforms never fight. data-cursor swaps the dot for a pill. -->
+            <div class="next-slot nc1">
+                <!-- /asba is not rebuilt yet, so this still points at the live site. -->
+                <a class="next-card" href="https://hfyj-art.com/asba" data-cursor="open project">
+                    <img src="assets/cards/asba.jpg" alt="ASBA">
+                </a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" href="povi.html" data-cursor="open project">
+                    <img src="assets/cards/povi.jpg" alt="POVI">
+                </a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+</body>
+</html>

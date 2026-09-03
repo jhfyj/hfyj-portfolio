@@ -1,0 +1,23 @@
+/* tech@nyu case study — only what differs from the shared case-study components.
+   Components: case.css · chrome and type scale: site.css */
+
+:root {
+  --col: 794px;   /* the case-study column, measured off the Framer page at 1440 */
+}
+
+/* Meta column offsets measured off the original (Timeline 0, Team 305, Tools 429).
+   Guarded so it cannot outrank the stacked mobile grid in case.css, which this
+   file would otherwise win on source order alone. */
+@media (min-width: 761px) {
+  .meta { grid-template-columns: 305px 124px auto; gap: 8px 0; }
+}
+
+/* Several sections carry more than one statement/eyebrow pair. This opens the
+   gap between those runs without reaching for another section wrapper. */
+.spaced { margin-top: 68px; }
+
+/* The beat between the two branding directions sits centred on the original. */
+.centered { text-align: center; }
+
+/* One paragraph in the restart section is set lighter than normal body copy. */
+.faint { color: var(--faint); }

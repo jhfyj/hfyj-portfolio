@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>POVI — HFYJ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="povi.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="here">POVI</span>
+    </div>
+    <div class="topbar-right">
+        <span>Product Design</span>
+        <span class="sep-lg">/</span>
+        <span>Mobile</span>
+        <span class="sep-lg">/</span>
+        <span>Competition</span>
+    </div>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Pinned table of contents; hidden once it would collide with the column. -->
+<aside id="toc" aria-label="Sections">
+    <a href="#context"><span class="suit">&spades;</span> CONTEXT</a>
+    <a href="#thebrainstorm"><span class="suit">&hearts;</span> BRAINSTORM</a>
+    <a href="#rapid-prototypes"><span class="suit">&clubs;</span> PROTOTYPES</a>
+    <a href="#thechallenges"><span class="suit">&diams;</span> CHALLENGES</a>
+    <a href="#finalproduct"><span class="suit">&spades;</span> FINAL PRODUCT</a>
+    <a href="#teamwork"><span class="suit">&hearts;</span> TEAMWORK</a>
+    <a href="#reflections"><span class="suit">&clubs;</span> REFLECTIONS</a>
+    <a href="#sidenote"><span class="suit">&diams;</span> SIDENOTE</a>
+</aside>
+
+<main class="case">
+
+    <header class="case-head">
+        <h1>POVI</h1>
+        <p class="lede">What does it mean to create speculative design for a technology that doesn't exist yet?</p>
+
+        <!-- Four fields here, so the row wraps onto a second line. -->
+        <dl class="meta">
+            <div>
+                <dt>Timeline</dt>
+                <dd>83 hours full grind</dd>
+            </div>
+            <div>
+                <dt>Team</dt>
+                <dd>Sean Hu, Enock Kim</dd>
+            </div>
+            <div>
+                <dt>Tools</dt>
+                <dd>Figma, Screen Studio, Capcut</dd>
+            </div>
+            <div>
+                <dt>Event</dt>
+                <dd>Figbuild 2026</dd>
+            </div>
+        </dl>
+    </header>
+
+    <!-- Hero is a YouTube embed on the original, letterboxed against black.
+         It does not autoplay there, so it keeps its poster and play button. -->
+    <div class="embed hero-embed">
+        <iframe src="https://www.youtube.com/embed/31NLlJ2n3mA?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;color=white"
+                title="POVI — Unlock Game Vision"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen loading="lazy"></iframe>
+    </div>
+
+    <section class="case-section" id="context">
+        <p class="eyebrow">Context</p>
+        <p class="statement">Figbuild 2026</p>
+        <p class="body-copy">This project was created for Figma's 2026 Figbuild. The prompt revolved around designing to measuring and augmenting one of the human senses in a way that was previously undoable. The project also had to cause positive behavioral change.</p>
+    </section>
+
+    <section class="case-section" id="thebrainstorm">
+        <p class="eyebrow">THE BRAINSTORM</p>
+        <p class="statement">Designing for Athletes</p>
+        <p class="body-copy">We wanted to create something speculative yet grounded in reality, which led us to VR/AR contact lenses. Choosing between a cooking and athletic use case, we combined our personal interest in sports with a key question: what can contact lenses do that glasses and phones can't?</p>
+        <figure class="shot">
+            <img src="assets/povi/img-01.png" alt="The FigJam brainstorm board covered in sticky notes">
+        </figure>
+    </section>
+
+    <section class="case-section" id="rapid-prototypes">
+        <p class="eyebrow">RAPID PROTOTYPES</p>
+        <p class="statement">Diving straight in</p>
+        <p class="body-copy">After getting the rough wireframe and the overall architecture of the app finalized, we dug straight into hi-fi.</p>
+        <div class="media-row" style="--n: 2">
+            <img src="assets/povi/img-02.png" alt="Paper wireframe sketches of the app">
+            <img src="assets/povi/img-03.png" alt="The app architecture laid out in Figma">
+        </div>
+    </section>
+
+    <section class="case-section" id="thechallenges">
+        <p class="eyebrow">THE CHALLENGE</p>
+        <p class="statement">How can we even begin to imagine, let alone design for, something that doesn't exist yet?</p>
+        <p class="body-copy">One of the main challenges we ran into was designing for the untraditional interface of contact lens. We had to consider it from multiple perspectives: 1. Accessibility 2. Eye strain 3. Inputs</p>
+        <figure class="shot">
+            <img src="assets/povi/img-04.jpg" alt="Studies of the contact-lens interface and its constraints">
+        </figure>
+    </section>
+
+    <section class="case-section" id="finalproduct">
+        <p class="eyebrow">FINAL PRODUCT</p>
+        <p class="statement">Introducing POVI</p>
+        <p class="body-copy">POVI is a smart contact lens built for athletes. It records first-person gameplay while tracking signals like focus, stress, and visual attention through pupil dilation, gaze direction, and blink rate. The companion app turns this data into insights, stats, and real-time performance feedback while also allowing users to modify what they see.</p>
+        <p class="body-copy">Check out our slide presentation <a class="accent" href="https://www.figma.com/deck/LUE9bmcGP2wKRaEX9FfnXy" target="_blank" rel="noopener">here</a></p>
+        <p class="body-copy">Try out part of our prototype <a class="accent" href="https://www.figma.com/proto/DQf7n7xX5fksE9quuQBmKO/FigBuild-2026?page-id=41%3A60&amp;node-id=378-700&amp;viewport=-1579%2C853%2C0.48&amp;t=MAHs476W0y9nfbmg-1&amp;scaling=scale-down&amp;content-scaling=fixed&amp;starting-point-node-id=454%3A947" target="_blank" rel="noopener">here</a></p>
+
+        <figure class="shot">
+            <img src="assets/povi/img-05.png" alt="POVI app screens: the session overview">
+        </figure>
+        <figure class="shot">
+            <img src="assets/povi/img-06.png" alt="POVI app screens: focus and stress tracking">
+        </figure>
+        <figure class="shot">
+            <img src="assets/povi/img-07.png" alt="POVI app screens: gameplay playback">
+        </figure>
+        <figure class="shot">
+            <img src="assets/povi/img-08.png" alt="POVI app screens: the in-lens display settings">
+        </figure>
+
+        <!-- Narrower than the column on the original, and centred. -->
+        <figure class="shot inset">
+            <video src="assets/povi/vid-01.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough of the POVI companion app"></video>
+        </figure>
+    </section>
+
+    <section class="case-section" id="teamwork">
+        <p class="eyebrow">TEAMWORK + cOLLABORATION</p>
+        <p class="statement">The Dream Team.</p>
+        <p class="body-copy">We all pitched in, gave it everything we had, and each brought our own strengths to the table. We learned so much from one another, exchanging feedback honestly and openly. It was truly a dream team.</p>
+        <figure class="shot">
+            <img src="assets/povi/img-09.png" alt="The team working together during the competition">
+        </figure>
+    </section>
+
+    <section class="case-section" id="reflections">
+        <p class="eyebrow">Reflection &amp; Outcome</p>
+        <p class="statement">Tiring and Worth it</p>
+        <p class="body-copy">We came out of the competition feeling like we built something that we are proud of. The process not only taught me so much technical skills, from RAPIDLY iterating on mobile to working with various tools, but also the importance of collaboration and dedication in teamwork. Beyond grateful again for Sean and Enoch. Glad we pulled this off together :)</p>
+    </section>
+
+    <section class="case-section" id="sidenote">
+        <p class="eyebrow">FUN SIDENOTE</p>
+        <p class="statement">Prototyping in unity</p>
+        <p class="body-copy">After submitting the project, I spent some time playing around in unity and experimenting with how this product could actually feel, if it did become a real product. I wanted to experience in first person how this product may feel like for users.</p>
+        <figure class="shot">
+            <video src="assets/povi/vid-02.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The Unity first-person prototype"></video>
+        </figure>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <!-- The slot holds the tilt; the card inside does the lift, so the two
+                 transforms never fight. data-cursor swaps the dot for a pill. -->
+            <div class="next-slot nc1">
+                <a class="next-card" href="clarusai.html" data-cursor="open project">
+                    <img src="assets/cards/clarusai.jpg" alt="Clarus AI">
+                </a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" href="the-dial.html" data-cursor="open project">
+                    <img src="assets/cards/the-dial.jpg" alt="The Dial">
+                </a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+</body>
+</html>

@@ -339,17 +339,21 @@
 /* ---------- responsive ---------- */
 
 /* Wide enough for the two lists to sit side by side. Experience gets the larger
-   share — five entries and longer org names. */
+   share — five entries and longer org names — but only 1.2, not more: Education
+   carries the same empty logo track (see below), so a wider split pushes
+   "B.F.A Interactive Media Arts" onto a second line. Below about 1.15 the debt
+   moves the other way and "NYU Entrepreneurial Institute" wraps instead. 1.2 is
+   the widest that keeps both on one line at every width from 1080px up. */
 @media (min-width: 1080px) {
   .cv {
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     gap: 64px;
     align-items: start;
   }
-  /* side by side there is no cross-column alignment left to hold, so Education
-     drops the empty logo track and gives the width back to its text */
-  .edu-row { grid-template-columns: max-content minmax(0, 1fr); }
-  .edu-row .exp-body { grid-column: 2; }
+  /* Education keeps Experience's track set here, empty logo track and all.
+     Reclaiming that width for the text would leave 24px between a date and its
+     entry against Experience's 96px, and the two lists sit side by side — the
+     mismatch reads immediately even across the column gap. */
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!-- Development harness for the make-your-own-card kit.
+
+     The kit is meant to live as an overlay on the home page, but the home page
+     cannot be loaded without the whole Three.js intro running first, which
+     makes it a slow and noisy place to iterate on a canvas widget. This page
+     mounts the same module against the same stylesheet and nothing else, so
+     the kit can be built and tested on its own terms. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card kit — dev harness</title>
+    <script>
+        // Mirrors the pre-paint theme script on the real pages, so the kit is
+        // exercised in whichever theme is stored rather than always in light.
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+            } catch (err) {}
+        })();
+    </script>
+    <!-- Only so the browser stops probing for /favicon.ico and logging a 404
+         that has nothing to do with the kit. -->
+    <link rel="icon" href="assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="card-builder.css">
+</head>
+<body>
+    <div id="card-builder" class="visible"></div>
+    <button id="theme-toggle" type="button" aria-label="Toggle theme"
+            style="position:fixed;top:16px;right:20px;z-index:70">theme</button>
+    <script type="module">
+        import { mountCardBuilder } from './card-builder.js';
+        const kit = mountCardBuilder(document.getElementById('card-builder'));
+        kit.onBack = () => console.log('back');
+        window.__kit = kit;   // the verification driver reads the model through this
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', next); } catch (err) {}
+            kit.refresh();
+        });
+    </script>
+</body>
+</html>

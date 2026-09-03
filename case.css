@@ -27,6 +27,12 @@
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.2s ease;
+  /* case.js scales these from the pointer's proximity. Growing from the left
+     edge keeps the column's one hard edge and stops items displacing each
+     other — displacement would move the very centres the proximity maths
+     reads, so the effect would feed back into itself. The vertical centre is
+     fixed for the same reason, which is what lets those centres be cached. */
+  transform-origin: left center;
 }
 #toc a:hover { color: var(--ink); }
 /* scroll-spy: case.js marks whichever section is currently in view */

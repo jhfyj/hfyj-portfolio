@@ -70,6 +70,39 @@ window.Site = (function () {
     // when the page loads faded down and straight back up instead of rising in;
     // it would also have to out-specify each page's own hover and colour
     // transitions on the same elements. This touches neither.
+    // A spring expressed as a linear() easing: sample the damped oscillator and
+    // hand the samples over, letting the browser interpolate between them. This
+    // is how a spring reaches CSS without running physics every frame, and
+    // unlike any cubic-bezier it can overshoot the target and come back.
+    // Null on engines without linear(), where callers keep the plain ease.
+    const springEasing = (function () {
+        if (!(window.CSS && CSS.supports &&
+              CSS.supports('animation-timing-function', 'linear(0, 1)'))) return null;
+        // State the overshoot, derive the damping. How far a spring's first
+        // swing carries past its target is an exact function of the damping
+        // ratio, so the readable direction is to name the thing you can see —
+        // the overshoot, as a fraction of the travel — and solve for the rest.
+        // 4% of the cards' 300px rise is the ~12px they carry past.
+        const OVERSHOOT = 0.041;
+        const lnO = Math.log(OVERSHOOT);
+        const ZETA = -lnO / Math.sqrt(Math.PI * Math.PI + lnO * lnO);
+        const OMEGA = 12;    // normalised so the envelope is spent by t = 1
+        // Enough samples that the straight segments between them do not chord
+        // the tip off the peak, which is the part being tuned here.
+        const N = 90;
+        const wd = OMEGA * Math.sqrt(1 - ZETA * ZETA);
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+            const t = i / N;
+            pts.push((1 - Math.exp(-ZETA * OMEGA * t) *
+                (Math.cos(wd * t) + (ZETA * OMEGA / wd) * Math.sin(wd * t))).toFixed(4));
+        }
+        // pin the ends: the samples land a rounding error short of 0 and 1
+        pts[0] = '0';
+        pts[N] = '1';
+        return 'linear(' + pts.join(',') + ')';
+    })();
+
     function reveal(groups) {
         if (reduceMotion || !('IntersectionObserver' in window)) return;
 
@@ -84,6 +117,18 @@ window.Site = (function () {
 
         let io;
 
+        // Opt-in, read off the element the same way --rise and --rise-ms are.
+        const wantsReplay = function (el) {
+            return parseFloat(getComputedStyle(el).getPropertyValue('--rise-replay')) === 1;
+        };
+        // Elements with a rise in flight. The rise starts by displacing the
+        // element — 300px for the cards — and that displacement can carry it
+        // straight back out of the observer's box. Without this the leave
+        // handler below would reset it, the reset would bring it back in, and
+        // the two would trade places every frame with the animation restarting
+        // from zero each time and never advancing.
+        const rising = new Set();
+
         // Failsafe. reveal() hides these elements from JS, so anything the
         // observer misses would stay invisible for good — a blank section with
         // no way to recover. After scrolling settles, show whatever is on
@@ -96,7 +141,9 @@ window.Site = (function () {
                 if (el.style.opacity !== '0') return;
                 if (el.getBoundingClientRect().top < window.innerHeight) {
                     el.style.opacity = '';
-                    io.unobserve(el);
+                    // a replaying element stays observed, or it could never
+                    // rise again on the way back down
+                    if (!wantsReplay(el)) io.unobserve(el);
                 } else {
                     hidden++;
                 }
@@ -112,8 +159,20 @@ window.Site = (function () {
 
         io = new IntersectionObserver(function (entries) {
             entries.forEach(function (e) {
-                if (!e.isIntersecting) return;
-                io.unobserve(e.target);
+                const replayable = wantsReplay(e.target);
+
+                if (!e.isIntersecting) {
+                    // Most blocks reveal once and are done. A block that opts
+                    // into replay goes back to hidden on the way out instead,
+                    // so scrolling down to it a second time plays it again.
+                    // Only a leave with nothing in flight is the reader
+                    // actually scrolling away; see `rising` above.
+                    if (replayable && !rising.has(e.target)) e.target.style.opacity = '0';
+                    return;
+                }
+                // already shown, or already on its way in
+                if (replayable && e.target.style.opacity !== '0') return;
+                if (!replayable) io.unobserve(e.target);
 
                 // Keep whatever transform the element already carries (the
                 // tilted photos and cards) and rise from below it. Distance and
@@ -124,20 +183,43 @@ window.Site = (function () {
                 const base = cs.transform;
                 const dy = parseFloat(cs.getPropertyValue('--rise')) || 26;
                 const ms = parseFloat(cs.getPropertyValue('--rise-ms')) || 700;
+                const spring = springEasing &&
+                    parseFloat(cs.getPropertyValue('--rise-spring')) === 1;
+                // Both keyframes carry the same function list — a translateY
+                // in front of whatever the element already had. That is what
+                // lets a spring overshoot: matched lists interpolate function
+                // by function and extrapolate past the endpoints, while
+                // mismatched ones fall back to decomposing the matrix, which
+                // stops dead at the last keyframe and swallows the overshoot.
                 const shift = 'translateY(' + dy + 'px)';
+                const settled = 'translateY(0px)';
                 const rise = base === 'none' ? shift : shift + ' ' + base;
-                const rest = base === 'none' ? 'none' : base;
+                const rest = base === 'none' ? settled : settled + ' ' + base;
 
                 e.target.style.opacity = '';
-                e.target.animate(
+                const anim = e.target.animate(
                     [{ opacity: 0, transform: rise }, { opacity: 1, transform: rest }],
                     {
                         duration: ms,
                         delay: delays.get(e.target) || 0,
-                        easing: 'cubic-bezier(.22, .61, .36, 1)',
+                        easing: spring ? springEasing : 'cubic-bezier(.22, .61, .36, 1)',
                         fill: 'backwards',
                     }
                 );
+
+                if (replayable) {
+                    const el = e.target;
+                    rising.add(el);
+                    const done = function () {
+                        rising.delete(el);
+                        // If the reader scrolled clear of it mid-rise, the leave
+                        // above was ignored as self-inflicted. Settle up now, so
+                        // the next approach still gets a rise.
+                        const r = el.getBoundingClientRect();
+                        if (r.top > window.innerHeight || r.bottom < 0) el.style.opacity = '0';
+                    };
+                    anim.finished.then(done, function () { rising.delete(el); });
+                }
             });
         }, { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
 

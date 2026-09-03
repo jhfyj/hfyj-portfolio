@@ -378,7 +378,14 @@ main { padding-bottom: 0; }
    the second one behind the first. */
 .next-slot {
   --rise: 300px;
-  --rise-ms: 950;
+  --rise-ms: 600;
+  /* spring rather than ease: it overshoots the rest position slightly and
+     settles back, which reads as the cards being dealt onto the page rather
+     than slid onto it */
+  --rise-spring: 1;
+  /* these two replay: scroll back up off them and down again and they deal in
+     a second time, instead of being spent the first time they are seen */
+  --rise-replay: 1;
 }
 
 .next-card {

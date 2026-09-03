@@ -88,7 +88,11 @@
 .cv {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 96px;
+  /* Stacked, this gap separates Experience from Education, so it has to match
+     the distance a new section would open — otherwise Education looks closer
+     to Experience than My People is to Education, and the page reads as two
+     groups plus an orphan rather than three peers. */
+  gap: var(--block-gap);
 }
 
 .exp-list,
@@ -356,7 +360,6 @@
   /* stacked, the strips are the only thing in their row — centre them */
   .strips { margin-left: auto; margin-right: auto; }
   .sundays-photos { max-width: 460px; margin: 0 auto; }
-  .cv { gap: 64px; }
   .faq-q { grid-template-columns: 42px minmax(0, 1fr) 20px; gap: 12px; }
   .faq-text, .faq-num { font-size: 19px; }
   .faq-a > p { padding-left: 54px; }

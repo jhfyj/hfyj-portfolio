@@ -158,9 +158,15 @@ body.has-dot.dot-live #cursor-dot { opacity: 1; }
 
 main { padding-bottom: 120px; }
 
+/* The vertical rhythm between top-level groups. Named because it is not only
+   the gap between sections: a section that stacks its own groups (about me's
+   Experience over Education) has to open the same distance, or the second
+   group reads as belonging to whatever follows it. */
+:root { --block-gap: 120px; }
+
 .block {
   width: min(var(--col), calc(100% - 80px));
-  margin: 0 auto 120px;
+  margin: 0 auto var(--block-gap);
 }
 .block:last-child { margin-bottom: 0; }
 
@@ -226,7 +232,7 @@ figcaption,
   /* the tagline group is decorative; drop it before it can crowd the crumb */
   .topbar-right { display: none; }
   .topbar-left { white-space: nowrap; }
-  .block { margin-bottom: 88px; }
+  :root { --block-gap: 88px; }
   .lede { font-size: 24px; }
   h1 { font-size: 34px; }
   .statement { font-size: 20px; }

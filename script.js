@@ -2282,6 +2282,18 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
 });
 
 // ── View toggle (cards ↔ grid) ───────────────────────────────────────────────
+// The grid's project clips carry preload="none", so nothing about them is
+// fetched until the grid is actually opened — most visits never open it, and
+// the five of them together used to be the bulk of the page's weight. Playing
+// them here is also what starts the download; pausing on the way out stops
+// five videos decoding behind a hidden panel.
+function setGridMediaPlaying(playing) {
+    document.querySelectorAll('#grid-view video.grid-card-media').forEach((v) => {
+        if (playing) { const r = v.play(); if (r) r.catch(() => {}); }
+        else v.pause();
+    });
+}
+
 const toggleBtns = document.querySelectorAll('.toggle-btn');
 const gridView = document.getElementById('grid-view');
 const gridHero = document.getElementById('grid-hero');
@@ -2367,6 +2379,7 @@ toggleBtns.forEach(btn => {
             gridView.scrollTo({ top: 0, behavior: 'auto' });
             replayGridHeroReveal();
             replayGridCardReveal();
+            setGridMediaPlaying(true);
         } else {
             // Show carousel, hide grid
             gridView.classList.remove('visible');
@@ -2374,6 +2387,7 @@ toggleBtns.forEach(btn => {
             canvasEl.style.pointerEvents = 'auto';
             if (scrubber) scrubber.classList.remove('slide-down');
             if (socialLinks) { socialLinks.style.opacity = ''; socialLinks.style.pointerEvents = ''; }
+            setGridMediaPlaying(false);
         }
     });
 });

@@ -376,9 +376,12 @@
   .edu-row { grid-template-columns: 48px minmax(0, 1fr); gap: 4px 16px; }
   .exp-row .exp-date,
   .edu-row .exp-date { grid-column: 1 / -1; padding-top: 0; }
-  /* Education keeps the logo track it has no logo for, so its entries start
-     where Experience's do instead of hanging 64px to their left. */
-  .edu-row .exp-body { grid-column: 2; }
+  /* Education has no logo, so it drops the logo track entirely and runs flush
+     left. Stacked, the date sits on its own line directly above, so the entry
+     lines up under its own year — holding an empty 48px track here would only
+     indent the text away from the date it belongs to. */
+  .edu-row { grid-template-columns: minmax(0, 1fr); }
+  .edu-row .exp-body { grid-column: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

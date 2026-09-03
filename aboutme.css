@@ -376,8 +376,9 @@
   .edu-row { grid-template-columns: 48px minmax(0, 1fr); gap: 4px 16px; }
   .exp-row .exp-date,
   .edu-row .exp-date { grid-column: 1 / -1; padding-top: 0; }
-  .edu-row { grid-template-columns: minmax(0, 1fr); }
-  .edu-row .exp-body { grid-column: auto; }
+  /* Education keeps the logo track it has no logo for, so its entries start
+     where Experience's do instead of hanging 64px to their left. */
+  .edu-row .exp-body { grid-column: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {

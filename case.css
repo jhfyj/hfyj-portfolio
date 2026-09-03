@@ -1,0 +1,395 @@
+/* Case-study components — shared by every project page.
+   Lifted out of the original puregym stylesheet, plus the blocks the other
+   case studies need. Chrome and type scale live in site.css; a page's own
+   stylesheet sets --col and holds anything genuinely unique to it.
+
+   Every page sets --col to the content width measured off the Framer original:
+     puregym 835 · techatnyu 794 · clarusai 717 · povi 717 · the-dial 810 */
+
+/* ---------- pinned table of contents ---------- */
+
+/* Sits at the left edge, independent of the centred column, and rides at the
+   vertical middle of the viewport. It is dropped entirely once the column
+   would run into it. */
+#toc {
+  position: fixed;
+  left: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  gap: 27px;
+  font-size: 16px;
+}
+#toc a {
+  color: var(--caption);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+#toc a:hover { color: var(--ink); }
+/* scroll-spy: case.js marks whichever section is currently in view */
+#toc a.is-active { color: var(--accent); }
+
+.suit {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+@media (min-width: 1280px) {
+  #toc { display: flex; }
+}
+
+/* ---------- the column ---------- */
+
+/* No bottom padding: the next-project cards close the page flush against its
+   bottom edge, the way they do on the original. */
+main { padding-bottom: 0; }
+
+.case {
+  width: min(var(--col), calc(100% - 72px));
+  margin: 0 auto;
+  padding: 48px 0 0;
+}
+
+.case-head h1 { margin-bottom: 14px; }
+.case-head .lede { color: rgb(41, 41, 41); }
+
+/* Three across, wrapping to a second row when a page carries a fourth field
+   (povi's Event, the-dial's Award). */
+.meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 0;
+  margin: 48px 0 0;
+}
+.meta > div { min-width: 0; padding-right: 16px; }
+.meta dt {
+  font-family: "Play", sans-serif;
+  font-size: 16px;
+  color: var(--accent);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+.meta dd {
+  margin: 0;
+  font-size: 18px;
+  color: var(--body);
+}
+
+/* ---------- sections ---------- */
+
+.case-section { margin-top: 84px; }
+.case-section .eyebrow { margin-bottom: 12px; }
+.case-section .statement { margin-bottom: 18px; }
+.case-section .body-copy { margin-bottom: 18px; }
+.case-section .body-copy:last-child { margin-bottom: 0; }
+
+/* Anchor targets clear the sticky top bar when jumped to from the TOC. */
+.case-section { scroll-margin-top: 84px; }
+
+/* ---------- media ---------- */
+
+/* Every visual runs the full width of the column; the artwork carries its own
+   background, so no panel styling is needed around it. */
+.shot { margin: 28px 0 0; }
+.shot img,
+.shot video { width: 100%; height: auto; }
+.shot-hero { margin: 40px 0 0; }
+
+/* n-up rows. Set --n for the count; defaults to 2. The 10px gutter is the
+   one the original uses for every multi-up row, at every column width. */
+.media-row {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
+  gap: 10px;
+  margin: 28px 0 0;
+  align-items: start;
+}
+.media-row img,
+.media-row video { width: 100%; height: auto; }
+
+/* One continuous sheet — the panels butt together with no gap, exactly as the
+   grey background runs unbroken on the original. */
+.reel {
+  margin-top: 44px;
+  font-size: 0;      /* kills the inline-level whitespace between panels */
+}
+.reel img,
+.reel video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* A rounded media well. --frame-bg carries the letterbox colour behind clips
+   that do not fill their slot (black for the video heroes, light grey for
+   the-dial's). */
+.frame {
+  position: relative;
+  margin: 40px 0 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--frame-bg, rgb(247, 247, 247));
+}
+.frame img,
+.frame video { display: block; width: 100%; height: auto; }
+
+/* Responsive iframe well for the YouTube embeds. --ratio is height/width. */
+.embed {
+  position: relative;
+  margin: 40px 0 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  padding-top: calc(var(--ratio, 0.5625) * 100%);
+}
+.embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* The ↗ button the-dial floats over its hero. */
+.frame-link {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  transition: transform 0.2s ease;
+}
+.frame-link:hover { transform: translate(1px, -1px); }
+
+/* ---------- captioned media cards ---------- */
+
+/* Used for the-dial's split panel and its micro-interaction gallery: a clip
+   with a label bar sitting directly beneath it, all inside one rounded box. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
+  gap: 10px;
+  margin: 28px 0 0;
+  align-items: start;
+}
+.card {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.card > img,
+.card > video { display: block; width: 100%; height: auto; }
+/* margin:0 matters — this is a <p>, and the default paragraph margin would
+   open a band of card background between the clip and its label, which reads
+   as a gap and leaves the dark label bar detached from the dark footage. */
+.card-label {
+  margin: 0;
+  padding: 15px 16px;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--body);
+  background: #fff;
+}
+.card-label .sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--caption);
+}
+/* the night-mode half of the split panel */
+.card.is-dark .card-label { background: rgb(20, 20, 22); color: rgb(242, 242, 242); }
+.card.is-dark .card-label .sub { color: rgb(190, 190, 195); }
+
+/* The two halves of the split panel butt together with no gap or inner border,
+   reading as one image cut down the middle. */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 28px 0 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.split > .card { border: 0; border-radius: 0; }
+/* The two clips have different native aspect ratios, but the original crops
+   them to a shared height so the seam between the halves runs straight. */
+.split > .card > video,
+.split > .card > img {
+  aspect-ratio: 405 / 389;
+  object-fit: cover;
+}
+
+/* ---------- stat row ---------- */
+
+/* clarusai's energy figures: label above, value below, centred, with a
+   source note under the run. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
+  gap: 24px;
+  margin: 44px 0 0;
+  text-align: center;
+}
+.stat dt {
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--body);
+  margin-bottom: 14px;
+}
+.stat dd {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.source {
+  margin: 28px 0 0;
+  font-size: 12px;
+  color: rgb(154, 164, 190);
+  text-align: center;
+}
+.source a { color: inherit; }
+
+/* ---------- small text bits ---------- */
+
+.bullets {
+  margin: 4px 0 18px;
+  padding-left: 22px;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.bullets li { margin-bottom: 2px; }
+
+/* An emphasised phrase inside body copy — darker, not coloured. */
+.mark {
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.note {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--caption);
+}
+
+/* ---------- thanks ---------- */
+
+.thanks {
+  margin: 132px auto 0;
+  width: min(691px, 100%);
+  padding: 34px 24px 36px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: rgb(252, 252, 252);
+  text-align: center;
+}
+.thanks-title {
+  font-family: "DM Sans", sans-serif;
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.thanks-blurb {
+  width: min(278px, 100%);
+  margin: 0 auto 8px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: rgb(196, 196, 196);
+}
+.thanks-mail {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+.thanks-mail a { text-decoration: none; }
+.thanks-mail a:hover { color: var(--accent); }
+
+/* ---------- next project ---------- */
+
+.next { margin-top: 172px; }
+.next-label {
+  margin: 0;
+  font-size: 18px;
+  color: var(--caption);
+  text-align: center;
+}
+
+/* The two cards overlap and tilt away from each other, like a dealt pair.
+   They sit low and run off the end of the document — the page stops partway
+   down them rather than framing them fully. --card-w drives the clip so the
+   proportion of card showing stays the same at every size. */
+.next-cards {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  /* hug the cards; stretching would give the slots a height of their own and
+     make what gets clipped depend on the container rather than the card */
+  align-items: flex-start;
+  margin-top: 34px;
+  --card-w: 205px;
+  --card-h: calc(var(--card-w) * 246 / 179);   /* the thumbnail's aspect */
+  /* the fraction is the knob: lower shows less of the card */
+  padding-top: 30px;
+  height: calc(30px + var(--card-h) * 0.88);
+  overflow: hidden;
+}
+/* The slot carries the tilt so the card is free to lift straight up. */
+.nc1 { transform: rotate(-6deg) translateX(26px); }
+.nc2 { transform: rotate(6deg) translateX(-26px); }
+
+.next-card {
+  display: block;
+  width: var(--card-w);
+  border-radius: 8px;
+  overflow: hidden;
+  /* the original's three-layer stack — it does not change on hover */
+  box-shadow: 0 0.602187px 0.602187px -0.666667px rgba(0, 0, 0, 0.12),
+              0 2.28853px 2.28853px -1.33333px rgba(0, 0, 0, 0.13),
+              0 10px 10px -2px rgba(0, 0, 0, 0.18);
+  transition: transform 0.28s cubic-bezier(.34, 1.15, .64, 1);
+}
+.next-card img { width: 100%; }
+.next-card:hover { transform: translateY(-11px); }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 760px) {
+  .meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 20px; }
+  .case { padding-top: 32px; }
+  .case-section { margin-top: 64px; }
+  .stats { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  /* stacking keeps the small clips legible rather than shrinking them further */
+  .cards, .media-row { grid-template-columns: minmax(0, 1fr); }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .thanks { margin-top: 96px; }
+  .next { margin-top: 112px; }
+}
+
+/* Two 205px cards, overlapped and tilted, come to ~373px across — wider than a
+   360px phone. Shrink them rather than clipping the sides; the height follows
+   from --card-w, so the same slice runs off the bottom here as on desktop. */
+@media (max-width: 420px) {
+  .next-cards { --card-w: 165px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .next-card, .frame-link { transition: none; }
+}

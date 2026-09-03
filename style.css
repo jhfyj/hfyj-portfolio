@@ -671,6 +671,13 @@ canvas.threejs {
   opacity: 0;
 }
 
+/* A return visit skips the whole intro, loader included. The attribute is set
+   before first paint (see index.html), so the loading screen never flashes on
+   the way back from a project page. */
+html[data-intro-done] #loader {
+  display: none;
+}
+
 #loader-cards {
   position: relative;
   width: 58px;

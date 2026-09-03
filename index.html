@@ -18,6 +18,23 @@
             if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
         })();
     </script>
+    <script>
+        // Same idea, for the intro. The loader and the card deal are one
+        // first-impression moment, and coming back from a project page should
+        // land straight in the carousel rather than replay it.
+        //
+        // This has to run before first paint: script.js is a deferred module,
+        // so by the time it could hide the loader the loader has already been
+        // on screen. It mirrors introAlreadyPlayed() in script.js — the two
+        // read the same two signals and must be changed together.
+        (function () {
+            var done = window.location.hash === '#cards';
+            // storage throws outright in some privacy modes rather than returning null
+            try { done = done || sessionStorage.getItem('introPlayed') === '1'; } catch (err) {}
+            window.__introDone = done;
+            if (done) document.documentElement.setAttribute('data-intro-done', '');
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Caveat:wght@500;600&family=Figtree:wght@400;600&family=Inter:ital,wght@1,400&display=swap" rel="stylesheet">

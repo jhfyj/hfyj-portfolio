@@ -36,7 +36,18 @@ let totalModels = 9;
 let loadedModels = 0;
 
 // Loader
-const loaderEl        = document.getElementById('loader');
+// Null on a return visit, which is what turns the loading screen off: the
+// progress block below and the fade-out that follows it are both gated on
+// loaderEl, and the "models all loaded" branch starts the carousel directly
+// when there is no loader to wait for. Hiding the element in CSS alone would
+// leave this reference truthy and the carousel would never start.
+// index.html decides this before first paint; see window.__introDone there.
+const introSkipped = window.__introDone === true;
+const loaderEl        = introSkipped ? null : document.getElementById('loader');
+if (introSkipped) {
+    const el = document.getElementById('loader');
+    if (el) el.remove();
+}
 const loaderProgressEl = document.getElementById('loader-progress-bar');
 const loaderStart = performance.now();
 const LOADER_MIN_MS = 3000; // keep the shuffle on screen even on fast loads

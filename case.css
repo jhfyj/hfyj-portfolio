@@ -405,9 +405,17 @@ main { padding-bottom: 0; }
 
 /* Two 205px cards, overlapped and tilted, come to ~373px across — wider than a
    360px phone. Shrink them rather than clipping the sides; the height follows
-   from --card-w, so the same slice runs off the bottom here as on desktop. */
+   from --card-w, so the same slice runs off the bottom here as on desktop.
+
+   The pair is wider than the sum of the cards: tilting each one grows its
+   footprint, and the overlap only wins 52px back, so the pair measures about
+   2.13 × --card-w − 52. Below ~420px that outgrows the column, and since
+   .next-cards clips, a fixed width would shave the two outer edges instead of
+   fitting. Sizing off the viewport keeps the whole pair inside: 46.9vw is the
+   widest card that still fits, and the 18px leaves a visible margin either
+   side. It stops at 165px so the cards never grow past the desktop step. */
 @media (max-width: 420px) {
-  .next-cards { --card-w: 165px; }
+  .next-cards { --card-w: min(165px, calc(46.9vw - 18px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

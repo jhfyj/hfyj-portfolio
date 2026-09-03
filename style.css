@@ -278,7 +278,14 @@ canvas.threejs {
   cursor: pointer;
 }
 
-.social-link svg { width: 18px; height: 18px; display: block; }
+/* The icons are inlined as <svg> in index.html rather than loaded from Icon/
+   through <img>: an <img>-loaded SVG is an opaque document, so it can't see
+   the `color` above and kept painting its baked-in #282828 — invisible on the
+   dark button. Inline, the marks inherit currentColor like any other text and
+   follow the theme for free. They're monochrome silhouettes, so tying them to
+   text colour costs no brand colour. (Not filter: invert() — that shifts hue
+   as well as lightness and would break on any non-monochrome icon.) */
+.social-link svg { width: 18px; height: 18px; display: block; fill: currentColor; }
 
 .social-link:hover {
   background: rgba(var(--ink-rgb), 0.10);

@@ -355,6 +355,15 @@ main { padding-bottom: 0; }
 .nc1 { transform: rotate(-6deg) translateX(26px); }
 .nc2 { transform: rotate(6deg) translateX(-26px); }
 
+/* Scrolling to the end deals the pair in: they start below the clip, fully
+   out of sight, and slide up into it. 300px clears the container at both card
+   sizes, so they are never caught half-visible at rest. Site.reveal staggers
+   the second one behind the first. */
+.next-slot {
+  --rise: 300px;
+  --rise-ms: 950;
+}
+
 .next-card {
   display: block;
   width: var(--card-w);

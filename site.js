@@ -115,17 +115,24 @@ window.Site = (function () {
                 if (!e.isIntersecting) return;
                 io.unobserve(e.target);
 
-                // keep whatever transform the element already carries (the
-                // tilted photos and cards) and rise from above it
-                const base = getComputedStyle(e.target).transform;
-                const rise = base === 'none' ? 'translateY(26px)' : 'translateY(26px) ' + base;
+                // Keep whatever transform the element already carries (the
+                // tilted photos and cards) and rise from below it. Distance and
+                // duration come from CSS so a block can ask for a longer travel
+                // than the default nudge — the next-project cards slide a long
+                // way up out of their clip — without a second code path here.
+                const cs = getComputedStyle(e.target);
+                const base = cs.transform;
+                const dy = parseFloat(cs.getPropertyValue('--rise')) || 26;
+                const ms = parseFloat(cs.getPropertyValue('--rise-ms')) || 700;
+                const shift = 'translateY(' + dy + 'px)';
+                const rise = base === 'none' ? shift : shift + ' ' + base;
                 const rest = base === 'none' ? 'none' : base;
 
                 e.target.style.opacity = '';
                 e.target.animate(
                     [{ opacity: 0, transform: rise }, { opacity: 1, transform: rest }],
                     {
-                        duration: 700,
+                        duration: ms,
                         delay: delays.get(e.target) || 0,
                         easing: 'cubic-bezier(.22, .61, .36, 1)',
                         fill: 'backwards',

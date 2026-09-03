@@ -74,7 +74,13 @@
          live Framer site, as it does on the original. -->
     <div class="frame frame-hero">
         <video src="assets/the-dial/vid-01.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The Dial interaction, switching from light to dark mode"></video>
-        <a class="frame-link" href="https://the-dial.framer.website/" target="_blank" rel="noopener" data-cursor="open site" aria-label="Open the live site">&#8599;</a>
+        <!-- Two copies of Carbon's arrow--up-right (@carbon/icons 32px); the
+             second is parked off the bottom-left until hover. No data-cursor:
+             the dot stays a dot over this button. -->
+        <a class="frame-link" href="https://the-dial.framer.website/" target="_blank" rel="noopener" aria-label="Open the live site">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
+        </a>
     </div>
 
     <section class="case-section" id="context">

@@ -154,25 +154,36 @@ main { padding-bottom: 0; }
   border: 0;
 }
 
-/* The ↗ button the-dial floats over its hero. */
+/* The ↗ button the-dial floats over its hero. Holds two copies of Carbon's
+   arrow--up-right stacked in one grid cell: on hover the first leaves through
+   the top-right corner while the second arrives from the bottom-left, so the
+   arrow reads as travelling the way it points. The button clips both. */
 .frame-link {
   position: absolute;
   top: 14px;
   right: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
   background: #fff;
-  color: var(--ink);
-  text-decoration: none;
-  font-size: 15px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
-  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
-.frame-link:hover { transform: translate(1px, -1px); }
+.frame-link svg {
+  grid-area: 1 / 1;          /* both copies share the one cell */
+  width: 25px;
+  height: 25px;
+  fill: rgba(0, 0, 0, 0.6);
+  transition: transform 0.34s cubic-bezier(.22, .61, .36, 1);
+}
+/* the incoming copy waits just outside the corner it enters from */
+.frame-link svg:nth-of-type(2) { transform: translate(-125%, 125%); }
+.frame-link:hover svg:nth-of-type(1),
+.frame-link:focus-visible svg:nth-of-type(1) { transform: translate(125%, -125%); }
+.frame-link:hover svg:nth-of-type(2),
+.frame-link:focus-visible svg:nth-of-type(2) { transform: translate(0, 0); }
 
 /* ---------- captioned media cards ---------- */
 
@@ -400,5 +411,7 @@ main { padding-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .next-card, .frame-link { transition: none; }
+  .next-card { transition: none; }
+  /* park the second arrow out of sight rather than sliding either of them */
+  .frame-link svg { transition: none; }
 }

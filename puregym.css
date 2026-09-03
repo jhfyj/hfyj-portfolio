@@ -1,0 +1,19 @@
+/* Puregym case study — only what differs from the shared case-study components.
+   Components: case.css · chrome and type scale: site.css */
+
+:root {
+  --col: 835px;   /* the case-study column, measured off the Framer page at 1440 */
+}
+
+/* This page's meta row is three fixed-ish fields rather than even thirds.
+   Guarded so it cannot outrank the stacked mobile grid in case.css, which
+   this file would otherwise win on source order alone. */
+@media (min-width: 761px) {
+  .meta {
+    grid-template-columns: 314px 116px auto;
+    gap: 8px 0;
+  }
+}
+
+/* Its visuals sit tighter under the copy than the shared default. */
+.shot { margin: 4px 0 0; }

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Puregym Redesign — HFYJ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="puregym.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span class="here">Puregym</span>
+    </div>
+    <div class="topbar-right">
+        <span>Mobile</span>
+        <span class="sep-lg">/</span>
+        <span>Product Design</span>
+        <span class="sep-lg">/</span>
+        <span>Case Study</span>
+    </div>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Pinned table of contents; hidden once it would collide with the column. -->
+<aside id="toc" aria-label="Sections">
+    <a href="#overview"><span class="suit">&spades;</span> OVERVIEW</a>
+    <a href="#context"><span class="suit">&hearts;</span> CONTEXT</a>
+    <a href="#research"><span class="suit">&clubs;</span> RESEARCH</a>
+    <a href="#solution"><span class="suit">&diams;</span> SOLUTION</a>
+    <a href="#user-feedback"><span class="suit">&spades;</span> USER FEEDBACK</a>
+    <a href="#final"><span class="suit">&hearts;</span> FINAL DESIGN</a>
+    <a href="#conclusion"><span class="suit">&clubs;</span> REFLECTIONS</a>
+</aside>
+
+<main class="case">
+
+    <header class="case-head">
+        <h1>Puregym Redesign</h1>
+        <p class="lede">Reimagining the mobile application for Puregym</p>
+
+        <dl class="meta">
+            <div>
+                <dt>Timeline</dt>
+                <dd>December 2025 - January 2026</dd>
+            </div>
+            <div>
+                <dt>Team</dt>
+                <dd>Myself</dd>
+            </div>
+            <div>
+                <dt>Tools</dt>
+                <dd>Figma</dd>
+            </div>
+        </dl>
+    </header>
+
+    <figure class="shot shot-hero">
+        <img src="assets/puregym/hero.gif" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code">
+    </figure>
+
+    <section class="case-section" id="overview">
+        <p class="eyebrow">Overview</p>
+        <p class="statement">A product redesign for PureGym focused on minimizing check-in friction while enhancing and expanding its existing features.</p>
+        <p class="body-copy">Check out the complete case study <a class="accent" href="https://puregymredesign.framer.website/" target="_blank" rel="noopener">here</a>.</p>
+    </section>
+
+    <section class="case-section" id="context">
+        <p class="eyebrow">Context</p>
+        <p class="statement">As a PureGym member, I struggled with the Puregym App design.</p>
+        <p class="body-copy">And it's not just me. I've heard similar frustrations from multiple people, from friends to casual gym-goers. As a result, I wanted to design a case study for PureGym that offers new insights on how to resolve some of the current issues surrounding the check-in experience.</p>
+    </section>
+
+    <section class="case-section" id="research">
+        <p class="eyebrow">KEY INSIGHTS</p>
+        <p class="statement">The design is efficient, yet neither intuitive nor engaging enough to retain users.</p>
+        <p class="body-copy">I interviewed real PureGym users on how they interact with the app to better understand their challenges and frustrations. From my research, I learned that users use the app not because they want to, but because they have to, and that's an issue.</p>
+        <figure class="shot">
+            <img src="assets/puregym/research.png" alt="Quotes from user interviews arranged around a screenshot of the current Puregym app">
+        </figure>
+    </section>
+
+    <section class="case-section" id="solution">
+        <p class="eyebrow">SOLUTION</p>
+        <p class="statement">Designing a check-in process that feels intuitive.</p>
+        <p class="body-copy">I went through numerous design iterations, progressively simplifying the process until it required the fewest possible steps for users to check into the gym they want.</p>
+        <figure class="shot">
+            <img src="assets/puregym/solution.png" alt="Three iterations of the check-in page, V1 through V3">
+        </figure>
+    </section>
+
+    <section class="case-section" id="user-feedback">
+        <p class="eyebrow">USER FEEDBACK</p>
+        <p class="statement">Bringing the product back to the users and actually putting it in their hands.</p>
+        <p class="body-copy">While the overall response was largely positive, I identified several key areas for improvement. I refined the product to create an experience that is not only intuitive, but also drives user acquisition and retention.</p>
+        <figure class="shot">
+            <img src="assets/puregym/feedback.png" alt="Before and after of the Popular Times chart, and the two guest-pass versions users chose between">
+        </figure>
+    </section>
+
+    <section class="case-section" id="final">
+        <p class="eyebrow">Final Design</p>
+        <p class="statement">A design that feels effective, brand-consistent, and clarifies rather than confuses.</p>
+
+        <!-- One continuous sheet: the panels butt against each other with no gap. -->
+        <div class="reel">
+            <img src="assets/puregym/final-1.png" alt="The final login and check-in screens">
+            <video src="assets/puregym/clip-1.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: choosing a gym"></video>
+            <video src="assets/puregym/clip-2.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: checking in"></video>
+            <video src="assets/puregym/clip-3.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: viewing gym info"></video>
+            <video src="assets/puregym/clip-4.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: the progress page"></video>
+            <img src="assets/puregym/final-2.png" alt="Further screens from the final design">
+            <img src="assets/puregym/final-3.png" alt="Further screens from the final design">
+        </div>
+    </section>
+
+    <section class="case-section" id="conclusion">
+        <p class="eyebrow">REFLECTIONS</p>
+        <p class="statement">Always talk with users to understand the product.</p>
+        <p class="body-copy">When conducting the interviews, I was initially nervous about approaching people and speaking with them directly. However, most of the people I spoke with were incredibly kind and offered valuable insights. I even interviewed two UI/UX designers at the gym, who were very helpful and receptive.</p>
+        <p class="body-copy">During the design process, I realized the importance of learning from past examples and established patterns. By drawing from familiar products, I was able to better understand existing design conventions and ground my work in proven solutions.</p>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <!-- The slot holds the tilt; the card inside does the lift, so the two
+                 transforms never fight. data-cursor swaps the dot for a pill. -->
+            <div class="next-slot nc1">
+                <a class="next-card" href="the-dial.html" data-cursor="open project">
+                    <img src="assets/puregym/next-the-dial.jpg" alt="The Dial — Summer 2026">
+                </a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" href="techatnyu.html" data-cursor="open project">
+                    <img src="assets/puregym/next-technyu.jpg" alt="tech@nyu — Summer 2025">
+                </a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+</body>
+</html>

@@ -10,8 +10,12 @@ function getStoredTheme() {
 let currentTheme = getStoredTheme();
 document.documentElement.setAttribute('data-theme', currentTheme);
 
+// Paper stock for every card drawn in code — faces and backs alike. Card 8
+// (the sketchbook scan) is a flat image, so it carries its own background.
+const CARD_BG = '#F7F5F5';
+
 const THEME_COLORS = {
-    light: { fog: 0xFCFCFE, accent: '#5E81E2', cardBg: '#f8f8f8' },
+    light: { fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG },
     dark:  { fog: 0x121212, accent: '#FFFA50', cardBg: '#373737' },
 };
 
@@ -339,8 +343,10 @@ const renderer = new THREE.WebGLRenderer({
     alpha: true,
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
+// Pixel ratio first — setSize sizes the backing store using whatever ratio is
+// set at the time, so setting it afterwards leaves the scene rendering at 1x.
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
 
 // Custom card cursor + dot cursor
 const cursorStyle = document.createElement('style');
@@ -586,8 +592,8 @@ const backTexturePromise = hfyjMarkReady.then(() => makeCardBackTexture(currentT
 
 // Page URLs for each card — edit these to match your Framer pages
 const CARD_URLS = [
-    "https://hfyj-art.com/aboutme",        // 0 — About Me
-    "https://hfyj-art.com/puregym",         // 1 — Puregym
+    "aboutme.html",                        // 0 — About Me
+    "puregym.html",                        // 1 — Puregym
     "https://hfyj-art.com/techatnyu",       // 2 — tech@nyu
     "https://hfyj-art.com/clarusai",        // 3 — Clarus AI
     "https://hfyj-art.com/povi",            // 4 — POVI
@@ -751,14 +757,196 @@ function _placeCard(i, group) {
 }
 
 // ── Card 0 — About Me ────────────────────────────────────────────────────────
+// Same canvas-texture approach as the PureGym card below: draw the design
+// (vector text/shapes) onto a canvas and only load real raster assets for the
+// photo and the three fact-row icons.
+const ABOUTME_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
+const ABOUTME_SCALE = 3;
+// The photo's folded-corner silhouette, straight off the Figma node. Kept as a
+// path (rather than baked into the image's alpha) so the mask edge stays
+// resolution-independent — the blur below would otherwise soften it.
+const ABOUTME_PHOTO_MASK = 'M1014 20C1027.25 20 1038 30.7452 1038 44V1400C1038 1413.25 1027.25 1424 1014 1424H45C31.7452 1424 21 1413.25 21 1400V131C21 98 40.9 78.5 72.5 78.5H138.932C150.052 78.5 160.578 73.4981 167.604 64.8789L188.294 39.5C188.294 39.5 203 20 231 20H1014Z';
+// The Figma node carries a layer blur, but Figma's own render ignores it — its
+// PNG export is sharp. Matching the render, not the filter. Raise to soften.
+const ABOUTME_PHOTO_BLUR = 0;
+const ABOUTME_PILL_FONT_PX = 14; // matches the design's DM Sans optical size
+// Fun-fact rows, in design px. Scaled up from the Figma frame's 46px/48px.
+const ABOUTME_FACT = {
+    left: 77,
+    top: 945,
+    fontPx: 58,
+    iconH: 60,
+    iconGap: 19,
+    rowH: 69,
+    rowGap: 42,
+};
+
 function loadCard0() {
-    texLoader.load("https://jhfyj.github.io/New-Website-Code/Cards/driver.jpg", (texture) => {
+    const s = ABOUTME_SCALE;
+    const canvas = document.createElement('canvas');
+    canvas.width = ABOUTME_DESIGN.w * s;
+    canvas.height = ABOUTME_DESIGN.h * s;
+    const ctx = canvas.getContext('2d');
+
+    const photo = new Image();
+    photo.src = './Cards/aboutme-photo.webp';
+    // Setting width/height before the src decodes tells the browser to
+    // rasterize these vector icons at the scaled-up size we'll actually draw
+    // them at, instead of their small native 48px box then upscaling that
+    // bitmap — which is what was making the icons (and, by extension, the
+    // whole card) read as soft/blurry.
+    const iconH = ABOUTME_FACT.iconH * s;
+    const iconDance = new Image();
+    iconDance.width = iconH;          // 48x48 native
+    iconDance.height = iconH;
+    iconDance.src = './assets/icon-dance.svg';
+    const iconGuitar = new Image();
+    iconGuitar.width = iconH * (102 / 48); // 102x48 native
+    iconGuitar.height = iconH;
+    iconGuitar.src = './assets/icon-guitar.svg';
+    const iconMatcha = new Image();
+    iconMatcha.width = iconH * (156 / 48); // 156x48 native
+    iconMatcha.height = iconH;
+    iconMatcha.src = './assets/icon-matcha.svg';
+
+    Promise.all([
+        document.fonts.ready,
+        new Promise((resolve) => { photo.onload = resolve; }),
+        new Promise((resolve) => { iconDance.onload = resolve; }),
+        new Promise((resolve) => { iconGuitar.onload = resolve; }),
+        new Promise((resolve) => { iconMatcha.onload = resolve; }),
+    ]).then(() => {
+        const r = 36 * s;
+        // Set once, up front — save()/restore() below would otherwise
+        // revert this back to the canvas default partway through drawing,
+        // leaving the icons (drawn after the restore) soft.
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Background + photo, clipped to the card's rounded corners
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+        ctx.clip();
+        ctx.fillStyle = CARD_BG;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Clip to the silhouette first, then blur — so the blur only ever
+        // softens the photo's interior and never bleeds across the mask edge.
+        const maskPath = new Path2D();
+        maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
+        ctx.save();
+        ctx.clip(maskPath);
+        // Figma's transform for this fill, in design px. Overscanning by the
+        // blur radius keeps the blur from fading out against the mask edge;
+        // it grows uniformly so the photo's aspect ratio is preserved.
+        const pw = 1110.777, ph = 1404;
+        const bleed = ABOUTME_PHOTO_BLUR * 2;
+        const k = Math.max(1 + (bleed * 2) / pw, 1 + (bleed * 2) / ph);
+        ctx.filter = `blur(${ABOUTME_PHOTO_BLUR * s}px)`;
+        ctx.drawImage(
+            photo,
+            (-25.888 - (pw * k - pw) / 2) * s,
+            (20 - (ph * k - ph) / 2) * s,
+            pw * k * s,
+            ph * k * s,
+        );
+        ctx.filter = 'none';
+        // Dark scrim over the lower half, so the white text below reads
+        const scrim = ctx.createLinearGradient(0, 637 * s, 0, 1424 * s);
+        scrim.addColorStop(0, 'rgba(0,0,0,0)');
+        scrim.addColorStop(1, 'rgba(0,0,0,1)');
+        ctx.fillStyle = scrim;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        // Hairline around the photo silhouette
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = s;
+        ctx.stroke(maskPath);
+        ctx.restore();
+
+        // Figma positions text by its line box; canvas draws from a baseline.
+        // Deriving the baseline from the font's own metrics is what keeps these
+        // landing where the design says, instead of a hand-tuned offset.
+        function drawBoxedText(text, x, y, w, h, align) {
+            const m = ctx.measureText(text);
+            ctx.textAlign = align;
+            ctx.textBaseline = 'alphabetic';
+            const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+            const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
+            ctx.fillText(text, align === 'center' ? x + w / 2 : x, baseline);
+        }
+
+        // "#000" tag, sitting over the folded corner
+        ctx.fillStyle = '#000';
+        ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
+        drawBoxedText('#000', 56 * s, 24 * s, 91 * s, 44 * s, 'center');
+
+        // Name
+        ctx.fillStyle = '#000';
+        ctx.font = `700 ${80 * s}px "Play", sans-serif`;
+        drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left');
+
+        // Fun-fact rows — icon + white label, over the lower half of the photo
+        const F = ABOUTME_FACT;
+        function drawFactRow(icon, text, index) {
+            const rowY = F.top + index * (F.rowH + F.rowGap);
+            const iconW = F.iconH * (icon.naturalWidth / icon.naturalHeight);
+            // Icon sits centred against the text's line box
+            ctx.drawImage(icon, F.left * s, (rowY + (F.rowH - F.iconH) / 2) * s, iconW * s, F.iconH * s);
+            ctx.font = `400 ${F.fontPx * s}px "Figtree", "DM Sans", sans-serif`;
+            ctx.fillStyle = '#fff';
+            drawBoxedText(text, (F.left + iconW + F.iconGap) * s, rowY * s, 0, F.rowH * s, 'left');
+        }
+        drawFactRow(iconDance,  'hip hop dance', 0);
+        drawFactRow(iconGuitar, 'classical guitar (love tarrega)', 1);
+        drawFactRow(iconMatcha, 'matcha fein', 2);
+
+        // Tag pills — white outline, no fill, so the photo shows through.
+        // Widths come from the design rather than text measurement, so a font
+        // that metrics slightly differently can't drift the row out of place.
+        function drawPill(label, x, w) {
+            const y = 1327 * s, h = 68 * s;
+            ctx.beginPath();
+            ctx.roundRect(x * s, y, w * s, h, h / 2);
+            ctx.lineWidth = 3 * s;
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            // DM Sans is optically sized, and canvas derives that axis from the
+            // font size — at 40px it picks noticeably narrower letterforms than
+            // the design's opsz 14. Drawing small and scaling up restores them.
+            const k = (40 * s) / ABOUTME_PILL_FONT_PX;
+            ctx.save();
+            ctx.scale(k, k);
+            ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
+            drawBoxedText(label, (x * s) / k, y / k, (w * s) / k, h / k, 'center');
+            ctx.restore();
+        }
+        drawPill('NYU', 282, 153);
+        drawPill('TINKERER', 282 + 165, 280);
+        drawPill('DESIGNER', 282 + 457, 266);
+
+        // Slight paper-grain overlay, same as the rest of the deck
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+        ctx.clip();
+        ctx.globalAlpha = 0.05;
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
-        const aspect = texture.image.naturalWidth / texture.image.naturalHeight || 1.586;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
         const cardH = 1.7, cardW = cardH * aspect;
         const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
         const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
-        const mesh  = new THREE.Mesh(geometry, frontMat);
+        const mesh = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = 0;
         group.add(mesh);
@@ -831,7 +1019,7 @@ function loadCard1() {
         ctx.beginPath();
         ctx.roundRect(0, 0, canvas.width, canvas.height, r);
         ctx.clip();
-        ctx.fillStyle = '#f8f8f8';
+        ctx.fillStyle = CARD_BG;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
         ctx.restore();
@@ -1016,7 +1204,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
         ctx.beginPath();
         ctx.roundRect(0, 0, canvas.width, canvas.height, r);
         ctx.clip();
-        ctx.fillStyle = '#f8f8f8';
+        ctx.fillStyle = CARD_BG;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
@@ -1939,6 +2127,8 @@ function applyTheme(theme) {
     localStorage.setItem(THEME_KEY, theme);
     scene.fog.color.set(THEME_COLORS[theme].fog);
     updateCardBackTexture(theme);
+    const favicon = document.getElementById('favicon');
+    if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }
 
 document.getElementById('theme-toggle')?.addEventListener('click', () => {

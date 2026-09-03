@@ -4,18 +4,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>3D Card Carousel</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
     <script>
-        // Set the theme before first paint so there's no flash of the wrong theme.
+        // Set the theme (and matching favicon) before first paint so there's
+        // no flash of the wrong theme.
         (function () {
             var saved = localStorage.getItem('theme');
+            var theme = (saved === 'dark' || saved === 'light') ? saved : 'light';
             if (saved === 'dark' || saved === 'light') {
                 document.documentElement.setAttribute('data-theme', saved);
             }
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
         })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Caveat:wght@500;600&family=Figtree:wght@400;600&family=Inter:ital,wght@1,400&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -77,10 +82,19 @@
     <!-- Top nav bar -->
     <div id="top-nav">
         <div id="nav-links">
-            <a class="nav-link" href="https://hfyj-art.com/aboutme" data-card-index="0">About</a>
+            <a class="nav-link" href="aboutme.html" data-card-index="0">About</a>
             <a class="nav-link" href="https://hfyj-art.com/sketchbook" data-card-index="1">sketchbook</a>
         </div>
         <div id="nav-controls">
+            <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+                <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                </svg>
+            </button>
             <div id="view-toggle">
                 <button class="toggle-btn active" data-view="cards" title="Card view">
                     <svg width="26" height="18" viewBox="-4 0 26 18" fill="none" style="overflow:visible">
@@ -97,15 +111,6 @@
                     </svg>
                 </button>
             </div>
-            <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
-                    <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                </svg>
-                <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                </svg>
-            </button>
         </div>
     </div>
 
@@ -144,7 +149,7 @@
                     <p class="grid-card-desc">Design Manager working with 7 designers to design the Places feature in a B2C product, from ideation to handoff</p>
                 </div>
             </a>
-            <a class="grid-card" href="https://hfyj-art.com/puregym">
+            <a class="grid-card" href="puregym.html">
                 <div class="grid-card-image">
                     <img src="https://jhfyj.github.io/New-Website-Code/image/puregym.gif" alt="PureGym">
                     <span class="grid-card-number">#003</span>
@@ -154,7 +159,7 @@
                     <p class="grid-card-desc">Recognize, understand, research, and iterate</p>
                 </div>
             </a>
-            <a class="grid-card" href="https://hfyj-art.com/clarusai">
+            <a class="grid-card" href="clarusai.html">
                 <div class="grid-card-image">
                     <img src="https://jhfyj.github.io/New-Website-Code/image/clarus.gif" alt="Clarus AI" loading="lazy">
                     <span class="grid-card-number">#002</span>
@@ -164,7 +169,7 @@
                     <p class="grid-card-desc">An interactive way to recognize AI energy consumption</p>
                 </div>
             </a>
-            <a class="grid-card" href="https://hfyj-art.com/povi">
+            <a class="grid-card" href="povi.html">
                 <div class="grid-card-image grid-card-image--padded">
                     <img src="https://jhfyj.github.io/New-Website-Code/image/POVI.gif" alt="POVI">
                     <span class="grid-card-number">#004</span>
@@ -175,7 +180,7 @@
                 </div>
             </a>
             <!-- TODO: swap image src once the-dial.gif is provided -->
-            <a class="grid-card" href="https://hfyj-art.com/the-dial">
+            <a class="grid-card" href="the-dial.html">
                 <div class="grid-card-image">
                     <img src="https://jhfyj.github.io/New-Website-Code/image/the-dial.gif" alt="The Dial">
                     <span class="grid-card-number">#005</span>
@@ -185,7 +190,7 @@
                     <p class="grid-card-desc grid-card-desc--accent-blue">Open Doors x Framer Challenge</p>
                 </div>
             </a>
-            <a class="grid-card" href="https://hfyj-art.com/techatnyu">
+            <a class="grid-card" href="techatnyu.html">
                 <div class="grid-card-image">
                     <img src="https://jhfyj.github.io/New-Website-Code/image/tech.gif" alt="tech@nyu">
                     <span class="grid-card-number">#001</span>
@@ -217,7 +222,7 @@
                     <a class="gf-nav-link" href="#" data-action="home">HOME</a>
                     <a class="gf-nav-link" href="#" data-action="project">PROJECT</a>
                     <a class="gf-nav-link" href="https://hfyj-art.com/sketchbook" data-card-index="1">SKETCHBOOK</a>
-                    <a class="gf-nav-link" href="https://hfyj-art.com/aboutme"    data-card-index="0">ABOUT</a>
+                    <a class="gf-nav-link" href="aboutme.html"                    data-card-index="0">ABOUT</a>
                 </nav>
 
                 <div class="gf-col gf-col--contact">

@@ -2375,7 +2375,37 @@ document.querySelectorAll('.grid-card-info').forEach(info => {
 });
 
 // --- Intro animation functions ---
+
+// The deal is a first-impression moment, not something to sit through again on
+// the way back from a project page. Once it has played, the rest of the visit
+// lands straight in the interactive state.
+//
+// Two signals, because neither covers everything on its own. sessionStorage
+// survives a reload but not a fresh tab; the hash survives being linked to and
+// travels with a history entry, so Back from a project page returns to a URL
+// that already says "skip". Project pages link to index.html#cards directly.
+const INTRO_KEY = 'introPlayed';
+const INTRO_HASH = '#cards';
+
+function introAlreadyPlayed() {
+    if (window.location.hash === INTRO_HASH) return true;
+    // storage throws outright in some privacy modes rather than returning null
+    try { return sessionStorage.getItem(INTRO_KEY) === '1'; } catch (err) { return false; }
+}
+
+function markIntroPlayed() {
+    try { sessionStorage.setItem(INTRO_KEY, '1'); } catch (err) { /* not fatal */ }
+    if (window.location.hash === INTRO_HASH) return;
+    // replaceState, not a hash assignment: stamping the URL must not push a
+    // history entry, or Back would land on the same page minus the hash and
+    // replay the deal.
+    try {
+        history.replaceState(null, '', window.location.pathname + window.location.search + INTRO_HASH);
+    } catch (err) { /* file:// and the like */ }
+}
+
 function startIntro() {
+    if (introAlreadyPlayed()) { skipIntro(); return; }
     // No extra delay needed — loader fade already provides the transition buffer
     const c = cards[0];
     if (!c) return;
@@ -2442,6 +2472,7 @@ function triggerDealing() {
     // Unlock interaction and reveal social links + scrubber + top nav
     setTimeout(() => {
         introPhase = 'done';
+        markIntroPlayed();
         const sl = document.getElementById('social-links');
         if (sl) setTimeout(() => sl.classList.add('ui-intro-visible'), 100);
         if (scrubberEl) setTimeout(() => scrubberEl.classList.add('ui-intro-visible'), 350);
@@ -2460,6 +2491,7 @@ function skipIntro() {
         c.position.y = 0;
     });
     introPhase = 'done';
+    markIntroPlayed();
     const sl = document.getElementById('social-links');
     if (sl) sl.classList.add('ui-intro-visible');
     const sc = document.getElementById('scrubber');

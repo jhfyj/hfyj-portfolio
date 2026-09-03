@@ -10,13 +10,27 @@ function getStoredTheme() {
 let currentTheme = getStoredTheme();
 document.documentElement.setAttribute('data-theme', currentTheme);
 
-// Paper stock for every card drawn in code — faces and backs alike. Card 8
-// (the sketchbook scan) is a flat image, so it carries its own background.
+// Light-mode paper stock for every card drawn in code — faces and backs alike;
+// the dark stock lives in THEME_COLORS below. Card 8 (the sketchbook scan) is a
+// flat image, so it carries its own background and stays out of this entirely.
 const CARD_BG = '#F7F5F5';
 
+// The ink values mirror the site's --t1/--t2 text scale in style.css. Each
+// light entry is the literal the card art was already drawn with, so light
+// mode renders exactly as before; the dark entries are the tones that clear
+// the dark stock. Photos and anything sitting on top of one keep their own
+// colors — only the stock and the ink drawn on it follow the theme.
 const THEME_COLORS = {
-    light: { fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG },
-    dark:  { fog: 0x121212, accent: '#FFFA50', cardBg: '#373737' },
+    light: {
+        fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG,
+        ink: '#000', inkSub: '#585858', inkBody: '#626875',
+        rule: '#232323', placeholder: '#d9d9d9',
+    },
+    dark: {
+        fog: 0x121212, accent: '#FFFA50', cardBg: '#373737',
+        ink: '#F2F2F2', inkSub: '#A8A8A8', inkBody: '#A8AEBC',
+        rule: '#8F8F8F', placeholder: '#4A4A4A',
+    },
 };
 
 // Scene
@@ -540,13 +554,24 @@ function tintedImage(img, w, h, color) {
     return off;
 }
 
-function makeCardBackTexture(theme) {
-    const s = CARD_BACK_SCALE;
+// Every card shows the same back, so there is one canvas and one texture for
+// all of them. Painting into that same canvas — rather than building a fresh
+// CanvasTexture per theme change, as this used to — means a theme change costs
+// one re-upload instead of one allocation plus nine material invalidations, and
+// stops leaking the previous texture on every toggle.
+const cardBackCanvas = document.createElement('canvas');
+const cardBackCtx = cardBackCanvas.getContext('2d');
+let cardBackTexture = null;
+
+function paintCardBack(theme) {
+    const s = CARD_BACK_SCALE();
     const w = CARD_BACK_DESIGN.w * s, h = CARD_BACK_DESIGN.h * s;
-    const canvas = document.createElement('canvas');
+    const canvas = cardBackCanvas;
     canvas.width = w;
     canvas.height = h;
-    const ctx = canvas.getContext('2d');
+    const ctx = cardBackCtx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
     const { cardBg, accent } = THEME_COLORS[theme];
     const outerR = 36 * s;
 
@@ -579,23 +604,65 @@ function makeCardBackTexture(theme) {
     const logo = tintedImage(hfyjMarkImg, logoSize, logoSize, accent);
     ctx.drawImage(logo, (w - logoSize) / 2, (h - logoSize) / 2);
 
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return tex;
 }
 
-// Every back-face material currently in the scene, so toggling the theme can
-// swap their texture live instead of only affecting cards created afterward.
-const cardBackMaterials = [];
+function makeCardBackTexture(theme) {
+    paintCardBack(theme);
+    cardBackTexture = new THREE.CanvasTexture(cardBackCanvas);
+    cardBackTexture.colorSpace = THREE.SRGBColorSpace;
+    cardBackTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return cardBackTexture;
+}
 
 function updateCardBackTexture(theme) {
-    if (!hfyjMarkImg.complete) return; // not loaded yet — the initial texture below already awaits it
-    const tex = makeCardBackTexture(theme);
-    cardBackMaterials.forEach((mat) => {
-        mat.map = tex;
-        mat.needsUpdate = true;
-    });
+    if (!cardBackTexture) return; // the mark hasn't loaded; the first paint will use the current theme
+    paintCardBack(theme);
+    // The materials already point at this texture object, so nothing about them
+    // has changed — marking them dirty would only push every card back through
+    // program resolution for a texture swap that never happened.
+    cardBackTexture.needsUpdate = true;
+}
+
+// The card faces are the same story as the backs, but each one draws from its
+// own images and layout, so what's registered here is a repaint closure rather
+// than a material: it redraws that card's canvas in the new theme from assets
+// its loader has already resolved. Cards register as they finish loading, so a
+// toggle that lands mid-load only skips faces that haven't drawn yet — and
+// those draw in currentTheme, which applyTheme has already set.
+const cardFaceRepaints = [];
+
+// Repainting every face in one go means re-uploading all nine card textures in
+// the same frame — tens of megabytes of texture traffic at once, which the
+// driver takes long enough over that the scene visibly locks. The work itself
+// is unavoidable; doing it all in one frame is not.
+//
+// So spread it: nearest the camera first, one card per frame. Whatever is being
+// looked at changes immediately, and the cards round the back repaint while they
+// are still out of sight. A toggle mid-run abandons the queue rather than
+// finishing it in the colour that is no longer current.
+let faceRepaintRaf = 0;
+const _repaintPos = new THREE.Vector3();
+
+function updateCardFaceTextures(theme) {
+    if (faceRepaintRaf) cancelAnimationFrame(faceRepaintRaf);
+
+    const queue = cardFaceRepaints
+        .map((entry) => {
+            const card = cards[entry.index];
+            // unloaded cards sort last; they paint in the current theme anyway
+            const d = card ? card.getWorldPosition(_repaintPos).distanceTo(camera.position) : Infinity;
+            return { entry, d };
+        })
+        .sort((a, b) => a.d - b.d)
+        .map((x) => x.entry);
+
+    const step = () => {
+        const next = queue.shift();
+        if (!next) { faceRepaintRaf = 0; return; }
+        next.repaint(theme);
+        faceRepaintRaf = requestAnimationFrame(step);
+    };
+    step();   // the card in focus flips on this frame, not the next one
 }
 
 // Pre-load shared card back texture — resolves as a promise so card loaders can await it
@@ -754,7 +821,6 @@ function _placeCard(i, group) {
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -0.001;
         group.add(backMesh);
-        cardBackMaterials.push(mat);
     });
 
     cards[i] = group;
@@ -834,124 +900,139 @@ function loadCard0() {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        // Background + photo, clipped to the card's rounded corners
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.fillStyle = CARD_BG;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function paint(theme) {
+            const { cardBg, ink } = THEME_COLORS[theme];
 
-        // Clip to the silhouette first, then blur — so the blur only ever
-        // softens the photo's interior and never bleeds across the mask edge.
-        const maskPath = new Path2D();
-        maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
-        ctx.save();
-        ctx.clip(maskPath);
-        // Figma's transform for this fill, in design px. Overscanning by the
-        // blur radius keeps the blur from fading out against the mask edge;
-        // it grows uniformly so the photo's aspect ratio is preserved.
-        const pw = 1110.777, ph = 1404;
-        const bleed = ABOUTME_PHOTO_BLUR * 2;
-        const k = Math.max(1 + (bleed * 2) / pw, 1 + (bleed * 2) / ph);
-        ctx.filter = `blur(${ABOUTME_PHOTO_BLUR * s}px)`;
-        ctx.drawImage(
-            photo,
-            (-25.888 - (pw * k - pw) / 2) * s,
-            (20 - (ph * k - ph) / 2) * s,
-            pw * k * s,
-            ph * k * s,
-        );
-        ctx.filter = 'none';
-        // Dark scrim over the lower half, so the white text below reads
-        const scrim = ctx.createLinearGradient(0, 637 * s, 0, 1424 * s);
-        scrim.addColorStop(0, 'rgba(0,0,0,0)');
-        scrim.addColorStop(1, 'rgba(0,0,0,1)');
-        ctx.fillStyle = scrim;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-        // Hairline around the photo silhouette
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = s;
-        ctx.stroke(maskPath);
-        ctx.restore();
-
-        // Figma positions text by its line box; canvas draws from a baseline.
-        // Deriving the baseline from the font's own metrics is what keeps these
-        // landing where the design says, instead of a hand-tuned offset.
-        function drawBoxedText(text, x, y, w, h, align) {
-            const m = ctx.measureText(text);
-            ctx.textAlign = align;
-            ctx.textBaseline = 'alphabetic';
-            const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
-            const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
-            ctx.fillText(text, align === 'center' ? x + w / 2 : x, baseline);
-        }
-
-        // "#000" tag, sitting over the folded corner
-        ctx.fillStyle = '#000';
-        ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
-        drawBoxedText('#000', 56 * s, 24 * s, 91 * s, 44 * s, 'center');
-
-        // Name
-        ctx.fillStyle = '#000';
-        ctx.font = `700 ${80 * s}px "Play", sans-serif`;
-        drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left');
-
-        // Fun-fact rows — icon + white label, over the lower half of the photo
-        const F = ABOUTME_FACT;
-        function drawFactRow(icon, text, index) {
-            const rowY = F.top + index * (F.rowH + F.rowGap);
-            const iconW = F.iconH * (icon.naturalWidth / icon.naturalHeight);
-            // Icon sits centred against the text's line box
-            ctx.drawImage(icon, F.left * s, (rowY + (F.rowH - F.iconH) / 2) * s, iconW * s, F.iconH * s);
-            ctx.font = `400 ${F.fontPx * s}px "Figtree", "DM Sans", sans-serif`;
-            ctx.fillStyle = '#fff';
-            drawBoxedText(text, (F.left + iconW + F.iconGap) * s, rowY * s, 0, F.rowH * s, 'left');
-        }
-        drawFactRow(iconDance,  'hip hop dance', 0);
-        drawFactRow(iconGuitar, 'classical guitar (love tarrega)', 1);
-        drawFactRow(iconMatcha, 'matcha fein', 2);
-
-        // Tag pills — white outline, no fill, so the photo shows through.
-        // Widths come from the design rather than text measurement, so a font
-        // that metrics slightly differently can't drift the row out of place.
-        function drawPill(label, x, w) {
-            const y = 1327 * s, h = 68 * s;
-            ctx.beginPath();
-            ctx.roundRect(x * s, y, w * s, h, h / 2);
-            ctx.lineWidth = 3 * s;
-            ctx.strokeStyle = '#fff';
-            ctx.stroke();
-            ctx.fillStyle = '#fff';
-            // DM Sans is optically sized, and canvas derives that axis from the
-            // font size — at 40px it picks noticeably narrower letterforms than
-            // the design's opsz 14. Drawing small and scaling up restores them.
-            const k = (40 * s) / ABOUTME_PILL_FONT_PX;
+            // Background + photo, clipped to the card's rounded corners
             ctx.save();
-            ctx.scale(k, k);
-            ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
-            drawBoxedText(label, (x * s) / k, y / k, (w * s) / k, h / k, 'center');
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.fillStyle = cardBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Clip to the silhouette first, then blur — so the blur only ever
+            // softens the photo's interior and never bleeds across the mask edge.
+            const maskPath = new Path2D();
+            maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
+            ctx.save();
+            ctx.clip(maskPath);
+            // Figma's transform for this fill, in design px. Overscanning by the
+            // blur radius keeps the blur from fading out against the mask edge;
+            // it grows uniformly so the photo's aspect ratio is preserved.
+            const pw = 1110.777, ph = 1404;
+            const bleed = ABOUTME_PHOTO_BLUR * 2;
+            const k = Math.max(1 + (bleed * 2) / pw, 1 + (bleed * 2) / ph);
+            ctx.filter = `blur(${ABOUTME_PHOTO_BLUR * s}px)`;
+            ctx.drawImage(
+                photo,
+                (-25.888 - (pw * k - pw) / 2) * s,
+                (20 - (ph * k - ph) / 2) * s,
+                pw * k * s,
+                ph * k * s,
+            );
+            ctx.filter = 'none';
+            // Dark scrim over the lower half, so the white text below reads
+            const scrim = ctx.createLinearGradient(0, 637 * s, 0, 1424 * s);
+            scrim.addColorStop(0, 'rgba(0,0,0,0)');
+            scrim.addColorStop(1, 'rgba(0,0,0,1)');
+            ctx.fillStyle = scrim;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            // Hairline around the photo silhouette
+            ctx.strokeStyle = ink;
+            ctx.lineWidth = s;
+            ctx.stroke(maskPath);
+            ctx.restore();
+
+            // Figma positions text by its line box; canvas draws from a baseline.
+            // Deriving the baseline from the font's own metrics is what keeps these
+            // landing where the design says, instead of a hand-tuned offset.
+            function drawBoxedText(text, x, y, w, h, align) {
+                const m = ctx.measureText(text);
+                ctx.textAlign = align;
+                ctx.textBaseline = 'alphabetic';
+                const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+                const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
+                ctx.fillText(text, align === 'center' ? x + w / 2 : x, baseline);
+            }
+
+            // "#000" tag, sitting over the folded corner — the one bit of ink on
+            // this card that lands on bare stock, so it's the one that follows it
+            ctx.fillStyle = ink;
+            ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
+            drawBoxedText('#000', 56 * s, 24 * s, 91 * s, 44 * s, 'center');
+
+            // Name. Stays black in both themes: the folded corner clears it, so
+            // this sits on the photo's sky, not on the stock.
+            ctx.fillStyle = '#000';
+            ctx.font = `700 ${80 * s}px "Play", sans-serif`;
+            drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left');
+
+            // Fun-fact rows — icon + white label, over the lower half of the photo
+            const F = ABOUTME_FACT;
+            function drawFactRow(icon, text, index) {
+                const rowY = F.top + index * (F.rowH + F.rowGap);
+                const iconW = F.iconH * (icon.naturalWidth / icon.naturalHeight);
+                // Icon sits centred against the text's line box
+                ctx.drawImage(icon, F.left * s, (rowY + (F.rowH - F.iconH) / 2) * s, iconW * s, F.iconH * s);
+                ctx.font = `400 ${F.fontPx * s}px "Figtree", "DM Sans", sans-serif`;
+                ctx.fillStyle = '#fff';
+                drawBoxedText(text, (F.left + iconW + F.iconGap) * s, rowY * s, 0, F.rowH * s, 'left');
+            }
+            drawFactRow(iconDance,  'hip hop dance', 0);
+            drawFactRow(iconGuitar, 'classical guitar (love tarrega)', 1);
+            drawFactRow(iconMatcha, 'matcha fein', 2);
+
+            // Tag pills — white outline, no fill, so the photo shows through.
+            // Widths come from the design rather than text measurement, so a font
+            // that metrics slightly differently can't drift the row out of place.
+            function drawPill(label, x, w) {
+                const y = 1327 * s, h = 68 * s;
+                ctx.beginPath();
+                ctx.roundRect(x * s, y, w * s, h, h / 2);
+                ctx.lineWidth = 3 * s;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                ctx.fillStyle = '#fff';
+                // DM Sans is optically sized, and canvas derives that axis from the
+                // font size — at 40px it picks noticeably narrower letterforms than
+                // the design's opsz 14. Drawing small and scaling up restores them.
+                const k = (40 * s) / ABOUTME_PILL_FONT_PX;
+                ctx.save();
+                ctx.scale(k, k);
+                ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
+                drawBoxedText(label, (x * s) / k, y / k, (w * s) / k, h / k, 'center');
+                ctx.restore();
+            }
+            drawPill('NYU', 282, 153);
+            drawPill('TINKERER', 282 + 165, 280);
+            drawPill('DESIGNER', 282 + 457, 266);
+
+            // Slight paper-grain overlay, same as the rest of the deck
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.globalAlpha = 0.05;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
         }
-        drawPill('NYU', 282, 153);
-        drawPill('TINKERER', 282 + 165, 280);
-        drawPill('DESIGNER', 282 + 457, 266);
 
-        // Slight paper-grain overlay, same as the rest of the deck
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.globalAlpha = 0.05;
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        paint(currentTheme);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        cardFaceRepaints.push({
+            index: 0,
+            repaint: (theme) => {
+                paint(theme);
+                texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
+            },
+        });
 
         const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
         const cardH = 1.7, cardW = cardH * aspect;
@@ -994,14 +1075,15 @@ function puregymWrapText(ctx, text, x, y, maxWidth, lineHeight) {
     ctx.fillText(line.trim(), x, y);
 }
 
-function puregymDrawPill(ctx, x, y, w, h, label, s) {
+function puregymDrawPill(ctx, x, y, w, h, label, s, theme) {
+    const { ink, rule } = THEME_COLORS[theme];
     const r = h / 2;
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, r);
     ctx.lineWidth = 3 * s;
-    ctx.strokeStyle = '#232323';
+    ctx.strokeStyle = rule;
     ctx.stroke();
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = ink;
     ctx.font = `600 ${40 * s}px "DM Sans", sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1025,63 +1107,78 @@ function loadCard1() {
     ]).then(() => {
         const r = 36 * s;
 
-        // Background + phone-mockup photo, clipped to the card's rounded corners
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.fillStyle = CARD_BG;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
-        ctx.restore();
+        function paint(theme) {
+            const { cardBg, ink, inkSub, inkBody } = THEME_COLORS[theme];
 
-        // "#003" — this card's position in the site's numbering (not Figma's placeholder number)
-        ctx.fillStyle = '#000';
-        ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText('#003', 100.5 * s, 24 * s);
+            // Background + phone-mockup photo, clipped to the card's rounded corners
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.fillStyle = cardBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
+            ctx.restore();
 
-        // Title + date
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = '#000';
-        ctx.font = `700 ${96 * s}px "Play", sans-serif`;
-        ctx.fillText('Puregym Redesign', 54 * s, 960 * s);
-        ctx.fillStyle = '#585858';
-        ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
-        ctx.fillText('Winter 2025', 54 * s, 1050 * s);
+            // "#003" — this card's position in the site's numbering (not Figma's placeholder number).
+            // Stays black in both themes: unlike the template cards, the mockup here is drawn as a
+            // plain rect with no folded-corner notch, so its white ground covers this spot.
+            ctx.fillStyle = '#000';
+            ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('#003', 100.5 * s, 24 * s);
 
-        // Description (wrapped to match the Figma column width)
-        ctx.fillStyle = '#626875';
-        ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
-        puregymWrapText(
-            ctx,
-            'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
-            54 * s, 1150 * s, 901 * s, 58 * s
-        );
+            // Title + date
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = ink;
+            ctx.font = `700 ${96 * s}px "Play", sans-serif`;
+            ctx.fillText('Puregym Redesign', 54 * s, 960 * s);
+            ctx.fillStyle = inkSub;
+            ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
+            ctx.fillText('Winter 2025', 54 * s, 1050 * s);
 
-        // Tag pills
-        puregymDrawPill(ctx, 218 * s, 1354 * s, 242 * s, 68 * s, '2025-26', s);
-        puregymDrawPill(ctx, 472 * s, 1354 * s, 335 * s, 68 * s, 'CASE STUDY', s);
-        puregymDrawPill(ctx, 819 * s, 1354 * s, 219 * s, 68 * s, 'MOBILE', s);
+            // Description (wrapped to match the Figma column width)
+            ctx.fillStyle = inkBody;
+            ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
+            puregymWrapText(
+                ctx,
+                'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
+                54 * s, 1150 * s, 901 * s, 58 * s
+            );
 
-        // Slight paper-grain overlay — reuses the same procedural noise tile
-        // as grainTex (see makeGrainTexture above), so it's free: no image
-        // file, just a repeating pattern drawn from an in-memory canvas.
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.globalAlpha = 0.05;
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+            // Tag pills
+            puregymDrawPill(ctx, 218 * s, 1354 * s, 242 * s, 68 * s, '2025-26', s, theme);
+            puregymDrawPill(ctx, 472 * s, 1354 * s, 335 * s, 68 * s, 'CASE STUDY', s, theme);
+            puregymDrawPill(ctx, 819 * s, 1354 * s, 219 * s, 68 * s, 'MOBILE', s, theme);
+
+            // Slight paper-grain overlay — reuses the same procedural noise tile
+            // as grainTex (see makeGrainTexture above), so it's free: no image
+            // file, just a repeating pattern drawn from an in-memory canvas.
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.globalAlpha = 0.05;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+        }
+
+        paint(currentTheme);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        cardFaceRepaints.push({
+            index: 1,
+            repaint: (theme) => {
+                paint(theme);
+                texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
+            },
+        });
 
         const aspect = PUREGYM_DESIGN.w / PUREGYM_DESIGN.h;
         const cardH = 1.7, cardW = cardH * aspect;
@@ -1174,16 +1271,17 @@ function tmplDrawImageCover(ctx, img, dx, dy, dw, dh) {
 // Draws a pill sized to fit its label (unlike the Puregym card, these don't
 // have Figma-exact pill widths to work from) and returns its width so the
 // caller can lay out the next one.
-function tmplDrawPill(ctx, x, y, h, label, s) {
+function tmplDrawPill(ctx, x, y, h, label, s, theme) {
+    const { ink, rule } = THEME_COLORS[theme];
     ctx.font = `600 ${40 * s}px "DM Sans", sans-serif`;
     const w = ctx.measureText(label).width + 80 * s;
     const r = h / 2;
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, r);
     ctx.lineWidth = 3 * s;
-    ctx.strokeStyle = '#232323';
+    ctx.strokeStyle = rule;
     ctx.stroke();
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = ink;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, x + w / 2, y + h / 2 + 2 * s);
@@ -1211,86 +1309,100 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
     ]).then(() => {
         const r = 36 * s;
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.fillStyle = CARD_BG;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        function paint(theme) {
+            const { cardBg, accent, ink, inkSub, inkBody, placeholder } = THEME_COLORS[theme];
 
-        ctx.save();
-        tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
-        ctx.clip();
-        if (photo) {
-            tmplDrawImageCover(ctx, photo, 21 * s, 20 * s, 1016.663 * s, 817 * s);
-        } else {
-            ctx.fillStyle = '#d9d9d9';
-            ctx.fillRect(21 * s, 20 * s, 1016.663 * s, 817 * s);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.fillStyle = cardBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            ctx.save();
+            tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
+            ctx.clip();
+            if (photo) {
+                tmplDrawImageCover(ctx, photo, 21 * s, 20 * s, 1016.663 * s, 817 * s);
+            } else {
+                // Nothing photographic to protect here, so the empty photo box
+                // tracks the stock rather than sitting on it as a bright slab.
+                ctx.fillStyle = placeholder;
+                ctx.fillRect(21 * s, 20 * s, 1016.663 * s, 817 * s);
+            }
+            ctx.restore();
+
+            // Only draw the "#00X" tag ourselves when it isn't already baked
+            // into the photo (see loadCard1 for the baked-in case).
+            // Same position/size Figma uses for the real tag (node 1060:10) —
+            // the exact notch shape above comfortably fits it as-is.
+            if (tag) {
+                ctx.fillStyle = ink;
+                ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(tag, 100.5 * s, 24 * s);
+            }
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = ink;
+            ctx.font = `700 ${96 * s}px "Play", sans-serif`;
+            ctx.fillText(title, 54 * s, 960 * s);
+            ctx.fillStyle = inkSub;
+            ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
+            ctx.fillText(subtitle, 54 * s, 1050 * s);
+
+            ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
+            let y = 1150 * s;
+            if (accentLine) {
+                ctx.fillStyle = accent;
+                y = tmplWrapText(ctx, accentLine, 54 * s, y, 901 * s, 58 * s);
+            }
+            ctx.fillStyle = inkBody;
+            tmplWrapText(ctx, description, 54 * s, y, 901 * s, 58 * s);
+
+            const pillH = 68 * s, gap = 24 * s;
+            const widths = pills.map((label) => {
+                ctx.font = `600 ${40 * s}px "DM Sans", sans-serif`;
+                return ctx.measureText(label).width + 80 * s;
+            });
+            const totalW = widths.reduce((a, b) => a + b, 0) + gap * (pills.length - 1);
+            let px = canvas.width - 21 * s - totalW; // right-align to the same inset the photo uses
+            pills.forEach((label, i) => {
+                px += tmplDrawPill(ctx, px, 1354 * s, pillH, label, s, theme) + gap;
+            });
+
+            // Slight paper-grain overlay — see loadCard1 for why this is free.
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.globalAlpha = 0.05;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
         }
-        ctx.restore();
 
-        // Only draw the "#00X" tag ourselves when it isn't already baked
-        // into the photo (see loadCard1 for the baked-in case).
-        // Same position/size Figma uses for the real tag (node 1060:10) —
-        // the exact notch shape above comfortably fits it as-is.
-        if (tag) {
-            ctx.fillStyle = '#000';
-            ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText(tag, 100.5 * s, 24 * s);
-        }
-
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = '#000';
-        ctx.font = `700 ${96 * s}px "Play", sans-serif`;
-        ctx.fillText(title, 54 * s, 960 * s);
-        ctx.fillStyle = '#585858';
-        ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
-        ctx.fillText(subtitle, 54 * s, 1050 * s);
-
-        ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
-        let y = 1150 * s;
-        if (accentLine) {
-            ctx.fillStyle = '#5E81E2';
-            y = tmplWrapText(ctx, accentLine, 54 * s, y, 901 * s, 58 * s);
-        }
-        ctx.fillStyle = '#626875';
-        tmplWrapText(ctx, description, 54 * s, y, 901 * s, 58 * s);
-
-        const pillH = 68 * s, gap = 24 * s;
-        const widths = pills.map((label) => {
-            ctx.font = `600 ${40 * s}px "DM Sans", sans-serif`;
-            return ctx.measureText(label).width + 80 * s;
-        });
-        const totalW = widths.reduce((a, b) => a + b, 0) + gap * (pills.length - 1);
-        let px = canvas.width - 21 * s - totalW; // right-align to the same inset the photo uses
-        pills.forEach((label, i) => {
-            px += tmplDrawPill(ctx, px, 1354 * s, pillH, label, s) + gap;
-        });
-
-        // Slight paper-grain overlay — see loadCard1 for why this is free.
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-        ctx.clip();
-        ctx.globalAlpha = 0.05;
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-
-        return canvas;
+        paint(currentTheme);
+        return { canvas, paint };
     });
 }
 
 function loadTemplateCard(index, opts) {
-    buildTemplateCardTexture(opts).then((canvas) => {
+    buildTemplateCardTexture(opts).then(({ canvas, paint }) => {
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        cardFaceRepaints.push({
+            index: index,
+            repaint: (theme) => {
+                paint(theme);
+                texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
+            },
+        });
 
         const aspect = TEMPLATE_CARD.w / TEMPLATE_CARD.h;
         const cardH = 1.7, cardW = cardH * aspect;
@@ -2138,6 +2250,7 @@ function applyTheme(theme) {
     localStorage.setItem(THEME_KEY, theme);
     scene.fog.color.set(THEME_COLORS[theme].fog);
     updateCardBackTexture(theme);
+    updateCardFaceTextures(theme);
     const favicon = document.getElementById('favicon');
     if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }

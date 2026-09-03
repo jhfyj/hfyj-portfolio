@@ -1,0 +1,378 @@
+/* About Me — page-specific layout. Shared chrome and type scale: site.css */
+
+.why-copy p {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--body);
+  margin: 0 0 20px;
+}
+
+/* ---------- hero fan ---------- */
+
+.hero {
+  position: relative;
+  height: 742px;
+  overflow: hidden;
+  /* clicking the empty space replays the deal, same as the original */
+  cursor: pointer;
+}
+
+#fan {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 0;
+  height: 0;
+}
+
+.fan-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* The photo sits inset with a deep bottom margin — a polaroid. */
+.fan-photo {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  border-radius: 2px;
+}
+
+/* Date + description ride above the card, revealed on hover. */
+.fan-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.fan-card.is-hover .fan-caption { opacity: 1; }
+.fan-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0 0 2px;
+}
+.fan-desc {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--caption);
+  margin: 0;
+}
+
+/* ---------- but why cards ---------- */
+
+.why-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 576fr) minmax(0, 404fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+.why-figure { margin: 0; }
+.why-figure img { width: 100%; border-radius: 6px; }
+
+/* ---------- experience + education ---------- */
+
+.cv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 96px;
+}
+
+.exp-list,
+.edu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.exp-row,
+.edu-row {
+  display: grid;
+  align-items: start;
+  padding: 18px 0;
+}
+/* Both lists share one track set so Education's org names line up with
+   Experience's. The date track is a percentage so it closes as the column
+   narrows instead of holding a fixed 220px of dead space. Education has no
+   logo, so its body simply starts in the third track. */
+.exp-row,
+.edu-row { grid-template-columns: clamp(100px, 22%, 220px) 48px minmax(0, 1fr); gap: 0 24px; }
+.edu-row .exp-body { grid-column: 3; }
+
+.exp-date {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--caption);
+  padding-top: 2px;
+}
+
+.exp-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.exp-logo-wide { object-fit: contain; }
+
+.exp-body { display: block; }
+.exp-org {
+  display: block;
+  font-size: 22px;
+  color: var(--accent);
+}
+.exp-role {
+  display: block;
+  font-size: 18px;
+  color: var(--body);
+  margin-top: 4px;
+}
+.exp-sub {
+  display: block;
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--caption);
+  margin-top: 2px;
+}
+
+/* ---------- my people ---------- */
+
+.people-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 404fr) minmax(0, 576fr);
+  gap: 48px;
+  align-items: start;
+  margin-top: 48px;
+}
+
+/* Two whole photobooth strips — four frames and a hand-written label each —
+   laid down overlapping with opposite tilts, the way they are on the original. */
+/* Sized to the pair's exact footprint so the block can be centred as a unit
+   once the section stacks; the padding is the room the tilts need. */
+.strips {
+  position: relative;
+  width: 292px;
+  max-width: 100%;
+  margin-left: 40px;
+  padding: 20px 20px 40px;
+}
+
+.strip {
+  width: 146px;
+  border-radius: 2px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+}
+.strip-a { transform: rotate(-3deg); }
+.strip-b {
+  position: absolute;
+  left: 126px;
+  top: 53px;
+  transform: rotate(4deg);
+}
+
+.orgs { display: grid; gap: 44px; }
+
+.org-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  color: var(--accent);
+  margin: 0 0 6px;
+}
+
+/* Instagram glyph drawn in CSS so it needs no asset */
+.ig {
+  width: 16px;
+  height: 16px;
+  border: 1.6px solid currentColor;
+  border-radius: 5px;
+  position: relative;
+  flex: none;
+}
+.ig::before {
+  content: "";
+  position: absolute;
+  inset: 3.4px;
+  border: 1.6px solid currentColor;
+  border-radius: 50%;
+}
+.ig::after {
+  content: "";
+  position: absolute;
+  top: 1.6px;
+  right: 1.6px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.org-tagline {
+  font-size: 16px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--faint);
+  margin: 0 0 14px;
+}
+
+.sundays {
+  display: grid;
+  grid-template-columns: minmax(0, 576fr) minmax(0, 404fr);
+  gap: var(--gap);
+  align-items: center;
+  margin-top: 96px;
+}
+
+/* A loose overlapping pile rather than a grid — negative gaps let the corners
+   tuck under each other the way they do on the original. */
+.sundays-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 14px;
+}
+/* Same stock as the hero cards: white frame, deep bottom margin, soft shadow. */
+.polaroid {
+  background: #fff;
+  border-radius: 4px;
+  padding: 7px 7px 34px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
+}
+.polaroid img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 2px;
+}
+/* a light shuffle, so the four read as snapshots rather than a grid */
+.sp1 { transform: rotate(-4deg) translate(6px, 10px); z-index: 2; }
+.sp2 { transform: rotate(3deg) translate(-8px, -6px); z-index: 1; }
+.sp3 { transform: rotate(2.5deg) translate(10px, -12px); z-index: 1; }
+.sp4 { transform: rotate(-2.5deg) translate(-6px, 4px); z-index: 3; }
+
+/* ---------- faq ---------- */
+
+.faq-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.faq-item { border-top: 1px solid var(--rule); }
+.faq-item:last-child { border-bottom: 1px solid var(--rule); }
+
+.faq-q {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 26px 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.faq-num {
+  font-size: 22px;
+  color: var(--num);
+}
+.faq-text { font-size: 22px; }
+
+.faq-chevron {
+  width: 12px;
+  height: 12px;
+  border-right: 1.6px solid var(--num);
+  border-bottom: 1.6px solid var(--num);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.25s ease;
+  justify-self: end;
+}
+.faq-q[aria-expanded="true"] .faq-chevron {
+  transform: rotate(225deg) translate(-2px, -2px);
+}
+
+/* 0fr→1fr keeps the open height automatic while still animating */
+.faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.faq-item.is-open .faq-a { grid-template-rows: 1fr; }
+.faq-a > p {
+  overflow: hidden;
+  margin: 0;
+  padding-left: 80px;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.faq-item.is-open .faq-a > p { padding-bottom: 26px; }
+
+/* ---------- guitar ---------- */
+
+.guitar audio {
+  width: min(480px, 100%);
+  margin-top: 8px;
+}
+
+/* ---------- responsive ---------- */
+
+/* Wide enough for the two lists to sit side by side. Experience gets the larger
+   share — five entries and longer org names. */
+@media (min-width: 1080px) {
+  .cv {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: start;
+  }
+  /* side by side there is no cross-column alignment left to hold, so Education
+     drops the empty logo track and gives the width back to its text */
+  .edu-row { grid-template-columns: max-content minmax(0, 1fr); }
+  .edu-row .exp-body { grid-column: 2; }
+}
+
+@media (max-width: 900px) {
+  .hero { height: 560px; }
+  .why-grid,
+  .people-grid,
+  .sundays { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  /* stacked, the strips are the only thing in their row — centre them */
+  .strips { margin-left: auto; margin-right: auto; }
+  .sundays-photos { max-width: 460px; margin: 0 auto; }
+  .cv { gap: 64px; }
+  .faq-q { grid-template-columns: 42px minmax(0, 1fr) 20px; gap: 12px; }
+  .faq-text, .faq-num { font-size: 19px; }
+  .faq-a > p { padding-left: 54px; }
+}
+
+/* Below this the date can no longer hold its own column without squeezing the
+   org names, so it moves up onto its own line and the row goes logo + text. */
+@media (max-width: 700px) {
+  .exp-row,
+  .edu-row { grid-template-columns: 48px minmax(0, 1fr); gap: 4px 16px; }
+  .exp-row .exp-date,
+  .edu-row .exp-date { grid-column: 1 / -1; padding-top: 0; }
+  .edu-row { grid-template-columns: minmax(0, 1fr); }
+  .edu-row .exp-body { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-card { transition: none !important; }
+}

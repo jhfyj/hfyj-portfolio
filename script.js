@@ -534,7 +534,8 @@ texLoader.crossOrigin = 'anonymous';
 // Mirrors the Figma card-back frames: light bg + blue border in light mode,
 // dark bg + yellow border in dark mode, with the HFYJ mark recolored to match.
 const CARD_BACK_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame
-const CARD_BACK_SCALE = 2;
+// Same reasoning as the faces — see cardTextureScale() below.
+const CARD_BACK_SCALE = () => CARD_TEXTURE_SCALE;
 
 const hfyjMarkImg = new Image();
 hfyjMarkImg.src = './assets/hfyj-mark.svg';
@@ -837,8 +838,29 @@ function _placeCard(i, group) {
 // Same canvas-texture approach as the PureGym card below: draw the design
 // (vector text/shapes) onto a canvas and only load real raster assets for the
 // photo and the three fact-row icons.
+// How many pixels a card face canvas is actually worth.
+//
+// A card's 1.7-unit face, scaled ~0.78, sits about 1.55 units from an
+// 80-degree camera, so it covers roughly half the viewport height; the renderer
+// caps the pixel ratio at 2. On a 900px-tall window that is a ~460px-tall card,
+// and the old fixed scales were drawing 2898- and 4347-pixel canvases for it.
+// Nobody could see that detail, but everybody paid for it: every theme change
+// re-uploads each of these canvases to the GPU, and the upload cost scales with
+// the area, so the oversampling was the whole reason switching themes froze the
+// scene for seconds.
+//
+// Measured once at load. Resizing the window does not repaint the faces, so a
+// window dragged onto a denser display keeps the texture it was built with —
+// the floor below is what keeps that from ever looking soft.
+function cardTextureScale() {
+    const onScreenPx = 0.55 * window.innerHeight * Math.min(window.devicePixelRatio, 2);
+    const scale = (onScreenPx * 1.25) / 1449;   // 1449 is the design height
+    return Math.max(1, Math.min(2, Math.round(scale * 4) / 4));
+}
+const CARD_TEXTURE_SCALE = cardTextureScale();
+
 const ABOUTME_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
-const ABOUTME_SCALE = 3;
+const ABOUTME_SCALE = CARD_TEXTURE_SCALE;
 // The photo's folded-corner silhouette, straight off the Figma node. Kept as a
 // path (rather than baked into the image's alpha) so the mask edge stays
 // resolution-independent — the blur below would otherwise soften it.
@@ -1057,7 +1079,7 @@ const PUREGYM_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
 // to magnify it — magnification blur reads as much softer on crisp vector
 // text/edges than the same blur does on a photo, which is what made the
 // flat JPEG card look "sharper" at the same nominal resolution.
-const PUREGYM_SCALE = 2;
+const PUREGYM_SCALE = CARD_TEXTURE_SCALE;
 
 function puregymWrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split(' ');
@@ -1199,7 +1221,7 @@ function loadCard1() {
 // WebP; the "#00X" tag and title/date/description/pills are drawn as vector
 // text on top.
 const TEMPLATE_CARD = { w: 1059, h: 1449 };
-const TEMPLATE_CARD_SCALE = 2;
+const TEMPLATE_CARD_SCALE = CARD_TEXTURE_SCALE;
 
 function tmplWrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split(' ');

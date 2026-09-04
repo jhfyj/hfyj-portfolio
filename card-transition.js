@@ -54,6 +54,10 @@
     // same motion run each way rather than two curves that merely rhyme.
     const EXIT_EASE = 'cubic-bezier(.64, 0, .78, .39)';
     const CROSSFADE = 200;
+    // The card's photo well is drawn with 24px corners inside a 1016.663px
+    // well (tmplPhotoClipPath in script.js), so the radius the flight has to
+    // arrive at is that fraction of however wide the well is on screen.
+    const WELL_RADIUS = 24 / 1016.663;
     const HERO_WAIT = 1200;     // longest we will hold out for the hero's media
     // The same curve the scroll-reveal in site.js uses, so the flight and the
     // page assembling around it read as one motion rather than two.
@@ -179,11 +183,11 @@
         return y;
     }
 
-    function place(el, r) {
-        el.style.left = r.left + 'px';
-        el.style.top = r.top + 'px';
-        el.style.width = r.width + 'px';
-        el.style.height = r.height + 'px';
+    function place(el, b) {
+        el.style.left = b.x + 'px';
+        el.style.top = b.y + 'px';
+        el.style.width = b.w + 'px';
+        el.style.height = b.h + 'px';
     }
 
     // The hero's height is not knowable until its media reports an intrinsic
@@ -237,28 +241,37 @@
         const media = document.createElement('div');
         media.className = 'ct-media';
         media.style.backgroundImage = 'url("' + stash.image + '")';
-        // Borrowed rather than hard-coded: the video and embed wells are
-        // rounded and the plain image heroes are not.
-        media.style.borderRadius = getComputedStyle(hero).borderRadius;
-        place(media, heroRect);
 
-        // FLIP. The div already sits at its final box, so the animation only
-        // has to undo the difference and play it out — transform and opacity
-        // only, never the box itself, which would relayout on every frame.
+        // The stand-in is laid out at the *well's* shape, blown up until it
+        // covers the hero. That way its background is never cropped by its own
+        // box — only ever by the window, which is the thing that moves.
+        const well = stash.photo;
+        const box = coverBoxOfAspect(boxOf(heroRect), well.w / well.h);
+        place(media, box);
+
+        // FLIP, with a window. The div already sits at its final box, so the
+        // animation only has to undo the difference and play it out —
+        // transform, clip and opacity, never the box itself, which would
+        // relayout on every frame.
         //
-        // The scale is uniform, and that is the whole reason for the fitting
-        // below. The card crops its artwork to roughly 5:4 and the heroes are
-        // anything from 4:3 to 16:9, so scaling the card's photo rect straight
-        // onto the hero's box would stretch the picture through the entire
-        // flight — which does not read as a card opening, it reads as a bug.
-        // Instead the flight starts from the largest piece of the card's photo
-        // that is already the hero's shape, and grows that. The card itself is
-        // gone by the time any of this is on screen, so a band of it going
-        // unused costs nothing, while a stretch would have been unmissable.
-        const start = photoStartBox(stash.photo, heroRect);
-        const mediaFrom = 'translate(' +
-            (start.x - heroRect.left) + 'px,' + (start.y - heroRect.top) + 'px) ' +
-            'scale(' + (start.w / heroRect.width) + ')';
+        // Two ends, both exact. `shut` is the card: the whole well image at
+        // the well's size and position, to the pixel. `open` is this page: the
+        // hero's box, showing the part of the picture the hero shows. In
+        // between, one uniform scale and a window widening from one shape to
+        // the other — so nothing is ever stretched, and nothing undershoots.
+        const shut = coverFlight(box, well);
+        const open = coverFlight(box, boxOf(heroRect));
+        const mediaFrom = {
+            transform: 'translate(' + shut.tx + 'px,' + shut.ty + 'px) scale(' + shut.s + ')',
+            clipPath: insetOf(shut, WELL_RADIUS * well.w / shut.s),
+        };
+        const mediaTo = {
+            transform: 'translate(' + open.tx + 'px,' + open.ty + 'px) scale(' + open.s + ')',
+            clipPath: insetOf(open, cornerOf(hero) / open.s),
+        };
+        // The animation does not fill forwards, so the resting state has to be
+        // the landing: the window stays where the flight left it.
+        media.style.clipPath = mediaTo.clipPath;
 
         // ---- the title ---------------------------------------------------
         // The <h1>'s own text in the <h1>'s own type, so that the far end of
@@ -292,7 +305,7 @@
         // element's natural state.
         const opts = { duration: DURATION, easing: EASE, fill: 'backwards' };
         const flights = [
-            media.animate([{ transform: mediaFrom }, { transform: 'none' }], opts),
+            media.animate([mediaFrom, mediaTo], opts),
             title.animate([{ transform: titleFrom }, { transform: 'none' }],
                 Object.assign({ delay: TITLE_DELAY }, opts)),
         ];
@@ -318,21 +331,53 @@
         }
     }
 
-    // The card's photo is cropped to roughly 5:4 and the heroes run anything
-    // from 4:3 to 16:9, so the two boxes never match. Scaling one onto the
-    // other directly would stretch the picture across the whole flight, which
-    // does not read as a card opening — it reads as a bug. So the flight uses
-    // the largest piece of the card's photo that is *already* the hero's
-    // shape, and the scale stays uniform end to end.
+    // The card's photo well is cropped to roughly 5:4 and the heroes run
+    // anything from 1:1 to 16:9, so the two boxes are never the same shape.
+    // Two ways of dealing with that are wrong. Scaling one box onto the other
+    // stretches the picture through the whole flight. Shrinking to the biggest
+    // piece of the well that is already the hero's shape — which is what this
+    // used to do — keeps the picture honest but lands *inside* the well: a
+    // 16:9 hero came to rest 358×193 where the card's photo is 358×287, so
+    // the artwork visibly undershot the card it was returning to.
+    //
+    // What actually happens on a card is that the photo is a crop of the
+    // picture. So the flight is one picture, scaled uniformly end to end, seen
+    // through a window that opens from the card's crop to the hero's full box.
+    // The scale never distorts and both ends land exactly.
+    //
+    // Given a box and the window it has to fill, this is the uniform scale
+    // that makes the box cover the window, the offset that centres it there,
+    // and the inset that trims off what spills out — the clip, in the box's
+    // own untransformed coordinates, which is where clip-path is applied.
     //
     // Shared by both directions on purpose: the way out has to retrace the way
     // in exactly, and two copies of this arithmetic would drift apart.
-    function photoStartBox(photo, heroRect) {
-        const heroAspect = heroRect.width / heroRect.height;
-        const photoAspect = photo.w / photo.h;
-        const w = heroAspect > photoAspect ? photo.w : photo.h * heroAspect;
-        const h = w / heroAspect;
-        return { x: photo.x + (photo.w - w) / 2, y: photo.y + (photo.h - h) / 2, w: w, h: h };
+    function coverFlight(box, win) {
+        const s = Math.max(win.w / box.w, win.h / box.h);
+        return {
+            s: s,
+            tx: win.x + win.w / 2 - box.w * s / 2 - box.x,
+            ty: win.y + win.h / 2 - box.h * s / 2 - box.y,
+            insetX: Math.max(0, (box.w - win.w / s) / 2),
+            insetY: Math.max(0, (box.h - win.h / s) / 2),
+        };
+    }
+
+    // The smallest box of the given shape that covers `rect`, centred on it.
+    function coverBoxOfAspect(rect, aspect) {
+        const w = Math.max(rect.w, rect.h * aspect);
+        const h = w / aspect;
+        return { x: rect.x + (rect.w - w) / 2, y: rect.y + (rect.h - h) / 2, w: w, h: h };
+    }
+
+    function insetOf(fit, radius) {
+        return 'inset(' + fit.insetY + 'px ' + fit.insetX + 'px round ' + radius + 'px)';
+    }
+
+    function boxOf(r) { return { x: r.left, y: r.top, w: r.width, h: r.height }; }
+
+    function cornerOf(el) {
+        return parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
     }
 
     // ---------------------------------------------------------------- exit
@@ -396,10 +441,18 @@
         const h1Size = parseFloat(h1Style.fontSize) || 42;
         const h1Baseline = baselineOf(h1);
 
-        const end = photoStartBox(origin.photo, heroRect);
-        const heroTo = 'translate(' +
-            (end.x - heroRect.left) + 'px,' + (end.y - heroRect.top) + 'px) ' +
-            'scale(' + (end.w / heroRect.width) + ')';
+        // The mirror of the arrival. The hero is the whole picture and the
+        // card's photo well is a crop of it, so the hero scales down uniformly
+        // until it covers the well and the window closes onto the well's exact
+        // box — same size, same place, same crop as the card that is about to
+        // be underneath it. Fitting the hero *inside* the well instead, as
+        // this used to, left a 16:9 hero at 358×193 against a 358×287 photo:
+        // recognisably the right picture arriving at the wrong size.
+        const well = origin.photo;
+        const land = coverFlight(boxOf(heroRect), well);
+        const heroTo = 'translate(' + land.tx + 'px,' + land.ty + 'px) scale(' + land.s + ')';
+        const heroClipFrom = insetOf({ insetX: 0, insetY: 0 }, cornerOf(hero));
+        const heroClipTo = insetOf(land, WELL_RADIUS * well.w / land.s);
         const titleTo = 'translate(' +
             (origin.title.x - h1Rect.left) + 'px,' +
             (origin.title.baseline - h1Baseline) + 'px) ' +
@@ -426,9 +479,9 @@
         // artwork sitting exactly where the card is about to be. The fade is
         // only there to take the hard edge off the navigation.
         const flights = [
-            hero.animate([{ transform: 'none', opacity: 1 },
-                          { transform: heroTo, opacity: 1, offset: 0.82 },
-                          { transform: heroTo, opacity: 0 }], opts),
+            hero.animate([{ transform: 'none', clipPath: heroClipFrom, opacity: 1 },
+                          { transform: heroTo, clipPath: heroClipTo, opacity: 1, offset: 0.82 },
+                          { transform: heroTo, clipPath: heroClipTo, opacity: 0 }], opts),
             h1.animate([{ transform: 'none', opacity: 1 },
                         { transform: titleTo, opacity: 1, offset: 0.82 },
                         { transform: titleTo, opacity: 0 }],

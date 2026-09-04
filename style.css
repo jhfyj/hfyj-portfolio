@@ -945,6 +945,20 @@ html[data-intro-done] #loader {
   cursor: none;
 }
 
+/* Returning to the grid view a visitor left off in. The attribute is set before
+   first paint (see the inline script in index.html) purely so this frame is
+   already the grid — script.js can only add .visible after the module runs, and
+   the 0.4s fade above would then play as a visible swap from the carousel.
+   transition: none matters as much as the opacity: it's what stops that fade
+   from running here too. script.js removes the attribute in the same tick it
+   adds .visible, so the computed opacity never changes and nothing animates. */
+html[data-restore-view="grid"] #grid-view {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: none;
+  transition: none;
+}
+
 #grid-view.visible * {
   cursor: none;
 }

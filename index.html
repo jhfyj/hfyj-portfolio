@@ -33,6 +33,21 @@
             try { done = done || sessionStorage.getItem('introPlayed') === '1'; } catch (err) {}
             window.__introDone = done;
             if (done) document.documentElement.setAttribute('data-intro-done', '');
+
+            // Same reason again, for the view. script.js restores the grid, but
+            // it's a deferred module: by the time it runs the browser may
+            // already have painted a frame of the carousel, and the visitor
+            // would watch the grid swap in over it. Stamping the decision here
+            // lets style.css paint the grid opaque from the very first frame.
+            // script.js takes the attribute back off once it owns the state —
+            // see the restore block there, which also reads this same key.
+            if (!done) return;
+            try {
+                var stored = JSON.parse(sessionStorage.getItem('homeViewState'));
+                if (stored && stored.v === 1 && stored.view === 'grid') {
+                    document.documentElement.setAttribute('data-restore-view', 'grid');
+                }
+            } catch (err) {}
         })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">

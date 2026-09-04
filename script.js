@@ -69,6 +69,91 @@ let loaderTarget  = 0;   // jumps to each step as models arrive
 let loaderDisplay = 0;   // lerps smoothly toward loaderTarget
 let loaderDone    = false;
 
+// ── Where-you-left-off state (view + position within it) ─────────────────────
+// Clicking into a project is a round trip, not an exit: coming back should put
+// the visitor where they were, not at the top of a view they weren't even on.
+//
+// sessionStorage, not localStorage, on purpose. This is "a moment ago", scoped
+// to one tab's browsing session — a visitor who comes back next week should get
+// the carousel and the intro again, because that's the first impression, not a
+// setting they chose. Every access is wrapped: Safari's private mode throws on
+// the getter itself rather than returning null.
+//
+// One key, one small object, and a version stamp on it. A shape written by an
+// older build of this file is discarded rather than half-read, so a field that
+// moved or changed meaning can never throw its way into the restore path.
+const VIEW_STATE_KEY = 'homeViewState';
+const VIEW_STATE_VERSION = 1;
+
+// Kept in memory and written from here, rather than read back off the DOM at
+// write time — the throttled writer below runs from the render loop, which
+// starts before the grid's own consts exist further down this file.
+const viewState = {
+    v: VIEW_STATE_VERSION,
+    view: 'cards',
+    gridScroll: 0,
+    rotation: 0,
+};
+
+function readViewState() {
+    let raw = null;
+    try { raw = sessionStorage.getItem(VIEW_STATE_KEY); } catch (err) { return null; }
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.v !== VIEW_STATE_VERSION) return null;
+        return {
+            view: parsed.view === 'grid' ? 'grid' : 'cards',
+            // Number.isFinite, not a truthiness check: 0 is a legitimate scroll
+            // offset and NaN/null from a corrupt entry must not reach scrollTop.
+            gridScroll: Number.isFinite(parsed.gridScroll) ? parsed.gridScroll : 0,
+            rotation: Number.isFinite(parsed.rotation) ? parsed.rotation : 0,
+        };
+    } catch (err) { return null; }
+}
+
+let persistTimer = null;
+let lastPersistAt = -Infinity;
+const PERSIST_INTERVAL_MS = 250;
+
+function writeViewState() {
+    if (persistTimer !== null) { clearTimeout(persistTimer); persistTimer = null; }
+    lastPersistAt = performance.now();
+    try { sessionStorage.setItem(VIEW_STATE_KEY, JSON.stringify(viewState)); } catch (err) { /* private mode */ }
+}
+
+// Rotation changes every frame while the carousel spins and scroll fires at
+// pointer rate, so those two go through here instead of writing directly:
+// leading edge plus a trailing write, so the value that actually gets stored is
+// where the motion came to rest, not wherever it happened to be 250ms in.
+// beforeunload isn't a substitute — it's skipped outright on mobile Safari and
+// whenever the tab is discarded, which is exactly the trip we're saving for.
+function schedulePersist() {
+    const now = performance.now();
+    const since = now - lastPersistAt;
+    if (since >= PERSIST_INTERVAL_MS) { writeViewState(); return; }
+    if (persistTimer !== null) return;
+    persistTimer = setTimeout(() => { persistTimer = null; writeViewState(); }, PERSIST_INTERVAL_MS - since);
+}
+
+// Read once, up front: the restore paths further down consume this, and reading
+// it later would race the writes this same page starts making.
+const restoredState = introSkipped ? readViewState() : null;
+
+// The carousel's angle is a single accumulating number that every input funnels
+// into (wheel, drag, scrubber, keyboard, the snap easing) — so restoring which
+// card faced the viewer is just putting that number back before the first
+// render, which is why this sits up here next to the group rather than down
+// with the view restore. Gated on introSkipped so a genuinely fresh visit is
+// untouched: the deal starts from wherever the group is and rotates a full
+// circle from there, and seeding it would land the deal on the wrong card.
+if (restoredState) {
+    viewState.view = restoredState.view;
+    viewState.gridScroll = restoredState.gridScroll;
+    viewState.rotation = restoredState.rotation;
+    cardgroup.rotation.y = restoredState.rotation;
+}
+
 // ── Sound effects — synthesized with Web Audio, no audio files ───────────────
 let audioCtx = null;
 let noiseBuf = null;
@@ -2041,6 +2126,17 @@ const renderloop = (now = 0) => {
     // Update scrubber UI
     updateScrubber();
 
+    // Remember which card is facing the viewer. Sampled from the loop rather
+    // than from the input handlers because there is no single "rotation ended"
+    // moment — wheel, drag, fling momentum, the scrubber and the snap easing all
+    // keep moving the group for a while after the last event, and it's where
+    // they come to rest that's worth storing. Gated on 'done' so the deal's own
+    // full-circle sweep never gets written down as a resting position.
+    if (introPhase === 'done' && Math.abs(cardgroup.rotation.y - viewState.rotation) > 0.0005) {
+        viewState.rotation = cardgroup.rotation.y;
+        schedulePersist();
+    }
+
     // ── Update ember particles ──
     const posAttr = particleGeo.attributes.position;
     const tSec    = now * 0.001;
@@ -2353,6 +2449,38 @@ function replayGridHeroReveal() {
     }, { once: true });
 }
 
+// Everything that has to swap over when the view changes, minus the reveal
+// animations. Shared by the toggle handler and by the session restore below, so
+// the restored grid can't end up with, say, the scrubber still sitting over it
+// because only one of the two places was updated.
+function applyViewChrome(view) {
+    const scrubber = document.getElementById('scrubber');
+    const socialLinks = document.getElementById('social-links');
+
+    toggleBtns.forEach(b => b.classList.toggle('active', b.dataset.view === view));
+
+    if (view === 'grid') {
+        // Show grid, hide carousel
+        gridView.classList.add('visible');
+        canvasEl.style.opacity = '0';
+        canvasEl.style.pointerEvents = 'none';
+        if (scrubber) scrubber.classList.add('slide-down');
+        if (socialLinks) socialLinks.style.opacity = '0';
+        if (socialLinks) socialLinks.style.pointerEvents = 'none';
+        dotCursor.classList.remove('visible');
+        cardCursor.classList.remove('visible');
+        setGridMediaPlaying(true);
+    } else {
+        // Show carousel, hide grid
+        gridView.classList.remove('visible');
+        canvasEl.style.opacity = '1';
+        canvasEl.style.pointerEvents = 'auto';
+        if (scrubber) scrubber.classList.remove('slide-down');
+        if (socialLinks) { socialLinks.style.opacity = ''; socialLinks.style.pointerEvents = ''; }
+        setGridMediaPlaying(false);
+    }
+}
+
 toggleBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const view = btn.dataset.view;
@@ -2360,37 +2488,43 @@ toggleBtns.forEach(btn => {
         sfx.click();
         currentView = view;
 
-        toggleBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const scrubber = document.getElementById('scrubber');
-        const socialLinks = document.getElementById('social-links');
+        applyViewChrome(view);
 
         if (view === 'grid') {
-            // Show grid, hide carousel
-            gridView.classList.add('visible');
-            canvasEl.style.opacity = '0';
-            canvasEl.style.pointerEvents = 'none';
-            if (scrubber) scrubber.classList.add('slide-down');
-            if (socialLinks) socialLinks.style.opacity = '0';
-            if (socialLinks) socialLinks.style.pointerEvents = 'none';
-            dotCursor.classList.remove('visible');
-            cardCursor.classList.remove('visible');
             gridView.scrollTo({ top: 0, behavior: 'auto' });
             replayGridHeroReveal();
             replayGridCardReveal();
-            setGridMediaPlaying(true);
-        } else {
-            // Show carousel, hide grid
-            gridView.classList.remove('visible');
-            canvasEl.style.opacity = '1';
-            canvasEl.style.pointerEvents = 'auto';
-            if (scrubber) scrubber.classList.remove('slide-down');
-            if (socialLinks) { socialLinks.style.opacity = ''; socialLinks.style.pointerEvents = ''; }
-            setGridMediaPlaying(false);
         }
+
+        // Written straight through rather than throttled: a toggle is a single
+        // deliberate act, and it is the one moment where losing the write to a
+        // pending timer would mean coming back to the wrong view entirely.
+        viewState.view = view;
+        viewState.gridScroll = view === 'grid' ? 0 : viewState.gridScroll;
+        writeViewState();
     });
 });
+
+// Non-null only while the restore below is still trying to land its offset; see
+// the guard in the scroll handler for why that matters.
+let pendingGridScrollRestore = null;
+
+// The grid is its own scroll container (position: fixed with overflow-y: auto),
+// so its offset lives on the element, not on the window — nothing about the
+// page's own scroll position describes where the visitor is inside it.
+gridView.addEventListener('scroll', () => {
+    if (currentView !== 'grid') return;
+    // A restore that got clamped short still fires a scroll event, and writing
+    // that back would overwrite the offset we're in the middle of restoring with
+    // the clamped one — the stored position would decay a little on every trip.
+    // Anything at or past the target is real movement, so the restore is done.
+    if (pendingGridScrollRestore !== null) {
+        if (gridView.scrollTop < pendingGridScrollRestore - 1) return;
+        pendingGridScrollRestore = null;
+    }
+    viewState.gridScroll = gridView.scrollTop;
+    schedulePersist();
+}, { passive: true });
 
 // ── Grid-view footer ─────────────────────────────────────────────────────────
 
@@ -2533,6 +2667,94 @@ document.querySelectorAll('.grid-card-info').forEach(info => {
     swap.appendChild(title);
     swap.appendChild(descRow);
 });
+
+// ── Restore the grid view a returning visitor left off in ────────────────────
+// Deliberately placed at this point in the file rather than next to the toggle
+// handler: everything above has finished building the grid's final DOM — the
+// hover-swap block just above physically re-parents every card's title and
+// description — and a scroll offset measured against a layout that is still
+// about to change is an offset that lands in the wrong place.
+
+// The same end state replayGridHeroReveal() and replayGridCardReveal() animate
+// towards, arrived at directly. Restoring is not a re-entry; the visitor has
+// already watched the hero slide up and the cards fade in, and replaying that
+// on the way back from a project page reads as the site having forgotten them.
+function revealGridSilently() {
+    if (gridHero && gridHeroMask && gridHeroInner) {
+        // Suppress the slide-up transition across the class change and commit it
+        // with a reflow before handing transitions back, exactly as the replay
+        // path does — otherwise adding .visible here animates from below.
+        gridHeroInner.style.transition = 'none';
+        gridHero.classList.add('visible');
+        gridHeroMask.classList.add('revealed');
+        void gridHero.offsetHeight;
+        gridHeroInner.style.transition = '';
+    }
+    // The doodles are an infinite ambient loop rather than a one-shot reveal, so
+    // turning them on here is restoring the resting state, not replaying an intro.
+    playArtDoodles();
+
+    // Only the cards actually on screen are forced visible; the ones further
+    // down are handed to the observer untouched, so scrolling on from a restored
+    // position still reveals them the normal way instead of finding everything
+    // already faded in.
+    const vh = window.innerHeight;
+    document.querySelectorAll('.grid-card').forEach(card => {
+        const r = card.getBoundingClientRect();
+        if (r.top < vh && r.bottom > 0) {
+            card.style.transition = 'none';
+            card.classList.add('visible');
+            void card.offsetHeight;
+            card.style.transition = '';
+        } else {
+            _gridCardObserver.observe(card);
+        }
+    });
+}
+
+// Setting scrollTop on a container whose content is shorter than the target is
+// silently clamped to whatever the max happens to be at that instant — and the
+// grid's content is still growing at this point: the webfonts are async, so the
+// hero and every card caption reflow taller once they swap in. So the offset is
+// applied straight away (which is what makes it silent — the grid's first paint
+// is already at the right place, with no frame at the top and no scroll
+// animation) and then re-asserted at the two moments the height can jump, but
+// only while it is still short of the target and the visitor hasn't taken over.
+function restoreGridScroll(top) {
+    if (!(top > 0)) return;
+    pendingGridScrollRestore = top;
+    // Stop re-asserting the moment the visitor touches the grid themselves —
+    // yanking them back to a stored offset mid-scroll would be worse than
+    // simply having missed it.
+    const release = () => { pendingGridScrollRestore = null; };
+    ['wheel', 'touchstart', 'pointerdown'].forEach(t =>
+        gridView.addEventListener(t, release, { once: true, passive: true }));
+    window.addEventListener('keydown', release, { once: true });
+
+    const apply = () => {
+        if (pendingGridScrollRestore === null) return;
+        // A short read means the previous set was clamped, not that the visitor
+        // scrolled up — that case is covered by `release` above.
+        if (gridView.scrollTop < top - 1) gridView.scrollTop = top;
+    };
+    gridView.scrollTop = top;
+    requestAnimationFrame(apply);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(apply).catch(() => {});
+    window.addEventListener('load', apply, { once: true });
+}
+
+if (restoredState && restoredState.view === 'grid' && gridView) {
+    currentView = 'grid';
+    applyViewChrome('grid');
+    revealGridSilently();
+    restoreGridScroll(restoredState.gridScroll);
+    // Hand the pre-paint hint back: index.html only sets it so the grid is
+    // opaque in the very first frame, and leaving it on would keep the grid
+    // painted over the carousel after a toggle back to cards. Dropping it in the
+    // same tick that .visible went on means the computed opacity never changes,
+    // so the fade transition has nothing to run on.
+    document.documentElement.removeAttribute('data-restore-view');
+}
 
 // --- Intro animation functions ---
 

@@ -687,8 +687,18 @@ html[data-intro-done] #loader {
 
 /* Coming back from a case page that shrank itself into the card. The page it
    collapsed into is this one, so this one has to arrive rather than appear:
-   everything fades up together over roughly the time the shrink took to end,
-   which is what turns two animations into one movement.
+   the whole page comes up together over roughly the time the shrink took to
+   end, which is what turns two animations into one movement. The artwork is
+   still opaque and sitting on the card's exact box when the swap happens, so
+   what this fades up is the same picture in the same place — a dissolve
+   between two frames that already agree, rather than a page switching on.
+
+   The whole page rather than a staged, per-element arrival, and deliberately:
+   the nav, the panels, the hint, the scrubber and the grid each already own
+   their opacity and transform through their own reveal classes, and half of
+   them are legitimately hidden at any given moment. An animation over the top
+   of those would hold whatever it ended on and show things that are supposed
+   to be away.
 
    Deliberately a plain CSS animation on <body>, stamped by the pre-paint block
    in index.html. Nothing scripted is involved, so there is no state that can
@@ -696,7 +706,7 @@ html[data-intro-done] #loader {
    does or does not happen, and `both` holds the first frame at zero so nothing
    flashes before it starts. */
 html[data-card-return] body {
-  animation: card-return-in 420ms cubic-bezier(.22, .61, .36, 1) both;
+  animation: card-return-in 460ms cubic-bezier(.22, .61, .36, 1) both;
 }
 @keyframes card-return-in {
   from { opacity: 0; }

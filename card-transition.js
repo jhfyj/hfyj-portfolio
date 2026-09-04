@@ -48,11 +48,15 @@
     // thing opening; coming out, the graphic going first and the title
     // following is the point, so the gap has to be visible.
     const EXIT_TITLE_DELAY = 110;
-    // The mirror of EASE. Reflecting a cubic-bezier through the diagonal —
-    // (x1,y1,x2,y2) becomes (1-x2,1-y2,1-x1,1-y1) — turns the arrival's
-    // ease-out into the ease-in that undoes it, so the two directions are the
-    // same motion run each way rather than two curves that merely rhyme.
-    const EXIT_EASE = 'cubic-bezier(.64, 0, .78, .39)';
+    // This was the mirror of EASE, on the reasoning that reflecting the
+    // arrival's curve through the diagonal makes the two directions the same
+    // motion run each way. Mathematically true, and wrong to watch: mirroring
+    // an ease-out gives an ease-in, so the artwork was travelling at its
+    // fastest at the instant it reached the card and then vanishing — which
+    // reads as shrinking away to nothing rather than settling into place.
+    // Both directions decelerate into their destination now, because in both
+    // of them the end is an arrival.
+    const EXIT_EASE = 'cubic-bezier(.22, .61, .36, 1)';
     const CROSSFADE = 200;
     // The card's photo well is drawn with 24px corners inside a 1016.663px
     // well (tmplPhotoClipPath in script.js), so the radius the flight has to
@@ -474,17 +478,17 @@
         h1.style.zIndex = '3';
 
         const opts = { duration: EXIT_DURATION, easing: EXIT_EASE, fill: 'forwards' };
-        // Held at full opacity almost to the end: the flight lands on the
-        // card's own box, so the last thing on screen should still be the
-        // artwork sitting exactly where the card is about to be. The fade is
-        // only there to take the hard edge off the navigation.
+        // Fully opaque the whole way, and still opaque when the navigation
+        // happens. These two used to fade out over the last fifth of the
+        // flight, which put the fade on top of the fastest part of the old
+        // ease-in: the artwork reached the card and disappeared in the same
+        // few frames. It lands on the card's own box, so there is nothing to
+        // hide — the picture is already exactly where the card is about to
+        // draw it, and the home page fading up behind covers the swap.
         const flights = [
-            hero.animate([{ transform: 'none', clipPath: heroClipFrom, opacity: 1 },
-                          { transform: heroTo, clipPath: heroClipTo, opacity: 1, offset: 0.82 },
-                          { transform: heroTo, clipPath: heroClipTo, opacity: 0 }], opts),
-            h1.animate([{ transform: 'none', opacity: 1 },
-                        { transform: titleTo, opacity: 1, offset: 0.82 },
-                        { transform: titleTo, opacity: 0 }],
+            hero.animate([{ transform: 'none', clipPath: heroClipFrom },
+                          { transform: heroTo, clipPath: heroClipTo }], opts),
+            h1.animate([{ transform: 'none' }, { transform: titleTo }],
                        Object.assign({ delay: EXIT_TITLE_DELAY }, opts)),
         ];
 
@@ -502,19 +506,20 @@
             //
             // Falls through to an ordinary navigation whenever the page is not
             // eligible, so this costs nothing when it does not apply.
+            //
+            // The note goes down first either way. It tells the home page it
+            // is being arrived at rather than opened, so it can bring itself
+            // in around the card the artwork has just landed on instead of
+            // appearing in one frame. A restored page reads it from its
+            // pageshow handler and a freshly loaded one from its <head>; it
+            // used to be written only on the second path, so the restore — the
+            // common case, and the one that looks most like a reload without
+            // it — arrived as a hard cut.
+            try { sessionStorage.setItem(RETURN_KEY, String(Date.now())); } catch (err) {}
             if (homeIsBack()) {
                 history.back();
-                // If the entry has been evicted, back() still does a full load
-                // and the note below is what fades it up. Nothing to undo.
                 return;
             }
-            // Tell the home page it is being arrived at rather than opened, so
-            // it can fade itself up as the card it is about to show finishes
-            // shrinking into place. Without this the flight ends on a cut: the
-            // page collapses to the card's box and then the whole carousel
-            // appears in one frame, which undoes the continuity the shrink just
-            // spent half a second building.
-            try { sessionStorage.setItem(RETURN_KEY, String(Date.now())); } catch (err) {}
             window.location.href = href;
         }
         // The navigation is what ends this, so it cannot be allowed to depend

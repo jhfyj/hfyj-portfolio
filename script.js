@@ -1095,8 +1095,7 @@ function _placeCard(i, group) {
 
 // ── Card 0 — About Me ────────────────────────────────────────────────────────
 // Same canvas-texture approach as the PureGym card below: draw the design
-// (vector text/shapes) onto a canvas and only load real raster assets for the
-// photo and the three fact-row icons.
+// (vector text/shapes) onto a canvas and load one real raster asset, the photo.
 // How many pixels a card face canvas is actually worth.
 //
 // A card's 1.7-unit face, scaled ~0.78, sits about 1.55 units from an
@@ -1128,16 +1127,28 @@ const ABOUTME_PHOTO_MASK = 'M1014 20C1027.25 20 1038 30.7452 1038 44V1400C1038 1
 // PNG export is sharp. Matching the render, not the filter. Raise to soften.
 const ABOUTME_PHOTO_BLUR = 0;
 const ABOUTME_PILL_FONT_PX = 14; // matches the design's DM Sans optical size
-// Fun-fact rows, in design px. Scaled up from the Figma frame's 46px/48px.
-const ABOUTME_FACT = {
-    left: 77,
-    top: 945,
-    fontPx: 58,
-    iconH: 60,
-    iconGap: 19,
-    rowH: 69,
-    rowGap: 42,
-};
+// The bottom-right shelf the tag pills sit on. In Figma this is a separate
+// shape ("Vector 15") filled with the card stock and laid over the photo —
+// the photo's own silhouette underneath is still the full ABOUTME_PHOTO_MASK,
+// so this is a cover, not a clip. Kept in the node's own local coordinates;
+// ABOUTME_CUT_MATRIX below is the 180° rotation and placement Figma gives it.
+const ABOUTME_BOTTOM_CUT = 'M92.1527 105.785C39 105.785 19.571 132.5 19.571 170L0 83.7852L17.7362 11.0083L155.345 0L837 9.70899C802.751 9.70899 784.763 33.5602 784.763 33.5602L768.188 63.2673C754.411 87.96 728.41 103.32 700.134 103.432C556.671 103.997 124.699 105.785 92.1527 105.785Z';
+// Rotated 180° about its own box and dropped so its local origin lands at
+// (1058, 1434) — i.e. local (x, y) draws at (1058 - x, 1434 - y).
+const ABOUTME_CUT_MATRIX = (s) => new DOMMatrix([-s, 0, 0, -s, 1058 * s, 1434 * s]);
+// Tag pills, in design px, straight off the Figma row (node 1122:55): a 724-wide
+// row that ends on the same 21px inset the photo does, with 12px gaps.
+const ABOUTME_PILLS = [
+    { label: 'NYU', x: 315, w: 153 },
+    { label: 'TINKERER', x: 480, w: 280 },
+    { label: 'DESIGNER', x: 772, w: 266 },
+];
+// Each pill fills the row box: 8px of padding either side of a 52px DM Sans
+// line box, plus the 3px border Figma draws inside that. Measured off the
+// design's own render as well as its metadata — both give 68 at y 1352.
+const ABOUTME_PILL_Y = 1352;
+const ABOUTME_PILL_H = 68;
+const ABOUTME_PILL_STROKE = 3;
 
 function loadCard0() {
     const s = ABOUTME_SCALE;
@@ -1148,36 +1159,23 @@ function loadCard0() {
 
     const photo = new Image();
     photo.src = './Cards/aboutme-photo.webp';
-    // Setting width/height before the src decodes tells the browser to
-    // rasterize these vector icons at the scaled-up size we'll actually draw
-    // them at, instead of their small native 48px box then upscaling that
-    // bitmap — which is what was making the icons (and, by extension, the
-    // whole card) read as soft/blurry.
-    const iconH = ABOUTME_FACT.iconH * s;
-    const iconDance = new Image();
-    iconDance.width = iconH;          // 48x48 native
-    iconDance.height = iconH;
-    iconDance.src = './assets/icon-dance.svg';
-    const iconGuitar = new Image();
-    iconGuitar.width = iconH * (102 / 48); // 102x48 native
-    iconGuitar.height = iconH;
-    iconGuitar.src = './assets/icon-guitar.svg';
-    const iconMatcha = new Image();
-    iconMatcha.width = iconH * (156 / 48); // 156x48 native
-    iconMatcha.height = iconH;
-    iconMatcha.src = './assets/icon-matcha.svg';
 
     Promise.all([
+        // document.fonts.ready alone is not enough: it settles once the fonts
+        // the *document* asked for have arrived, and index.html renders nothing
+        // in Play, so the face used to paint its name in whatever sans-serif
+        // the canvas fell back to — 2% wider than Play, which is why the name
+        // never quite sat where the design put it. Naming the faces this card
+        // draws with is what actually fetches them.
         document.fonts.ready,
+        document.fonts.load(`700 ${80 * s}px "Play"`),
+        document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
+        document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
         new Promise((resolve) => { photo.onload = resolve; }),
-        new Promise((resolve) => { iconDance.onload = resolve; }),
-        new Promise((resolve) => { iconGuitar.onload = resolve; }),
-        new Promise((resolve) => { iconMatcha.onload = resolve; }),
     ]).then(() => {
         const r = 36 * s;
         // Set once, up front — save()/restore() below would otherwise
-        // revert this back to the canvas default partway through drawing,
-        // leaving the icons (drawn after the restore) soft.
+        // revert this back to the canvas default partway through drawing.
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
@@ -1213,29 +1211,33 @@ function loadCard0() {
                 ph * k * s,
             );
             ctx.filter = 'none';
-            // Dark scrim over the lower half, so the white text below reads
-            const scrim = ctx.createLinearGradient(0, 637 * s, 0, 1424 * s);
-            scrim.addColorStop(0, 'rgba(0,0,0,0)');
-            scrim.addColorStop(1, 'rgba(0,0,0,1)');
-            ctx.fillStyle = scrim;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
             // Hairline around the photo silhouette
             ctx.strokeStyle = ink;
             ctx.lineWidth = s;
             ctx.stroke(maskPath);
+            // …then the stock-coloured shelf laid over its bottom-right corner,
+            // which is what the pills sit on. Drawn after the hairline on
+            // purpose: the design's cut edge carries no stroke, and covering
+            // that stretch of it is how Figma gets the same result.
+            const cutPath = new Path2D();
+            cutPath.addPath(new Path2D(ABOUTME_BOTTOM_CUT), ABOUTME_CUT_MATRIX(s));
+            ctx.fillStyle = cardBg;
+            ctx.fill(cutPath);
             ctx.restore();
 
             // Figma positions text by its line box; canvas draws from a baseline.
             // Deriving the baseline from the font's own metrics is what keeps these
             // landing where the design says, instead of a hand-tuned offset.
-            function drawBoxedText(text, x, y, w, h, align) {
+            function drawBoxedText(text, x, y, w, h, align, mode) {
                 const m = ctx.measureText(text);
                 ctx.textAlign = align;
                 ctx.textBaseline = 'alphabetic';
                 const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
                 const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
-                ctx.fillText(text, align === 'center' ? x + w / 2 : x, baseline);
+                const tx = align === 'center' ? x + w / 2 : x;
+                if (mode === 'stroke') ctx.strokeText(text, tx, baseline);
+                else ctx.fillText(text, tx, baseline);
             }
 
             // "#000" tag, sitting over the folded corner — the one bit of ink on
@@ -1244,38 +1246,39 @@ function loadCard0() {
             ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
             drawBoxedText('#000', 56 * s, 24 * s, 91 * s, 44 * s, 'center');
 
-            // Name. Stays black in both themes: the folded corner clears it, so
-            // this sits on the photo's sky, not on the stock.
-            ctx.fillStyle = '#000';
+            // Name. Both colours here are fixed in both themes, on purpose: the
+            // folded corner clears this text, so it sits on the photo's sky
+            // rather than on the stock, and the photo does not follow the theme.
+            // Black glyphs inside a white outline is what the design uses to
+            // hold them apart from the sky, and that reads the same either way.
+            // Stroke first, fill over it, so the halo only ever sits outside the
+            // glyphs and the letterforms keep their designed weight — 4px of
+            // stroke straddling the path leaves the 2px the design shows.
             ctx.font = `700 ${80 * s}px "Play", sans-serif`;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.lineWidth = 4 * s;
+            ctx.strokeStyle = '#fff';
+            drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left', 'stroke');
+            ctx.fillStyle = '#000';
             drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left');
 
-            // Fun-fact rows — icon + white label, over the lower half of the photo
-            const F = ABOUTME_FACT;
-            function drawFactRow(icon, text, index) {
-                const rowY = F.top + index * (F.rowH + F.rowGap);
-                const iconW = F.iconH * (icon.naturalWidth / icon.naturalHeight);
-                // Icon sits centred against the text's line box
-                ctx.drawImage(icon, F.left * s, (rowY + (F.rowH - F.iconH) / 2) * s, iconW * s, F.iconH * s);
-                ctx.font = `400 ${F.fontPx * s}px "Figtree", "DM Sans", sans-serif`;
-                ctx.fillStyle = '#fff';
-                drawBoxedText(text, (F.left + iconW + F.iconGap) * s, rowY * s, 0, F.rowH * s, 'left');
-            }
-            drawFactRow(iconDance,  'hip hop dance', 0);
-            drawFactRow(iconGuitar, 'classical guitar (love tarrega)', 1);
-            drawFactRow(iconMatcha, 'matcha fein', 2);
-
-            // Tag pills — white outline, no fill, so the photo shows through.
-            // Widths come from the design rather than text measurement, so a font
-            // that metrics slightly differently can't drift the row out of place.
+            // Tag pills — outline only, on the bare stock of the shelf, so they
+            // follow the theme's ink. Widths come from the design rather than text
+            // measurement, so a font that metrics slightly differently can't drift
+            // the row out of place.
             function drawPill(label, x, w) {
-                const y = 1327 * s, h = 68 * s;
+                const y = ABOUTME_PILL_Y * s, h = ABOUTME_PILL_H * s;
+                // Figma's border sits inside the pill's box; a canvas stroke
+                // straddles the path, so inset the path by half the weight to
+                // put the same 3px band in the same place.
+                const lw = ABOUTME_PILL_STROKE * s, inset = lw / 2;
                 ctx.beginPath();
-                ctx.roundRect(x * s, y, w * s, h, h / 2);
-                ctx.lineWidth = 3 * s;
-                ctx.strokeStyle = '#fff';
+                ctx.roundRect(x * s + inset, y + inset, w * s - lw, h - lw, h / 2 - inset);
+                ctx.lineWidth = lw;
+                ctx.strokeStyle = ink;
                 ctx.stroke();
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = ink;
                 // DM Sans is optically sized, and canvas derives that axis from the
                 // font size — at 40px it picks noticeably narrower letterforms than
                 // the design's opsz 14. Drawing small and scaling up restores them.
@@ -1286,9 +1289,7 @@ function loadCard0() {
                 drawBoxedText(label, (x * s) / k, y / k, (w * s) / k, h / k, 'center');
                 ctx.restore();
             }
-            drawPill('NYU', 282, 153);
-            drawPill('TINKERER', 282 + 165, 280);
-            drawPill('DESIGNER', 282 + 457, 266);
+            ABOUTME_PILLS.forEach((p) => drawPill(p.label, p.x, p.w));
 
             // Slight paper-grain overlay, same as the rest of the deck
             ctx.save();

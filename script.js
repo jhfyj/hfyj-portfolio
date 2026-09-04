@@ -1220,20 +1220,31 @@ function loadCard1() {
         function paint(theme) {
             const { cardBg, ink, inkSub, inkBody } = THEME_COLORS[theme];
 
-            // Background + phone-mockup photo, clipped to the card's rounded corners
+            // Card stock, clipped to the card's rounded corners
             ctx.save();
             ctx.beginPath();
             ctx.roundRect(0, 0, canvas.width, canvas.height, r);
             ctx.clip();
             ctx.fillStyle = cardBg;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
+            ctx.restore();
+
+            // Phone-mockup photo, clipped to the same rounded well + folded-corner
+            // notch the template cards use (tmplPhotoClipPath), so this card's photo
+            // box matches the rest of the deck instead of running square to the edges.
+            // Cover rather than stretch: the mockup is 1250x1004 (1.2450) against a
+            // 1016.663x817 well (1.2444), so the crop is sub-pixel and nothing of the
+            // phones is lost — but it keeps the aspect honest like every other card.
+            ctx.save();
+            tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
+            ctx.clip();
+            tmplDrawImageCover(ctx, mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
             ctx.restore();
 
             // "#003" — this card's position in the site's numbering (not Figma's placeholder number).
-            // Stays black in both themes: unlike the template cards, the mockup here is drawn as a
-            // plain rect with no folded-corner notch, so its white ground covers this spot.
-            ctx.fillStyle = '#000';
+            // Sits in the folded-corner notch on bare stock, so it follows the theme's ink
+            // like the template cards' tags do.
+            ctx.fillStyle = ink;
             ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';

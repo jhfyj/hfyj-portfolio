@@ -57,8 +57,20 @@ main { padding-bottom: 0; }
 .case {
   width: min(var(--col), calc(100% - 72px));
   margin: 0 auto;
-  padding: 48px 0 0;
+  padding: 32px 0 0;
 }
+
+/* The hero opens the column, the title follows it. Every media wrapper below
+   carries a top margin for the case where it sits between blocks of copy, and
+   the one that leads the page has to give that back — the column's own padding
+   is the whole gap above it. Stated once here rather than on each of the three
+   wrappers, because which one leads is a per-page fact. */
+.case > :first-child { margin-top: 0; }
+
+/* And the header, no longer the thing that opens the page, needs the gap the
+   hero used to take from it. A shade more than the media's own 40px: a title
+   under a full-width image wants more air than an image under a paragraph. */
+.case-head { margin-top: 48px; }
 
 .case-head h1 { margin-bottom: 14px; }
 .case-head .lede { color: rgb(41, 41, 41); }
@@ -425,11 +437,49 @@ main { padding-bottom: 0; }
 
 .next-card:hover { transform: translateY(-11px); }
 
+/* ---------- card → page transition ---------- */
+
+/* The overlay card-transition.js flies from the clicked carousel card into
+   this page's hero and title. Under the top bar rather than over it: the bar
+   belongs to the page you have arrived at, not to the card you left. Its two
+   children are placed and animated entirely from JS — everything measured, so
+   nothing about the flight is written down here. */
+#card-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+#card-transition > * {
+  position: fixed;
+  margin: 0;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+}
+/* cover, not 100% 100%: the card's artwork and the hero are different shapes,
+   and the flight scales uniformly, so the box has to crop rather than squash.
+   See the fitting in card-transition.js's play(). */
+.ct-media {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+/* While the flight is in the air the stand-ins *are* the hero and the title,
+   so the real ones are held back rather than showing through underneath. The
+   class goes on in <head>, before the first paint, and comes off the moment
+   the stand-ins hand over — or on card-transition.js's failsafe, so a page
+   that never gets its flight still ends up whole. */
+:root.card-transition .case > :first-child,
+:root.card-transition .case-head h1 { opacity: 0; }
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 760px) {
   .meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 20px; }
-  .case { padding-top: 32px; }
+  .case { padding-top: 20px; }
+  .case-head { margin-top: 32px; }
   .case-section { margin-top: 64px; }
   .stats { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   /* stacking keeps the small clips legible rather than shrinking them further */

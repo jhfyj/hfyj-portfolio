@@ -31,6 +31,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: it decides whether this page was
+         opened by clicking its card on the home page, and if so holds the hero
+         and the title back until it can fly them in from where the card was.
+         With no such hand-off waiting it does nothing at all. -->
+    <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="povi.css">
@@ -84,6 +89,16 @@
 
 <main class="case">
 
+    <!-- Hero is a YouTube embed on the original, letterboxed against black.
+         It does not autoplay there, so it keeps its poster and play button. -->
+    <div class="embed hero-embed">
+        <iframe src="https://www.youtube.com/embed/31NLlJ2n3mA?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;color=white"
+                title="POVI — Unlock Game Vision"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen loading="lazy"></iframe>
+    </div>
+
     <header class="case-head">
         <h1>POVI</h1>
         <p class="lede">What does it mean to create speculative design for a technology that doesn't exist yet?</p>
@@ -108,16 +123,6 @@
             </div>
         </dl>
     </header>
-
-    <!-- Hero is a YouTube embed on the original, letterboxed against black.
-         It does not autoplay there, so it keeps its poster and play button. -->
-    <div class="embed hero-embed">
-        <iframe src="https://www.youtube.com/embed/31NLlJ2n3mA?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;color=white"
-                title="POVI — Unlock Game Vision"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen loading="lazy"></iframe>
-    </div>
 
     <section class="case-section" id="context">
         <p class="eyebrow">Context</p>

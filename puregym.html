@@ -31,6 +31,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: it decides whether this page was
+         opened by clicking its card on the home page, and if so holds the hero
+         and the title back until it can fly them in from where the card was.
+         With no such hand-off waiting it does nothing at all. -->
+    <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="puregym.css">
@@ -83,6 +88,14 @@
 
 <main class="case">
 
+    <figure class="shot shot-hero">
+        <!-- Intrinsic size stated so the browser knows the shape before the
+             bytes land: the hero now opens the page, so its box settling late
+             would shove the whole column, and the card transition measures it
+             on arrival. -->
+        <img src="assets/puregym/hero.gif" width="854" height="640" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code">
+    </figure>
+
     <header class="case-head">
         <h1>Puregym Redesign</h1>
         <p class="lede">Reimagining the mobile application for Puregym</p>
@@ -102,10 +115,6 @@
             </div>
         </dl>
     </header>
-
-    <figure class="shot shot-hero">
-        <img src="assets/puregym/hero.gif" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code">
-    </figure>
 
     <section class="case-section" id="overview">
         <p class="eyebrow">Overview</p>

@@ -177,10 +177,18 @@ window.Site = (function () {
     function reveal(groups) {
         if (reduceMotion || !('IntersectionObserver' in window)) return;
 
+        // A card → page transition, when there is one in flight, is already
+        // carrying the hero and the <h1> into place from the card that was
+        // clicked (card-transition.js). Those two are its to hand over, so they
+        // are left out of the reveal entirely — otherwise both would be fading
+        // the same elements in at once, from different places.
+        const ct = window.CardTransition;
+        const spokenFor = function (el) { return !!(ct && ct.active && ct.owns(el)); };
+
         const delays = new Map();
         groups.forEach(function (sel) {
             document.querySelectorAll(sel).forEach(function (el, i) {
-                if (delays.has(el)) return;
+                if (delays.has(el) || spokenFor(el)) return;
                 delays.set(el, i * 70);
                 el.style.opacity = '0';
             });

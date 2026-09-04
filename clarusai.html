@@ -31,6 +31,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: it decides whether this page was
+         opened by clicking its card on the home page, and if so holds the hero
+         and the title back until it can fly them in from where the card was.
+         With no such hand-off waiting it does nothing at all. -->
+    <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="clarusai.css">
@@ -84,6 +89,15 @@
 
 <main class="case">
 
+    <!-- Hero is a YouTube embed on the original, letterboxed against black. -->
+    <div class="embed hero-embed">
+        <iframe src="https://www.youtube.com/embed/ehU53VefTDU?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=ehU53VefTDU"
+                title="Clarus AI — installation walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen loading="lazy"></iframe>
+    </div>
+
     <header class="case-head">
         <h1>Clarus AI</h1>
         <p class="lede">An exploration of what it means to work for your energy</p>
@@ -103,15 +117,6 @@
             </div>
         </dl>
     </header>
-
-    <!-- Hero is a YouTube embed on the original, letterboxed against black. -->
-    <div class="embed hero-embed">
-        <iframe src="https://www.youtube.com/embed/ehU53VefTDU?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=ehU53VefTDU"
-                title="Clarus AI — installation walkthrough"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen loading="lazy"></iframe>
-    </div>
 
     <section class="case-section" id="context">
         <p class="eyebrow">Context</p>

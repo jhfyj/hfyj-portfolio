@@ -31,6 +31,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: it decides whether this page was
+         opened by clicking its card on the home page, and if so holds the hero
+         and the title back until it can fly them in from where the card was.
+         With no such hand-off waiting it does nothing at all. -->
+    <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="the-dial.css">
@@ -83,6 +88,23 @@
 
 <main class="case">
 
+    <!-- The hero clip carries its own light-grey surround; the ↗ opens the
+         live Framer site, as it does on the original. -->
+    <div class="frame frame-hero">
+        <!-- Intrinsic size stated so the browser knows the shape before the
+             metadata lands: the hero now opens the page, so its box settling
+             late would shove the whole column, and the card transition
+             measures it on arrival. -->
+        <video src="assets/the-dial/vid-01.mp4" width="1700" height="919" autoplay loop muted playsinline preload="metadata" aria-label="The Dial interaction, switching from light to dark mode"></video>
+        <!-- Two copies of Carbon's arrow--up-right (@carbon/icons 32px); the
+             second is parked off the bottom-left until hover. No data-cursor:
+             the dot stays a dot over this button. -->
+        <a class="frame-link" href="https://the-dial.framer.website/" target="_blank" rel="noopener" aria-label="Open the live site">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
+        </a>
+    </div>
+
     <header class="case-head">
         <h1>The Dial</h1>
         <p class="lede">Open Doors x Framer Student Challenge</p>
@@ -107,19 +129,6 @@
             </div>
         </dl>
     </header>
-
-    <!-- The hero clip carries its own light-grey surround; the ↗ opens the
-         live Framer site, as it does on the original. -->
-    <div class="frame frame-hero">
-        <video src="assets/the-dial/vid-01.mp4" autoplay loop muted playsinline preload="metadata" aria-label="The Dial interaction, switching from light to dark mode"></video>
-        <!-- Two copies of Carbon's arrow--up-right (@carbon/icons 32px); the
-             second is parked off the bottom-left until hover. No data-cursor:
-             the dot stays a dot over this button. -->
-        <a class="frame-link" href="https://the-dial.framer.website/" target="_blank" rel="noopener" aria-label="Open the live site">
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 6 10 8 22.59 8 6 24.59 7.41 26 24 9.41 24 22 26 22 26 6 10 6z"/></svg>
-        </a>
-    </div>
 
     <section class="case-section" id="context">
         <p class="eyebrow">Context</p>

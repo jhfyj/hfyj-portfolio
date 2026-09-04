@@ -776,6 +776,143 @@ const CARD_URLS = [
 const COMING_SOON_INDICES = new Set([6, 7]);
 
 
+// ── Card → page hand-off ─────────────────────────────────────────────────────
+//
+// Opening a card should read as the card *becoming* the page behind it: its
+// artwork travelling to where that case page's hero sits, its title to where
+// the <h1> sits. The View Transitions API cannot do this — the card is drawn in
+// WebGL, so there is no element to give a view-transition-name to — and in any
+// case this page has no idea where the destination's hero will land, because
+// every case page sets its own column width and its own hero aspect.
+//
+// So the two halves talk through sessionStorage. Here we write down the one
+// thing only this page knows: what the card looked like and where on screen it
+// was at the moment it was clicked. card-transition.js on the case page
+// measures its own hero and <h1> and plays the flight between the two.
+//
+// The key and the shape below are card-transition.js's. If the two ever
+// diverge the stash is simply ignored and the case page loads exactly as it
+// does without one — which is also what happens on a typed URL, a reload, or
+// under prefers-reduced-motion.
+const HANDOFF_KEY = 'hfyj:card-transition';
+
+// Every project card face is drawn into the same 1059×1449 design frame (see
+// TEMPLATE_CARD and PUREGYM_DESIGN, which agree), so the photo well and the
+// title sit in the same place on all of them. Held as fractions of the face so
+// they survive whatever size the card happens to be projected at.
+const CARD_FACE_LAYOUT = {
+    photo: { x: 21 / 1059, y: 20 / 1449, w: 1016.663 / 1059, h: 817 / 1449 },
+    // The title is measured to its *baseline*, not to a box. That is where the
+    // canvas draws it, and it is the only line the destination can match: the
+    // top of a text box is a leading-dependent fiction that would put the two
+    // titles a few pixels apart no matter what.
+    title: { x: 54 / 1059, baseline: 960 / 1449, size: 96 / 1449 },
+};
+
+// Only the five project cards. Card 0 (about me) and card 8 (sketchbook) are
+// laid out differently and their pages do not open on a hero at all.
+const HANDOFF_INDICES = new Set([1, 2, 3, 4, 5]);
+
+// Both halves have to name the destination the same way, and they only share a
+// URL. Last path segment, minus any .html — so "puregym.html" here and
+// "/puregym" as served in production both come out as "puregym".
+function handoffSlug(url) {
+    const last = url.split('#')[0].split('?')[0].split('/').pop() || '';
+    return last.replace(/\.html$/, '');
+}
+
+// The card face's box on screen. The front card sits very nearly square-on to
+// the camera, so projecting its four corners and taking their bounding box is
+// the rectangle a reader would draw around it — a pixel or two off the true
+// perspective quad, and a rectangle is what the destination can FLIP from.
+function projectCardFaceRect(group) {
+    const mesh = group.children[0];
+    mesh.updateWorldMatrix(true, false);   // the click lands between render frames
+    mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox;
+    const v = new THREE.Vector3();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    [[bb.min.x, bb.min.y], [bb.max.x, bb.min.y], [bb.max.x, bb.max.y], [bb.min.x, bb.max.y]]
+        .forEach(([x, y]) => {
+            v.set(x, y, 0).applyMatrix4(mesh.matrixWorld).project(camera);
+            const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+            const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+            minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
+            minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
+        });
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function stashCardHandoff(index, url) {
+    if (!HANDOFF_INDICES.has(index)) return;
+    const group = cards[index];
+    if (!group || !group.children.length) return;
+
+    const map = group.children[0].material && group.children[0].material.map;
+    const face = map && map.image;      // every card face is a CanvasTexture
+    if (!face || !face.width) return;
+
+    const rect = projectCardFaceRect(group);
+    if (!(rect.w > 1 && rect.h > 1)) return;
+
+    const L = CARD_FACE_LAYOUT;
+    let image;
+    try {
+        // Only the photo well travels, not the whole face: the photo is the
+        // part that becomes the hero, and cropping it here saves the
+        // destination any background-position arithmetic. 900px across is well
+        // past the size it is ever painted at, and keeps the base64 inside
+        // sessionStorage's budget — which is spent in UTF-16, so every
+        // character of it costs two bytes.
+        const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
+        const sw = L.photo.w * face.width, sh = L.photo.h * face.height;
+        const k = Math.min(1, 900 / sw);
+        const out = document.createElement('canvas');
+        out.width = Math.round(sw * k);
+        out.height = Math.round(sh * k);
+        out.getContext('2d').drawImage(face, sx, sy, sw, sh, 0, 0, out.width, out.height);
+        image = out.toDataURL('image/jpeg', 0.86);
+    } catch (err) {
+        // A tainted canvas throws here rather than returning anything. With no
+        // pixels to fly there is nothing to hand over, so let the case page
+        // open the way it always has.
+        return;
+    }
+
+    try {
+        sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({
+            t: Date.now(),
+            slug: handoffSlug(url),
+            text: group.userData.cardTitle || '',
+            theme: currentTheme,
+            image: image,
+            // Where the photo well and the title's baseline actually were, in
+            // this page's own CSS pixels. The destination FLIPs from exactly
+            // these, which is why nothing here is per-page geometry.
+            photo: {
+                x: rect.x + L.photo.x * rect.w,
+                y: rect.y + L.photo.y * rect.h,
+                w: L.photo.w * rect.w,
+                h: L.photo.h * rect.h,
+            },
+            title: {
+                x: rect.x + L.title.x * rect.w,
+                baseline: rect.y + L.title.baseline * rect.h,
+                size: L.title.size * rect.h,
+            },
+        }));
+    } catch (err) { /* private mode, or no room — the case page copes either way */ }
+}
+
+// The one place a card actually opens its page. Both the click and the
+// keyboard route through here so neither can forget the hand-off.
+function openCard(index) {
+    if (COMING_SOON_INDICES.has(index)) return;
+    stashCardHandoff(index, CARD_URLS[index]);
+    window.open(CARD_URLS[index], '_top');
+}
+
+
 // Responsive card scale — steps down at medium and narrow screens
 function getCardScale() {
     if (window.innerWidth <= 768)  return 0.68;
@@ -1308,6 +1445,8 @@ function loadCard1() {
         const mesh  = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = 1;
+        // What the face says, kept for the card → page hand-off above
+        group.userData.cardTitle = 'Puregym Redesign';
         group.add(mesh);
         _placeCard(1, group);
     });
@@ -1532,6 +1671,8 @@ function loadTemplateCard(index, opts) {
         const mesh = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = index;
+        // What the face says, kept for the card → page hand-off above
+        group.userData.cardTitle = opts.title || '';
         group.add(mesh);
         _placeCard(index, group);
     });
@@ -1837,8 +1978,7 @@ function checkCardIntersections() {
     // If the clicked card is the front card, navigate — unless it's a
     // Coming Soon card with no real page to go to yet
     if (front && clickedRoot === front) {
-        const idx = front.userData.cardIndex;
-        if (!COMING_SOON_INDICES.has(idx)) window.open(CARD_URLS[idx], '_top');
+        openCard(front.userData.cardIndex);
         return;
     }
 
@@ -2370,8 +2510,7 @@ window.addEventListener('keydown', (e) => {
         if (!carouselSettled) return;
         const front = getFrontCard();
         if (!front) return;
-        const idx = front.userData.cardIndex;
-        if (!COMING_SOON_INDICES.has(idx)) window.open(CARD_URLS[idx], '_top');
+        openCard(front.userData.cardIndex);
     }
 });
 

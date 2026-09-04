@@ -364,6 +364,31 @@
         return o;
     }
 
+    // Is the previous history entry the home page? There is no API that
+    // answers this, so it is triangulated from two things that together leave
+    // no room for doubt:
+    //
+    //   - this page was *navigated* to, not reached with back or forward. That
+    //     rules out home → A → B → back → A, where the entry behind A is B and
+    //     going back would land on the wrong page entirely.
+    //   - and the page that linked here was home.
+    //
+    // Both true, and the entry behind this one is the home page. Either false
+    // and we simply navigate, which is what used to happen anyway.
+    function homeIsBack() {
+        try {
+            if (history.length < 2) return false;
+            const nav = performance.getEntriesByType('navigation')[0];
+            if (!nav || nav.type !== 'navigate') return false;
+            if (!document.referrer) return false;
+            const r = new URL(document.referrer);
+            if (r.origin !== location.origin) return false;
+            return /(^|\/)index\.html$/.test(r.pathname) || /\/$/.test(r.pathname);
+        } catch (err) {
+            return false;
+        }
+    }
+
     function flyHome(hero, h1, origin, href) {
         const heroRect = hero.getBoundingClientRect();
         const h1Rect = h1.getBoundingClientRect();
@@ -414,6 +439,22 @@
         function go() {
             if (left) return;
             left = true;
+            // Going back rather than forward, when back is genuinely where home
+            // is. A fresh navigation rebuilds the whole carousel — nine card
+            // faces drawn to canvas, their textures uploaded, the scene set up
+            // again — which is a second of work to arrive at a page the browser
+            // may still be holding intact. history.back() lets it restore that
+            // page instead, and the shrink runs straight into a carousel that
+            // never went away.
+            //
+            // Falls through to an ordinary navigation whenever the page is not
+            // eligible, so this costs nothing when it does not apply.
+            if (homeIsBack()) {
+                history.back();
+                // If the entry has been evicted, back() still does a full load
+                // and the note below is what fades it up. Nothing to undo.
+                return;
+            }
             // Tell the home page it is being arrived at rather than opened, so
             // it can fade itself up as the card it is about to show finishes
             // shrinking into place. Without this the flight ends on a cut: the

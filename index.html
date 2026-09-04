@@ -55,6 +55,32 @@
                 }
             } catch (err) {}
 
+            // Restored from the back/forward cache rather than loaded. None
+            // of the above has run — the document was never re-parsed — and
+            // that is the whole point: the carousel is still standing, exactly
+            // as it was left. All that is needed is the same fade, and to drop
+            // the note so it cannot fire again on some later genuine load.
+            //
+            // The attribute is taken off and put back with a reflow between,
+            // because a second return would otherwise find it already set and
+            // the animation would not restart.
+            window.addEventListener('pageshow', function (e) {
+                if (!e.persisted) return;
+                var el = document.documentElement;
+                var note = null;
+                try {
+                    note = sessionStorage.getItem('hfyj:card-return');
+                    sessionStorage.removeItem('hfyj:card-return');
+                } catch (err) {}
+                if (!note || Date.now() - Number(note) > 4000) {
+                    el.removeAttribute('data-card-return');
+                    return;
+                }
+                el.removeAttribute('data-card-return');
+                void document.body.offsetWidth;
+                el.setAttribute('data-card-return', '');
+            });
+
             if (!done) return;
             try {
                 var stored = JSON.parse(sessionStorage.getItem('homeViewState'));

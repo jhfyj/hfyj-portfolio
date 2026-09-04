@@ -685,6 +685,27 @@ html[data-intro-done] #loader {
   display: none;
 }
 
+/* Coming back from a case page that shrank itself into the card. The page it
+   collapsed into is this one, so this one has to arrive rather than appear:
+   everything fades up together over roughly the time the shrink took to end,
+   which is what turns two animations into one movement.
+
+   Deliberately a plain CSS animation on <body>, stamped by the pre-paint block
+   in index.html. Nothing scripted is involved, so there is no state that can
+   strand the page invisible — the animation runs to completion whatever else
+   does or does not happen, and `both` holds the first frame at zero so nothing
+   flashes before it starts. */
+html[data-card-return] body {
+  animation: card-return-in 420ms cubic-bezier(.22, .61, .36, 1) both;
+}
+@keyframes card-return-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-card-return] body { animation: none; }
+}
+
 #loader-cards {
   position: relative;
   width: 58px;

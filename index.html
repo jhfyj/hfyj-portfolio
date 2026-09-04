@@ -41,6 +41,20 @@
             // lets style.css paint the grid opaque from the very first frame.
             // script.js takes the attribute back off once it owns the state —
             // see the restore block there, which also reads this same key.
+            // Arriving from a case page that shrank itself back into this
+            // card. The fade is a CSS animation rather than anything scripted:
+            // it has to be running from the first painted frame, and a page
+            // left invisible because some later script never ran would be a far
+            // worse failure than no fade at all. Consumed on read, so a reload
+            // is an ordinary visit.
+            try {
+                var back = sessionStorage.getItem('hfyj:card-return');
+                sessionStorage.removeItem('hfyj:card-return');
+                if (back && Date.now() - Number(back) < 4000) {
+                    document.documentElement.setAttribute('data-card-return', '');
+                }
+            } catch (err) {}
+
             if (!done) return;
             try {
                 var stored = JSON.parse(sessionStorage.getItem('homeViewState'));

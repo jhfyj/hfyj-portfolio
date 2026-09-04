@@ -474,6 +474,62 @@ main { padding-bottom: 0; }
 :root.card-transition .case > :first-child,
 :root.card-transition .case-head h1 { opacity: 0; }
 
+/* Going the other way. The hero and the title shrink back into the card they
+   came from, so everything else clears out ahead of them — otherwise two
+   elements fly across a page that is otherwise sitting perfectly still, which
+   reads as those two elements misbehaving rather than as the page closing.
+
+   The two that fly are excluded by hand rather than by a class, because they
+   are the same two the arrival owns and naming them twice the same way is what
+   keeps the directions in step. Note the order: .case-head is caught by the
+   first rule and handed back by the second, so only its lede and meta go. */
+:root.card-exit .case > *,
+:root.card-exit #toc,
+:root.card-exit .next { transition: opacity 200ms linear; opacity: 0; }
+:root.card-exit .case > :first-child,
+:root.card-exit .case-head { opacity: 1; }
+:root.card-exit .case-head > *:not(h1) { transition: opacity 200ms linear; opacity: 0; }
+
+/* Nothing new may start revealing itself while the page is leaving: the scroll
+   reveal in site.js is still watching, and an element fading in underneath a
+   page that is collapsing is the one thing guaranteed to look broken. */
+:root.card-exit .case * { animation-play-state: paused; }
+
+/* The hero and the title are the two things that flew in from the card, so
+   they are also the way back to it. On the home page they could not be links —
+   the card is drawn in WebGL and there is no element there to be one — but
+   here they are ordinary DOM, so they get to be ordinary links: focusable,
+   keyboard-operable, right-clickable, and showing their destination in the
+   status bar like anything else.
+
+   They inherit everything, because the point is that they do not look like
+   links. What they were before is exactly what the flight lands on, and a
+   colour or an underline would be a difference the arrival has to explain.
+   The affordance is the cursor pill and the focus ring instead. */
+.to-cards {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+}
+.to-cards:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.hero-home {
+  display: block;
+  border-radius: inherit;
+  /* The wrapper must not become a second box in the hero's layout: the flight
+     measures the hero itself, and an anchor with a line-height of its own
+     would leave a few stray pixels underneath the media it wraps. */
+  font-size: 0;
+  line-height: 0;
+}
+
+/* povi and clarusai are deliberately not wrapped. Their heroes are YouTube
+   embeds, and an anchor around an <iframe> never receives the click — the
+   player inside it does — so the link would be dead while also swallowing
+   play, pause and scrub. Their titles still link, and so does Home. */
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 760px) {

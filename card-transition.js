@@ -36,6 +36,23 @@
 
     const DURATION = 620;
     const TITLE_DELAY = 40;     // the artwork leads, the title follows it in
+
+    // Leaving again. script.js keeps this one; unlike the arrival stash it is
+    // not consumed, because it describes where the card is rather than a
+    // gesture that has already happened.
+    const ORIGIN_KEY = 'hfyj:card-origin';
+    // Read once, by the pre-paint block in index.html, and dropped there.
+    const RETURN_KEY = 'hfyj:card-return';
+    const EXIT_DURATION = 520;
+    // Longer than the arrival's 40ms. Going in, the two want to read as one
+    // thing opening; coming out, the graphic going first and the title
+    // following is the point, so the gap has to be visible.
+    const EXIT_TITLE_DELAY = 110;
+    // The mirror of EASE. Reflecting a cubic-bezier through the diagonal —
+    // (x1,y1,x2,y2) becomes (1-x2,1-y2,1-x1,1-y1) — turns the arrival's
+    // ease-out into the ease-in that undoes it, so the two directions are the
+    // same motion run each way rather than two curves that merely rhyme.
+    const EXIT_EASE = 'cubic-bezier(.64, 0, .78, .39)';
     const CROSSFADE = 200;
     const HERO_WAIT = 1200;     // longest we will hold out for the hero's media
     // The same curve the scroll-reveal in site.js uses, so the flight and the
@@ -81,16 +98,30 @@
     // Reduced motion gets today's page, exactly. Clearing the stash rather than
     // leaving it is deliberate: it has already served its purpose and a stale
     // one is only ever a liability.
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Declared up here rather than beside its first use: the exit flight reads
+    // it too, and it runs long after the guards below have returned on a page
+    // that arrived without a stash — by which point a const declared past them
+    // would never have been initialised at all.
+    const root = document.documentElement;
+
+    const reduced = !!(window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const canAnimate = !!document.documentElement.animate && !reduced;
+
+    // Set up the way out before any of the arrival guards below, because the
+    // two directions are independent: a page reached by typing its URL has no
+    // arrival stash to fly from, and still has to be able to fly home.
+    if (canAnimate) setupExit();
+
+    if (reduced) {
         try { sessionStorage.removeItem(KEY); } catch (err) {}
         return;
     }
-    if (!document.documentElement.animate) return;   // no Web Animations, no flight
+    if (!canAnimate) return;
 
     const stash = takeStash();
     if (!stash) return;
 
-    const root = document.documentElement;
     // case.css holds the hero and the <h1> at opacity 0 while this class is on.
     root.classList.add('card-transition');
 
@@ -224,15 +255,10 @@
         // that is already the hero's shape, and grows that. The card itself is
         // gone by the time any of this is on screen, so a band of it going
         // unused costs nothing, while a stretch would have been unmissable.
-        const heroAspect = heroRect.width / heroRect.height;
-        const photoAspect = stash.photo.w / stash.photo.h;
-        const startW = heroAspect > photoAspect ? stash.photo.w : stash.photo.h * heroAspect;
-        const startH = startW / heroAspect;
-        const startX = stash.photo.x + (stash.photo.w - startW) / 2;
-        const startY = stash.photo.y + (stash.photo.h - startH) / 2;
+        const start = photoStartBox(stash.photo, heroRect);
         const mediaFrom = 'translate(' +
-            (startX - heroRect.left) + 'px,' + (startY - heroRect.top) + 'px) ' +
-            'scale(' + (startW / heroRect.width) + ')';
+            (start.x - heroRect.left) + 'px,' + (start.y - heroRect.top) + 'px) ' +
+            'scale(' + (start.w / heroRect.width) + ')';
 
         // ---- the title ---------------------------------------------------
         // The <h1>'s own text in the <h1>'s own type, so that the far end of
@@ -290,6 +316,151 @@
                 { duration: CROSSFADE, easing: 'linear', fill: 'forwards' })
                 .finished.then(finish, finish);
         }
+    }
+
+    // The card's photo is cropped to roughly 5:4 and the heroes run anything
+    // from 4:3 to 16:9, so the two boxes never match. Scaling one onto the
+    // other directly would stretch the picture across the whole flight, which
+    // does not read as a card opening — it reads as a bug. So the flight uses
+    // the largest piece of the card's photo that is *already* the hero's
+    // shape, and the scale stays uniform end to end.
+    //
+    // Shared by both directions on purpose: the way out has to retrace the way
+    // in exactly, and two copies of this arithmetic would drift apart.
+    function photoStartBox(photo, heroRect) {
+        const heroAspect = heroRect.width / heroRect.height;
+        const photoAspect = photo.w / photo.h;
+        const w = heroAspect > photoAspect ? photo.w : photo.h * heroAspect;
+        const h = w / heroAspect;
+        return { x: photo.x + (photo.w - w) / 2, y: photo.y + (photo.h - h) / 2, w: w, h: h };
+    }
+
+    // ---------------------------------------------------------------- exit
+    //
+    // Going home is the arrival run backwards: the hero shrinks back into the
+    // card's photo well and the title follows it down into the card's title.
+    // Both animate to the very transforms the arrival flight starts *from*,
+    // which is what makes the two readings of the same motion agree.
+    //
+    // Nothing is stashed on the way out and the home page is not told anything.
+    // It does not need to be: the shrink lands on the card's real box, and the
+    // carousel restores the rotation that put the card there, so the cut at the
+    // end of the flight arrives on the card the hero just became.
+
+    function readOrigin() {
+        let raw = null;
+        try { raw = sessionStorage.getItem(ORIGIN_KEY); } catch (err) { return null; }
+        if (!raw) return null;
+        let o = null;
+        try { o = JSON.parse(raw); } catch (err) { return null; }
+        if (!o || !o.photo || !o.title) return null;
+        // Written for one card. Arriving here by some other route — a
+        // next-project card, a typed URL — means the carousel is not showing
+        // this project and there is nothing to shrink towards.
+        if (o.slug !== slugOf(location.pathname)) return null;
+        // Screen coordinates belong to the window they were measured in.
+        if (Math.abs(o.vw - window.innerWidth) > 2) return null;
+        if (Math.abs(o.vh - window.innerHeight) > 2) return null;
+        return o;
+    }
+
+    function flyHome(hero, h1, origin, href) {
+        const heroRect = hero.getBoundingClientRect();
+        const h1Rect = h1.getBoundingClientRect();
+        const h1Style = getComputedStyle(h1);
+        const h1Size = parseFloat(h1Style.fontSize) || 42;
+        const h1Baseline = baselineOf(h1);
+
+        const end = photoStartBox(origin.photo, heroRect);
+        const heroTo = 'translate(' +
+            (end.x - heroRect.left) + 'px,' + (end.y - heroRect.top) + 'px) ' +
+            'scale(' + (end.w / heroRect.width) + ')';
+        const titleTo = 'translate(' +
+            (origin.title.x - h1Rect.left) + 'px,' +
+            (origin.title.baseline - h1Baseline) + 'px) ' +
+            'scale(' + (origin.title.size / h1Size) + ')';
+
+        // Everything that is not flying gets out of the way, so the page reads
+        // as collapsing back into the card rather than as two elements leaving
+        // a page that stayed put.
+        root.classList.add('card-exit');
+        // Transforms do not affect layout, so the two can shrink straight
+        // through whatever they pass over; a stacking context keeps them on top
+        // of it while they do.
+        hero.style.transformOrigin = '0 0';
+        hero.style.position = 'relative';
+        hero.style.zIndex = '3';
+        // The same baseline the arrival scales about — see baselineOf.
+        h1.style.transformOrigin = '0 ' + (h1Baseline - h1Rect.top) + 'px';
+        h1.style.position = 'relative';
+        h1.style.zIndex = '3';
+
+        const opts = { duration: EXIT_DURATION, easing: EXIT_EASE, fill: 'forwards' };
+        // Held at full opacity almost to the end: the flight lands on the
+        // card's own box, so the last thing on screen should still be the
+        // artwork sitting exactly where the card is about to be. The fade is
+        // only there to take the hard edge off the navigation.
+        const flights = [
+            hero.animate([{ transform: 'none', opacity: 1 },
+                          { transform: heroTo, opacity: 1, offset: 0.82 },
+                          { transform: heroTo, opacity: 0 }], opts),
+            h1.animate([{ transform: 'none', opacity: 1 },
+                        { transform: titleTo, opacity: 1, offset: 0.82 },
+                        { transform: titleTo, opacity: 0 }],
+                       Object.assign({ delay: EXIT_TITLE_DELAY }, opts)),
+        ];
+
+        let left = false;
+        function go() {
+            if (left) return;
+            left = true;
+            // Tell the home page it is being arrived at rather than opened, so
+            // it can fade itself up as the card it is about to show finishes
+            // shrinking into place. Without this the flight ends on a cut: the
+            // page collapses to the card's box and then the whole carousel
+            // appears in one frame, which undoes the continuity the shrink just
+            // spent half a second building.
+            try { sessionStorage.setItem(RETURN_KEY, String(Date.now())); } catch (err) {}
+            window.location.href = href;
+        }
+        // The navigation is what ends this, so it cannot be allowed to depend
+        // on two promises resolving. A page stuck mid-shrink because an
+        // animation never finished would be a dead end with no way out of it.
+        setTimeout(go, EXIT_DURATION + EXIT_TITLE_DELAY + 260);
+        Promise.all(flights.map(function (a) { return a.finished; })).then(go, go);
+    }
+
+    function setupExit() {
+        document.addEventListener('click', function (e) {
+            // Leave every gesture that means "somewhere else" alone: a new tab,
+            // a download, a middle click, anything already handled.
+            if (e.defaultPrevented || e.button !== 0) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            const a = e.target && e.target.closest && e.target.closest('a[href]');
+            if (!a || (a.target && a.target !== '_self')) return;
+            if (!/^index\.html(?:[#?]|$)/.test(a.getAttribute('href') || '')) return;
+
+            const origin = readOrigin();
+            if (!origin) return;
+
+            const hero = document.querySelector('.case > :first-child');
+            const h1 = document.querySelector('.case-head h1');
+            if (!hero || !h1 || hero === document.querySelector('.case-head')) return;
+
+            // The topbar is fixed, so this link is reachable from the foot of a
+            // very long page — by which point the hero is thousands of pixels
+            // above the fold. Shrinking something nobody can see is just a
+            // delay in front of a link, so let it behave like a link.
+            const r = hero.getBoundingClientRect();
+            if (r.bottom < 40 || r.top > window.innerHeight - 40) return;
+
+            e.preventDefault();
+            try {
+                flyHome(hero, h1, origin, a.getAttribute('href'));
+            } catch (err) {
+                window.location.href = a.getAttribute('href');
+            }
+        }, true);
     }
 
     document.addEventListener('DOMContentLoaded', function () {

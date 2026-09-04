@@ -795,6 +795,13 @@ const COMING_SOON_INDICES = new Set([6, 7]);
 // does without one — which is also what happens on a typed URL, a reload, or
 // under prefers-reduced-motion.
 const HANDOFF_KEY = 'hfyj:card-transition';
+// The same geometry, kept for the trip back. The arrival stash above is
+// consumed on use — it describes one gesture and must not outlive it — but
+// leaving a page for home needs to know where the card is *now*, which is a
+// standing fact about the carousel rather than a one-shot. The carousel
+// restores its rotation on a return visit, so the card the reader opened is
+// still the one facing them, still in this box.
+const CARD_ORIGIN_KEY = 'hfyj:card-origin';
 
 // Every project card face is drawn into the same 1059×1449 design frame (see
 // TEMPLATE_CARD and PUREGYM_DESIGN, which agree), so the photo well and the
@@ -902,6 +909,33 @@ function stashCardHandoff(index, url) {
             },
         }));
     } catch (err) { /* private mode, or no room — the case page copes either way */ }
+
+    try {
+        // No image: the way out shrinks the page's own hero rather than a
+        // stand-in, because by then the media has long since settled and there
+        // is nothing left that a transform could catch mid-load.
+        //
+        // The viewport goes with it. These are screen coordinates for one
+        // particular window, and a reader who resizes while reading has moved
+        // the card out from under them — better to skip the flight than to
+        // send the hero somewhere the card no longer is.
+        sessionStorage.setItem(CARD_ORIGIN_KEY, JSON.stringify({
+            slug: handoffSlug(url),
+            vw: window.innerWidth,
+            vh: window.innerHeight,
+            photo: {
+                x: rect.x + L.photo.x * rect.w,
+                y: rect.y + L.photo.y * rect.h,
+                w: L.photo.w * rect.w,
+                h: L.photo.h * rect.h,
+            },
+            title: {
+                x: rect.x + L.title.x * rect.w,
+                baseline: rect.y + L.title.baseline * rect.h,
+                size: L.title.size * rect.h,
+            },
+        }));
+    } catch (err) { /* the case page falls back to a plain link */ }
 }
 
 // The one place a card actually opens its page. Both the click and the

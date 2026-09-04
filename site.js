@@ -1,10 +1,81 @@
-/* Shared page chrome: the top bar, the custom cursor, and the scroll-reveal
-   helper each page calls with its own list of stagger groups. */
+/* Shared page chrome: the theme toggle, the top bar, the custom cursor, and the
+   scroll-reveal helper each page calls with its own list of stagger groups. */
 
 window.Site = (function () {
     'use strict';
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Theme (light ↔ dark) ─────────────────────────────────────────────────
+    //
+    // The key and its two values are index.html/script.js's, on purpose: a
+    // reader who picks dark on the home page has to arrive on a case page
+    // already dark, and the same choice made here has to survive the trip back.
+    // One shared key is the whole mechanism; if this ever diverges from
+    // THEME_KEY in script.js the two halves of the site stop agreeing.
+    //
+    // Everything visual is already settled by the time this runs. The inline
+    // block in each page's <head> resolves the theme and stamps it on <html>
+    // before the first paint, and site.css keys the palette and the icon swap
+    // off that attribute. So this file only has to own the *choice*: read what
+    // the head decided, write the new one, and persist it.
+    const THEME_KEY = 'theme';
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    // Storage throws outright in some privacy modes rather than returning null,
+    // and a theme toggle is not worth taking the page down over.
+    function readStoredTheme() {
+        try {
+            const saved = localStorage.getItem(THEME_KEY);
+            return (saved === 'dark' || saved === 'light') ? saved : null;
+        } catch (err) { return null; }
+    }
+
+    const themeToggle = document.getElementById('theme-toggle');
+
+    function syncThemeButton(theme) {
+        // aria-pressed, not a changing label: this is one control whose state
+        // flips, and a screen reader announces the new state on press. The
+        // sighted equivalent is the sun/moon swap, which CSS already handles.
+        if (themeToggle) themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
+    }
+
+    function applyTheme(theme, persist) {
+        document.documentElement.setAttribute('data-theme', theme);
+        // Only an explicit press is written down. Persisting the system default
+        // too would freeze it: the reader would be pinned to whatever their OS
+        // happened to be on the first visit, and switching the OS afterwards
+        // would do nothing.
+        if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch (err) {} }
+        syncThemeButton(theme);
+        // The favicon is a second surface with a light and a dark cut; the home
+        // page swaps it on the same event, so a case page must too or the tab
+        // icon disagrees with the tab.
+        const favicon = document.getElementById('favicon');
+        if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+    }
+
+    // <html> is the source of truth, because the head block already wrote it —
+    // re-deriving the theme here would just be a second chance to disagree.
+    syncThemeButton(document.documentElement.getAttribute('data-theme'));
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(next, true);
+        });
+    }
+
+    // Nothing stored means the page is still mirroring the OS, so it should
+    // keep mirroring it if the OS changes mid-visit — a reader on a scheduled
+    // dark mode shouldn't have to reload at sunset. A stored choice outranks
+    // this, which is why the guard reads storage rather than a local flag.
+    const onSystemTheme = function (e) {
+        if (readStoredTheme()) return;
+        applyTheme(e.matches ? 'dark' : 'light', false);
+    };
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemTheme);
+    else if (darkQuery.addListener) darkQuery.addListener(onSystemTheme);   // Safari < 14
 
     // Hides on the way down, comes back on the way up, and is always there at
     // the very top. The 6px deadband keeps trackpad jitter from flapping it.

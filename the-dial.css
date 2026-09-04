@@ -13,8 +13,11 @@
   .meta { grid-template-columns: 136px 403px auto; gap: 18px 0; }
 }
 
-/* The hero clip has its own light-grey surround baked in. */
+/* The hero clip has its own light-grey surround baked in. It is set on the
+   element, so it outranks the dark default case.css puts on :root — dark has
+   to be stated here or this one well stays a bright band across the page. */
 .frame-hero { --frame-bg: rgb(240, 240, 240); }
+:root[data-theme="dark"] .frame-hero { --frame-bg: rgb(34, 34, 36); }
 
 /* The process embed is wider than 16:9 on the original. */
 .process-embed { --ratio: 0.506; }

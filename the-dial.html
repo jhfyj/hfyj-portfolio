@@ -4,7 +4,30 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>The Dial — HFYJ</title>
-    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // Settle the theme before anything paints. site.js runs at the end of
+        // <body>, so by the time it could set this the light page would already
+        // have flashed on screen; the attribute has to be on <html> before the
+        // stylesheets below are ever applied. That is what makes this block
+        // worth repeating verbatim in every page's <head>.
+        //
+        // The key, the two values and the shape of the read are index.html's,
+        // and that is the whole mechanism carrying a reader's choice between
+        // the home page and here. See the theme section at the top of site.js.
+        (function () {
+            var saved = null;
+            // storage throws outright in some privacy modes rather than returning null
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            // Only an explicit press is ever stored, so the OS preference gets
+            // consulted exactly when there is no choice to honour instead.
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
@@ -28,6 +51,20 @@
         <span class="sep-lg">/</span>
         <span>Web Design</span>
     </div>
+    <!-- Written out here rather than injected by site.js: the theme is already
+         settled in <head>, so shipping the button in the markup puts it on
+         screen in the first paint with no reflow, and it holds the bar's right
+         edge even if site.js is slow or never arrives. site.js only wires it
+         up — the sun/moon swap is pure CSS off <html>'s data-theme. -->
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+    </button>
 </nav>
 
 <!-- Follows the pointer in place of the native cursor, on fine pointers only. -->

@@ -436,3 +436,39 @@ main { padding-bottom: 0; }
   /* park the second arrow out of sight rather than sliding either of them */
   .frame-link svg { transition: none; }
 }
+
+/* ---------- dark mode ---------- */
+
+/* site.css restates the palette tokens for [data-theme="dark"], and everything
+   in this file that reads one follows for free — the pinned #toc included,
+   since its resting, hover and .is-active colours are --caption, --ink and
+   --accent. What is left is the handful of places where a literal was the
+   right call in a light-only stylesheet and is now the only thing that would
+   stay light on a dark page. Each one is restated rather than tokenised, so
+   the light rendering is untouched. */
+:root[data-theme="dark"] {
+  /* the letterbox behind clips that do not fill their well */
+  --frame-bg: rgb(30, 30, 32);
+}
+
+/* The lede is set a hair off --ink in light to sit under the h1. Dark needs the
+   same relationship, not the same number. */
+:root[data-theme="dark"] .case-head .lede { color: rgb(222, 222, 222); }
+
+/* The label bar under each clip is a white shelf. On a dark page that is the
+   brightest thing on screen, and it is decoration. .card.is-dark — the night
+   half of the-dial's split panel — is already dark by design and stays put in
+   both themes, which is the whole point of that panel. */
+:root[data-theme="dark"] .card-label { background: rgb(28, 28, 30); }
+
+/* Same reasoning for the two remaining light surfaces: the thanks card's
+   near-white fill, and the white chip the ↗ arrow sits in over the hero. */
+:root[data-theme="dark"] .thanks { background: rgb(26, 26, 28); }
+:root[data-theme="dark"] .thanks-blurb { color: rgb(122, 122, 122); }
+:root[data-theme="dark"] .frame-link { background: rgb(38, 38, 41); }
+:root[data-theme="dark"] .frame-link svg { fill: rgba(255, 255, 255, 0.7); }
+
+/* The source note's blue-grey is close enough to the light accent to read as a
+   link. Against the dark page it also drops under 4.5:1, so it is lifted here
+   rather than left as the one unreadable line on the page. */
+:root[data-theme="dark"] .source { color: rgb(146, 154, 176); }

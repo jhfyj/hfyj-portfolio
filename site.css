@@ -1,6 +1,8 @@
 /* Shared chrome and type scale for the custom pages (About Me, case studies).
    Page-specific layout lives in that page's own stylesheet.
-   Light only for now; the palette below is the single place to change that. */
+   Both palettes below are the single place to change the site's colour: every
+   rule here and in the page stylesheets reads a token, so the dark block only
+   has to restate the eight values rather than re-specify each rule. */
 
 @font-face {
   font-family: "Play";
@@ -20,15 +22,40 @@
 :root {
   --page: #ffffff;
   --ink: rgb(16, 16, 17);
+  --head: #000;    /* headings sit a shade below --ink in light */
   --body: rgb(97, 97, 97);
   --caption: rgb(115, 115, 115);
   --faint: rgb(155, 161, 165);
   --num: rgb(156, 156, 156);
   --accent: #5E81E2;
   --rule: rgba(0, 0, 0, 0.10);
+  --panel: rgb(240, 240, 244);   /* raised chrome (the theme button, the cursor pill) */
 
   --col: 1012px;   /* content column; each page sets its own */
   --gap: 32px;
+}
+
+/* Derived from the home page's :root[data-theme="dark"] in style.css so the
+   two halves of the site are the same dark, not two near-misses: --page is its
+   --bg, --ink its --t1, --body its --t2, --num its --t3, --accent its yellow.
+   The in-between tones (--caption, --faint) keep the light palette's ordering —
+   each step further from the reader is dimmer, which on dark means darker.
+
+   The attribute is set on <html> by the inline block in every page's <head>,
+   before the first paint. Nothing here waits on site.js. */
+:root[data-theme="dark"] {
+  --page: #121212;
+  --ink: rgb(242, 242, 242);
+  --head: #f2f2f2;
+  --body: rgb(168, 168, 168);
+  --caption: rgb(143, 143, 143);
+  --faint: rgb(112, 116, 122);
+  --num: rgb(107, 107, 107);
+  --accent: #FFFA50;
+  /* a touch stronger than light's 10%: a hairline of white on near-black
+     carries less than the same fraction of black on white */
+  --rule: rgba(255, 255, 255, 0.14);
+  --panel: rgb(40, 40, 44);
 }
 
 * { box-sizing: border-box; }
@@ -79,6 +106,12 @@ a { color: inherit; }
   gap: 14px;
   font-size: 18px;
   color: var(--caption);
+  /* The bar now carries three children, and space-between alone would strand
+     the tagline group in the middle. An auto margin eats the free space first,
+     so the crumb keeps the left edge and the tagline group stays packed
+     against the theme button at the right — including at the widths where the
+     tagline is hidden and only the crumb and the button are left. */
+  margin-right: auto;
 }
 .topbar-left a { color: inherit; text-decoration: none; }
 .topbar-left a:hover { color: var(--accent); }
@@ -99,6 +132,46 @@ a { color: inherit; }
   color: var(--body);
 }
 
+/* ---------- theme toggle ---------- */
+
+/* Deliberately the same shape as the home page's #theme-toggle (style.css) —
+   same soft panel, same 12px-family radius, same icon size — only smaller,
+   because this bar is 63px tall rather than a floating nav with room to spare.
+   Sized so the 34px button leaves an even ~14px above and below. */
+#theme-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--caption);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+#theme-toggle:hover { color: var(--ink); }
+/* :focus-visible only, so a mouse press does not leave a ring behind. The site
+   hides the native cursor over buttons, which makes keyboard reachability the
+   only way some readers will ever land on this. */
+#theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* One icon is drawn at a time; which one is a pure function of the attribute
+   on <html>, so it is already correct in the first paint and site.js never has
+   to touch it. The sun shows in light mode (this is what you are in), the moon
+   in dark — matching the home page rather than showing the destination. */
+#theme-icon-sun,
+#theme-icon-moon { display: none; }
+:root #theme-icon-sun { display: block; }
+:root[data-theme="dark"] #theme-icon-sun { display: none; }
+:root[data-theme="dark"] #theme-icon-moon { display: block; }
+
 /* ---------- custom cursor ---------- */
 
 #cursor-dot {
@@ -112,7 +185,10 @@ a { color: inherit; }
   height: 16px;
   margin: -8px 0 0 -8px;
   border-radius: 100px;
-  background: #000;
+  /* Was a literal #000, which is a black dot on a #121212 page. --ink is the
+     same value to within a rounding step in light, and is the readable one in
+     dark, so the dot simply inverts with the page. */
+  background: var(--ink);
   pointer-events: none;
   z-index: 100;
   opacity: 0;
@@ -134,6 +210,13 @@ a { color: inherit; }
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: inset 1px 1px 5px rgba(255, 255, 255, 0.8);
+}
+/* The pill's frost is a light-on-light effect: the same white inner highlight
+   over a dark page reads as a glowing slab. Dark gets the same idea inverted —
+   a raised panel with a faint light edge — rather than the same values. */
+:root[data-theme="dark"] #cursor-dot.is-pill {
+  background: rgba(40, 40, 44, 0.72);
+  box-shadow: inset 1px 1px 5px rgba(255, 255, 255, 0.16);
 }
 
 #cursor-label {
@@ -186,7 +269,7 @@ h1 {
   font-family: "DM Sans", sans-serif;
   font-size: 42px;
   font-weight: 500;
-  color: #000;
+  color: var(--head);
   margin: 0 0 18px;
 }
 

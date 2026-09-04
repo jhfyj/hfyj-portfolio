@@ -758,13 +758,16 @@ const backTexturePromise = hfyjMarkReady.then(() => makeCardBackTexture(currentT
 const CARD_URLS = [
     "aboutme.html",                        // 0 — About Me
     "puregym.html",                        // 1 — Puregym
-    "https://hfyj-art.com/techatnyu",       // 2 — tech@nyu
-    "https://hfyj-art.com/clarusai",        // 3 — Clarus AI
-    "https://hfyj-art.com/povi",            // 4 — POVI
-    "https://hfyj-art.com/the-dial",        // 5 — The Dial
+    "techatnyu.html",                      // 2 — tech@nyu
+    "clarusai.html",                       // 3 — Clarus AI
+    "povi.html",                           // 4 — POVI
+    "the-dial.html",                       // 5 — The Dial
     "#",                                    // 6 — BMW Designworks (Coming Soon)
     "#",                                    // 7 — Nenos Inc. (Coming Soon)
-    "https://hfyj-art.com/sketchbook",      // 8 — Sketchbook
+    // 8 — Sketchbook. Deliberately external: there is no local sketchbook.html,
+    // so the live site is the right destination. Do not "fix" this to a local
+    // path. The nav links to it in index.html are external for the same reason.
+    "https://hfyj-art.com/sketchbook",
 ];
 
 // Cards with no real destination page yet — hovering shows "coming soon" and

@@ -388,9 +388,22 @@ main { padding-bottom: 0; }
   --rise-replay: 1;
 }
 
+/* The thumbnails are the card faces themselves, exported from the carousel in
+   both themes (see export-ui-cards.js), rather than flat artwork kept in step
+   by hand — which is how the old ones drifted into showing POVI as #008 while
+   the grid called it #004.
+
+   They are backgrounds rather than <img> so the theme can pick between the two
+   in CSS alone. An <img> would have to be swapped in script, which means the
+   light one is already downloaded and painted before the swap happens; a custom
+   property holding a url() that nothing uses is never fetched, so a dark
+   visitor loads the dark file only, and there is no flash of the wrong one. The
+   link carries the accessible name the <img> used to. */
 .next-card {
   display: block;
   width: var(--card-w);
+  height: var(--card-h);
+  background: var(--card-img) center / cover no-repeat;
   border-radius: 8px;
   overflow: hidden;
   /* the original's three-layer stack — it does not change on hover */
@@ -399,7 +412,17 @@ main { padding-bottom: 0; }
               0 10px 10px -2px rgba(0, 0, 0, 0.18);
   transition: transform 0.28s cubic-bezier(.34, 1.15, .64, 1);
 }
-.next-card img { width: 100%; }
+
+/* One line per project: the light face, and the dark face beside it. */
+.next-card[data-card="asba"] { --card-img: url('assets/cards/asba.jpg'); --card-img-dark: url('assets/cards/asba-dark.jpg'); }
+.next-card[data-card="clarusai"] { --card-img: url('assets/cards/clarusai.jpg'); --card-img-dark: url('assets/cards/clarusai-dark.jpg'); }
+.next-card[data-card="povi"] { --card-img: url('assets/cards/povi.jpg'); --card-img-dark: url('assets/cards/povi-dark.jpg'); }
+.next-card[data-card="puregym"] { --card-img: url('assets/cards/puregym.jpg'); --card-img-dark: url('assets/cards/puregym-dark.jpg'); }
+.next-card[data-card="techatnyu"] { --card-img: url('assets/cards/techatnyu.jpg'); --card-img-dark: url('assets/cards/techatnyu-dark.jpg'); }
+.next-card[data-card="the-dial"] { --card-img: url('assets/cards/the-dial.jpg'); --card-img-dark: url('assets/cards/the-dial-dark.jpg'); }
+
+:root[data-theme="dark"] .next-card { background-image: var(--card-img-dark); }
+
 .next-card:hover { transform: translateY(-11px); }
 
 /* ---------- responsive ---------- */

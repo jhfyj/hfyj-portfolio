@@ -392,6 +392,9 @@ function resetIdleTimer() {
 
 // Hover tracking
 let hoveredCard = null;
+// What the render loop last saw in hoveredCard, so it can tell an arrival
+// from a frame that simply still has the pointer on the same card.
+let lastHoveredCard = null;
 // Tracks the card the paper sound last played for, separate from hoveredCard
 // (which wheel/touch handlers null out every scroll tick to drop the visual
 // lift). Keeping this separate means scrolling can't cause a stationary card
@@ -1154,6 +1157,200 @@ const ABOUTME_PILL_Y = 1352;
 const ABOUTME_PILL_H = 68;
 const ABOUTME_PILL_STROKE = 3;
 
+// ── Card 0 — the photo changes on hover ──────────────────────────
+// Four photos; each time the pointer arrives on the card it walks to the next
+// one and stays there, so hovering repeatedly cycles the deck rather than
+// flicking between two shots. The first is the one the card is built with.
+//
+// Re-encoded from the originals in Cards/ to webp at the size the well
+// actually draws them: b is aboutme3.jpg, c is aboutme4.jpg, d is
+// aboutme4.png. Lettered rather than numbered because two of the sources are
+// both called "aboutme4".
+const ABOUTME_PHOTOS = [
+    './Cards/aboutme-photo.webp',
+    './Cards/aboutme-b.webp',
+    './Cards/aboutme-c.webp',
+    './Cards/aboutme-d.webp',
+];
+const ABOUTME_SWAP_MS = 250;
+// The reveal grid, in design px. Cells this size give roughly 24x33 over the
+// face, which is coarse enough to read as clumps rather than a dissolve.
+const ABOUTME_BLOB_CELL = 44;
+
+// The reveal happens in the card's own fragment shader, and this is why.
+//
+// Doing it on the canvas instead — painting the incoming photo through a
+// growing set of circular holes — looks identical, but every frame of it has
+// to end in `texture.needsUpdate`, which re-uploads the whole 1059x1449 face
+// to the GPU. That is six megabytes a frame and ninety over a quarter of a
+// second: the same cost that used to make changing theme freeze the scene for
+// seconds (see cardTextureScale), and it stuttered just as badly here.
+//
+// So both photos sit on the GPU as textures the whole time and the only thing
+// that changes per frame is one float. Nothing is uploaded and nothing is
+// repainted mid-reveal. The mask is evaluated per pixel as well, which gives
+// it cleaner edges than circles rasterised into a canvas ever had.
+const ABOUTME_BLOB_GLSL = `
+uniform sampler2D uMapB;
+uniform float uProgress;
+uniform vec2 uCells;
+uniform vec2 uDirA;
+uniform vec2 uDirB;
+uniform float uSeed;
+
+// Each cell of the grid opens as a circle rather than filling as a square, and
+// one big enough to overrun its neighbours: overlapping circles merge into
+// rounded clumps, so what spreads across the photo has no straight edges in it
+// anywhere. Below about 0.71 — half a cell diagonal — the corners where four
+// cells meet never close, and the grid shows through as a lattice of pinholes.
+const float ABOUTME_R = 0.8;
+// Share of the run one cell spends opening. Short, so the reveal reads as
+// something spreading across the photo rather than the whole frame fading.
+const float ABOUTME_GROW = 0.42;
+
+float aboutmeHash(vec2 p) {
+    return fract(sin(dot(p + uSeed, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// When a given cell starts opening, 0..1. Two sine bands crossing at random
+// angles give broad soft clumps; the hash on top breaks the bands up so the
+// reveal never reads as a wipe. Angles and seed change per swap, so no two of
+// them look alike.
+float aboutmeDelay(vec2 id) {
+    vec2 u = id / uCells;
+    float n = 0.5 + 0.25 * sin(6.2 * dot(u, uDirA)) + 0.25 * sin(9.1 * dot(u, uDirB));
+    return clamp(0.72 * n + 0.28 * aboutmeHash(id), 0.0, 1.0);
+}
+
+float aboutmeMask(vec2 uv) {
+    if (uProgress <= 0.0) return 0.0;
+    if (uProgress >= 1.0) return 1.0;
+    vec2 g = uv * uCells;
+    vec2 id = floor(g);
+    vec2 f = fract(g) - 0.5;
+    float m = 0.0;
+    // The eight neighbours as well as this cell: a blob centred next door can
+    // reach across the border, and it is that reach which merges them.
+    for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+            vec2 o = vec2(float(i), float(j));
+            float q = clamp((uProgress - aboutmeDelay(id + o) * (1.0 - ABOUTME_GROW))
+                            / ABOUTME_GROW, 0.0, 1.0);
+            float r = ABOUTME_R * (1.0 - pow(1.0 - q, 3.0));
+            m = max(m, smoothstep(r, r - 0.05, length(f - o)));
+        }
+    }
+    return m;
+}
+`;
+
+// Decoded photos by index, and the promise for each in flight.
+const aboutmeImages = [];
+const aboutmeLoads = [];
+function aboutmeLoadPhoto(i) {
+    if (aboutmeLoads[i]) return aboutmeLoads[i];
+    const img = new Image();
+    aboutmeLoads[i] = new Promise((resolve, reject) => {
+        img.onload = () => { aboutmeImages[i] = img; resolve(img); };
+        img.onerror = reject;
+    });
+    img.src = ABOUTME_PHOTOS[i];
+    return aboutmeLoads[i];
+}
+
+// Filled in by loadCard0 once the face exists. Until then every entry point
+// below returns without doing anything, which is what makes a hover during the
+// intro harmless.
+const aboutmeSwap = {
+    ready: false,
+    index: 0,        // which photo the card is showing
+    busy: false,     // a reveal is in flight
+    building: false,
+    faces: [],       // { canvas, ctx, texture, theme } per photo, painted on demand
+};
+
+function aboutmeIdle(fn) {
+    if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: 3000 });
+    else setTimeout(fn, 1200);
+}
+
+// Paint a whole second face for a photo, off screen. This is the expensive
+// part — tens of milliseconds, plus one texture upload the first time it is
+// drawn — so it happens once per photo, on idle, and never during a reveal.
+// Faces are kept rather than rebuilt: after one pass round the deck, hovering
+// costs nothing at all.
+function aboutmeBuildFace(i) {
+    const a = aboutmeSwap;
+    if (!a.ready || a.building) return;
+    const have = a.faces[i];
+    if (have && have.theme === currentTheme) return;
+    a.building = true;
+    aboutmeLoadPhoto(i).then((img) => {
+        let face = a.faces[i];
+        if (!face) {
+            const canvas = document.createElement('canvas');
+            canvas.width = a.faces[0].canvas.width;
+            canvas.height = a.faces[0].canvas.height;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.anisotropy = a.faces[0].texture.anisotropy;
+            face = { canvas: canvas, ctx: ctx, texture: texture, theme: null };
+            a.faces[i] = face;
+        }
+        a.paint(face.ctx, currentTheme, img);
+        face.theme = currentTheme;
+        face.texture.needsUpdate = true;
+        // Hand it to the GPU now rather than letting the renderer do it on the
+        // first frame that samples it. Six megabytes going up mid-reveal is a
+        // dropped frame exactly where it is most visible; here it lands in the
+        // same idle slot that painted the face.
+        renderer.initTexture(face.texture);
+        a.building = false;
+    }, () => { a.building = false; });
+}
+
+function aboutmePrepareNext() {
+    const a = aboutmeSwap;
+    if (a.ready) aboutmeBuildFace((a.index + 1) % ABOUTME_PHOTOS.length);
+}
+
+function startAboutmeSwap() {
+    const a = aboutmeSwap;
+    if (!a.ready || a.busy) return;
+    const next = (a.index + 1) % ABOUTME_PHOTOS.length;
+    const face = a.faces[next];
+    // Not painted yet, or painted before the last theme change: the first
+    // hover of the session, or one that beat the idle callback. Get it ready
+    // for next time rather than stalling the scene to paint a face now.
+    if (!face || face.theme !== currentTheme) {
+        aboutmeBuildFace(next);
+        return;
+    }
+    a.busy = true;
+    a.uniforms.uMapB.value = face.texture;
+    const p1 = Math.random() * Math.PI * 2, p2 = Math.random() * Math.PI * 2;
+    a.uniforms.uDirA.value.set(Math.cos(p1), Math.sin(p1));
+    a.uniforms.uDirB.value.set(Math.cos(p2), -Math.sin(p2));
+    a.uniforms.uSeed.value = Math.random() * 100;
+
+    const t0 = performance.now();
+    (function frame() {
+        const p = Math.min(1, (performance.now() - t0) / ABOUTME_SWAP_MS);
+        a.uniforms.uProgress.value = p;
+        if (p < 1) { requestAnimationFrame(frame); return; }
+        // Landed. The incoming face becomes the card's own map and the mask
+        // goes back to zero, so the next reveal starts from a clean sheet.
+        a.material.map = face.texture;
+        a.uniforms.uProgress.value = 0;
+        a.index = next;
+        a.busy = false;
+        aboutmeIdle(aboutmePrepareNext);
+    })();
+}
+
 function loadCard0() {
     const s = ABOUTME_SCALE;
     const canvas = document.createElement('canvas');
@@ -1162,7 +1359,9 @@ function loadCard0() {
     const ctx = canvas.getContext('2d');
 
     const photo = new Image();
-    photo.src = './Cards/aboutme-photo.webp';
+    photo.src = ABOUTME_PHOTOS[0];
+    aboutmeImages[0] = photo;
+    aboutmeLoads[0] = new Promise((resolve) => { photo.onload = () => resolve(photo); });
 
     Promise.all([
         // document.fonts.ready alone is not enough: it settles once the fonts
@@ -1175,15 +1374,23 @@ function loadCard0() {
         document.fonts.load(`700 ${80 * s}px "Play"`),
         document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
         document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
-        new Promise((resolve) => { photo.onload = resolve; }),
+        aboutmeLoads[0],
     ]).then(() => {
         const r = 36 * s;
         // Set once, up front — save()/restore() below would otherwise
         // revert this back to the canvas default partway through drawing.
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        function smoothing(c) {
+            c.imageSmoothingEnabled = true;
+            c.imageSmoothingQuality = 'high';
+        }
+        smoothing(ctx);
 
-        function paint(theme) {
+        // Takes its context and its photo rather than closing over them: the
+        // hover reveal paints a second, identical face off screen with the next
+        // photo in it, and there is no version of that which should be allowed
+        // to drift from the one on screen.
+        function paint(ctx, theme, img) {
+            const canvas = ctx.canvas;
             const { cardBg, ink } = THEME_COLORS[theme];
 
             // Background + photo, clipped to the card's rounded corners
@@ -1207,8 +1414,13 @@ function loadCard0() {
             const bleed = ABOUTME_PHOTO_BLUR * 2;
             const k = Math.max(1 + (bleed * 2) / pw, 1 + (bleed * 2) / ph);
             ctx.filter = `blur(${ABOUTME_PHOTO_BLUR * s}px)`;
-            ctx.drawImage(
-                photo,
+            // Cover rather than a straight stretch. The photo this card was
+            // built with is exactly the box's shape, so this changes nothing
+            // for it; the three the hover walks through are 2:3, 1:1 and 3:4,
+            // and stretching those to fit would be unmissable.
+            tmplDrawImageCover(
+                ctx,
+                img,
                 (-25.888 - (pw * k - pw) / 2) * s,
                 (20 - (ph * k - ph) / 2) * s,
                 pw * k * s,
@@ -1307,16 +1519,26 @@ function loadCard0() {
             ctx.restore();
         }
 
-        paint(currentTheme);
+        paint(ctx, currentTheme, photo);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        aboutmeSwap.faces[0] = { canvas: canvas, ctx: ctx, texture: texture, theme: currentTheme };
         cardFaceRepaints.push({
             index: 0,
             repaint: (theme) => {
-                paint(theme);
-                texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
+                const live = aboutmeSwap.faces[aboutmeSwap.index] || aboutmeSwap.faces[0];
+                paint(live.ctx, theme, aboutmeImages[aboutmeSwap.index] || photo);
+                live.theme = theme;
+                live.texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
+                // Every other face in the deck now holds the wrong theme, but
+                // repainting them all here is exactly the cost the staggering
+                // in updateCardFaceTextures exists to avoid — and nobody is
+                // looking at them. They are marked stale and rebuilt one at a
+                // time, on idle, as the hover walks round to them.
+                aboutmeSwap.faces.forEach((f, i) => { if (i !== aboutmeSwap.index) f.theme = null; });
+                aboutmeIdle(aboutmePrepareNext);
             },
         });
 
@@ -1324,6 +1546,44 @@ function loadCard0() {
         const cardH = 1.7, cardW = cardH * aspect;
         const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
         const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
+
+        // The reveal is the card's own material with a second map and a mask,
+        // rather than a shader of its own: patching MeshBasicMaterial keeps
+        // three's colour management, and both maps are sampled through the same
+        // sRGB path, so the mix happens between two colours that already agree.
+        // The uniforms are made here rather than inside onBeforeCompile so the
+        // swap can reach them before the material has ever been compiled.
+        const uniforms = {
+            uMapB: { value: texture },
+            uProgress: { value: 0 },
+            uCells: { value: new THREE.Vector2(
+                ABOUTME_DESIGN.w / ABOUTME_BLOB_CELL, ABOUTME_DESIGN.h / ABOUTME_BLOB_CELL) },
+            uDirA: { value: new THREE.Vector2(1, 0) },
+            uDirB: { value: new THREE.Vector2(0, 1) },
+            uSeed: { value: 0 },
+        };
+        frontMat.onBeforeCompile = (shader) => {
+            Object.assign(shader.uniforms, uniforms);
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <common>', '#include <common>\n' + ABOUTME_BLOB_GLSL)
+                .replace('#include <map_fragment>', [
+                    '#ifdef USE_MAP',
+                    '  vec4 sampledDiffuseColor = mix(',
+                    '    texture2D( map, vMapUv ), texture2D( uMapB, vMapUv ), aboutmeMask( vMapUv ) );',
+                    '  diffuseColor *= sampledDiffuseColor;',
+                    '#endif',
+                ].join('\n'));
+        };
+        // Without this the patched program would be shared with every other
+        // unpatched MeshBasicMaterial that happens to hash the same.
+        frontMat.customProgramCacheKey = () => 'aboutme-reveal';
+
+        Object.assign(aboutmeSwap, {
+            ready: true, paint: paint, material: frontMat, uniforms: uniforms,
+        });
+        // The alternates are not part of the first paint, so the next one is
+        // fetched and its face painted once the page has nothing better to do.
+        aboutmeIdle(aboutmePrepareNext);
         const mesh = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = 0;
@@ -2172,6 +2432,19 @@ const renderloop = (now = 0) => {
     window.requestAnimationFrame(renderloop);
 
     // --- Update all positions BEFORE rendering so no one-frame flash ---
+
+    // Card 0's photo changes each time the pointer arrives on it. Watched from
+    // here rather than from the mousemove handler because hoveredCard is
+    // cleared in half a dozen places — a drag, a scroll, the pointer leaving
+    // the canvas, a change of view — and this is the one spot that sees all
+    // of them, so it is the only one that can tell an arrival from a frame
+    // that merely still has the pointer on the same card.
+    if (hoveredCard !== lastHoveredCard) {
+        lastHoveredCard = hoveredCard;
+        if (hoveredCard && hoveredCard.userData.cardIndex === 0 && introPhase === 'done') {
+            startAboutmeSwap();
+        }
+    }
 
     // Hover lift + intro drop animation
     cards.forEach((card, i) => {

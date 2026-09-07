@@ -357,6 +357,14 @@
         </a>
     </div>
 
+    <!-- The same file the case pages load, which is the point — one place holds
+         the key. Loaded as a module only here, so Vite bundles it rather than
+         emitting a reference to a file it does not copy into dist/; the case
+         pages have no build step and take it as a plain deferred script. Either
+         way it is deferred, so it is behind first paint and behind the pre-paint
+         blocks in <head>, and it runs before script.js. Inert until a key is
+         filled in; see analytics.js. -->
+    <script type="module" src="./analytics.js"></script>
     <script type="module" src="./script.js"></script>
 </body>
 </html>

@@ -943,6 +943,10 @@ function stashCardHandoff(index, url) {
 function openCard(index) {
     if (COMING_SOON_INDICES.has(index)) return;
     stashCardHandoff(index, CARD_URLS[index]);
+    // Here rather than at either call site for the same reason the hand-off is:
+    // this is the single funnel every carousel open passes through. No-op unless
+    // analytics.js loaded and a key is configured.
+    window.Analytics && window.Analytics.projectOpen(CARD_URLS[index], 'carousel');
     window.open(CARD_URLS[index], '_top');
 }
 

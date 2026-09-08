@@ -96,6 +96,20 @@ const viewState = {
     rotation: 0,
 };
 
+// The angle is sampled from the render loop, so what gets stored is wherever
+// the ring happened to be at that moment — mid-drag, mid-fling, part-way
+// through the snap easing, or anywhere at all in the idle auto-rotate, which
+// drifts continuously and never snaps. Restoring any of those literally is how
+// a visitor comes back resting between two cards. Rounding to the nearest whole
+// card's share of the circle is the same quantisation snaptoNearestCard eases
+// toward, applied instantly instead: nearest rather than truncated, so it is
+// still the card they left off on and not card 0, and the accumulated lap count
+// rides along in the multiple so nothing jumps a full turn on the way back.
+function snappedRotation(raw) {
+    const anglePerCard = (Math.PI * 2) / cardCount;
+    return Math.round(raw / anglePerCard) * anglePerCard;
+}
+
 function readViewState() {
     let raw = null;
     try { raw = sessionStorage.getItem(VIEW_STATE_KEY); } catch (err) { return null; }
@@ -108,7 +122,10 @@ function readViewState() {
             // Number.isFinite, not a truthiness check: 0 is a legitimate scroll
             // offset and NaN/null from a corrupt entry must not reach scrollTop.
             gridScroll: Number.isFinite(parsed.gridScroll) ? parsed.gridScroll : 0,
-            rotation: Number.isFinite(parsed.rotation) ? parsed.rotation : 0,
+            // Snapped on the way in as well as on the way out, because entries
+            // written by a build that stored the raw angle are still sitting in
+            // whatever tabs were open when this shipped.
+            rotation: Number.isFinite(parsed.rotation) ? snappedRotation(parsed.rotation) : 0,
         };
     } catch (err) { return null; }
 }
@@ -120,7 +137,12 @@ const PERSIST_INTERVAL_MS = 250;
 function writeViewState() {
     if (persistTimer !== null) { clearTimeout(persistTimer); persistTimer = null; }
     lastPersistAt = performance.now();
-    try { sessionStorage.setItem(VIEW_STATE_KEY, JSON.stringify(viewState)); } catch (err) { /* private mode */ }
+    // Snapped here rather than in viewState itself: that field has to stay the
+    // live angle, because the render loop diffs against it to decide whether
+    // anything has moved since the last write. Only the copy that goes to
+    // storage is quantised, so what is stored is a card and not a halfway house.
+    const stored = { ...viewState, rotation: snappedRotation(viewState.rotation) };
+    try { sessionStorage.setItem(VIEW_STATE_KEY, JSON.stringify(stored)); } catch (err) { /* private mode */ }
 }
 
 // Rotation changes every frame while the carousel spins and scroll fires at
@@ -2373,6 +2395,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         customizeOpen: () => customizeOpen,
         cardCount: () => cardCount,
         ringX: () => cardgroup.position.x,
+        rotationY: () => cardgroup.rotation.y,
         // Where the ring's own card 9 is on screen. The drawn card is supposed
         // to be sitting exactly on top of this.
         cardRect: () => customizeCardRect(),
@@ -2985,11 +3008,11 @@ const renderloop = (now = 0) => {
 };
 
 // Helpers
+// Eases to the angle snappedRotation names; the restore path up top jumps
+// straight to it. Same arithmetic either way, kept in one place so the two
+// cannot drift apart and land a reload one card off from a snap.
 function snaptoNearestCard() {
-    const anglePerCard = (Math.PI * 2) / cardCount;
-    const rawRotation = cardgroup.rotation.y;
-    const nearestIndex = Math.round(rawRotation / anglePerCard);
-    targetRotation = nearestIndex * anglePerCard;
+    targetRotation = snappedRotation(cardgroup.rotation.y);
 }
 
 

@@ -1,37 +1,45 @@
 /* Make your own card.
    ---------------------------------------------------------------------------
-   Everything the visitor makes is held in one plain object — paper, border,
-   cord, and an ordered list of the things they have put on the card. Nothing
-   is drawn imperatively and then forgotten: the canvas is a pure function of
-   that object, redrawn whenever it changes.
+   Everything the visitor makes is held in one plain object — the tool they are
+   holding, and an ordered list of the marks and stickers they have put down.
+   Nothing is drawn imperatively and then forgotten: the canvas is a pure
+   function of that object, redrawn whenever it changes.
 
    That is what makes undo a single pop rather than a stack of inverse
-   operations, and it is why "I'm done" can hand back a full-resolution export
-   without a second code path — the same draw() runs at whatever scale it is
-   given. The carousel's own card faces are built the same way (see
-   buildTemplateCardTexture in script.js), so a finished card can become a real
-   card in the ring without being redrawn a third way. */
+   operations, and it is why the same draw() can paint the 300px card on screen
+   and the full-resolution face that goes into the carousel — one code path, at
+   whatever scale it is handed.
 
-// Design space. The card itself is the same 1059x1449 frame every other card
-// in the carousel uses; the canvas is taller only to leave the cord somewhere
-// to hang from, above the card rather than printed on it.
+   The card itself is blank. No masthead, no border, no cord, no punched slot:
+   the only marks on it are the visitor's own. */
+
+// Design space. The same 1059x1449 frame every other card in the carousel
+// uses, so a finished card can become a real card in the ring without being
+// redrawn a third way.
 const W = 1059;
-const CORD_H = 190;
-const CARD = { x: 0, y: CORD_H, w: 1059, h: 1449 };
-const H = CORD_H + CARD.h;
-const R = 44;               // the card's corner radius, in design units
+const H = 1449;
+const R = 44;               // corner radius, in design units
 
-export const PAPER = { plain: 'Plain', dots: 'Dots', checker: 'Checker' };
-export const BORDERS = { none: 'None', dashed: 'Dashed', wiggly: 'Wiggly' };
-// Cord colours are named for what they look like rather than by hex, so the
-// swatch caption and the model agree without a second lookup table.
-export const CORDS = {
-    ink:    { label: 'Ink',    hex: '#2B2B2B' },
-    indigo: { label: 'Indigo', hex: '#5E81E2' },
-    coral:  { label: 'Coral',  hex: '#F2795B' },
+const THEME_PAPER = { light: '#F7F5F5', dark: '#373737' };
+
+// The four tools. They differ in the character of the line rather than in what
+// they can reach, so picking one never closes anything off.
+export const BRUSHES = {
+    pen:    { label: 'Pen' },
+    dashed: { label: 'Dashed' },
+    marker: { label: 'Marker' },
+    pencil: { label: 'Pencil' },
 };
-export const BRUSHES = { fine: 5, medium: 11, bold: 20 };
-export const TONES = ['#C7D2FE', '#FFE27A', '#7FC8A9', '#F2A28C', '#C6B8F0'];
+
+// Seven inks. The first is the near-neutral the card starts on; the rest are
+// deliberately soft, because a saturated primary on this paper reads as an
+// error state rather than a choice.
+export const COLORS = [
+    '#8A93A6', '#F4756E', '#F7A85C', '#FADD6E', '#86DFA0', '#9EE9F2', '#BFA6F0',
+];
+
+export const STROKE_MIN = 4;
+export const STROKE_MAX = 24;
 
 // The sticker palette. The categories are the visitor's own facts, the way a
 // conference badge collects them — which is the point of the thing.
@@ -43,17 +51,46 @@ export const STICKERS = {
     MOOD:       ['first time', 'long time', 'day one', 'just browsing'],
 };
 
-const THEME_PAPER = { light: '#F7F5F5', dark: '#373737' };
-const THEME_INK   = { light: '#232323', dark: '#EDEDED' };
+// Sticker fills, cycled by position in the flattened list so the tray looks
+// varied without the visitor having to choose a colour they do not care about.
+const TONES = ['#C7D2FE', '#FFE27A', '#7FC8A9', '#F2A28C', '#C6B8F0'];
 
-export const CARD_DESIGN = { W, H, CARD, CORD_H };
+// The card keeps the shape every other card in the carousel has: the same
+// photo box with the same folded-corner notch, the number sitting in that
+// notch, and three tag pills on the bottom-right shelf. What it does not keep
+// is anything printed in them — the box is empty and the number and tags are
+// the visitor's to type.
+//
+// Geometry lifted from tmplPhotoClipPath / buildTemplateCardTexture in
+// script.js, in the same 1059x1449 design units. If the cards there ever move,
+// these move with them.
+const CUTOUT = { x: 21, y: 20, w: 1016.663, h: 817 };
+const SLOT_NUMBER = { x: 20.5, y: 17, w: 160, h: 54 };
+const SLOT_PILL = { y: 1354, h: 68, w: 200, gap: 24, right: 21 };
+const TAG_COUNT = 3;
+
+// Where each pill sits, right-aligned to the same inset the photo box uses.
+// Fixed widths rather than measured ones: these are inputs, and a pill that
+// resized under the caret would shove its neighbours around mid-word.
+function pillRect(i) {
+    const total = TAG_COUNT * SLOT_PILL.w + (TAG_COUNT - 1) * SLOT_PILL.gap;
+    const x0 = W - SLOT_PILL.right - total;
+    return { x: x0 + i * (SLOT_PILL.w + SLOT_PILL.gap), y: SLOT_PILL.y,
+             w: SLOT_PILL.w, h: SLOT_PILL.h };
+}
+
+export const CARD_DESIGN = { W, H, R, CUTOUT, SLOT_NUMBER, SLOT_PILL, TAG_COUNT, pillRect };
 
 function theme() {
     return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 
 export function newModel() {
-    return { paper: 'plain', border: 'dashed', cord: 'indigo', brush: 'medium', items: [] };
+    return {
+        brush: 'pen', color: COLORS[0], size: 8,
+        number: '', tags: new Array(TAG_COUNT).fill(''),
+        items: [],
+    };
 }
 
 /* ── path helpers ────────────────────────────────────────────────────────── */
@@ -68,186 +105,146 @@ function roundedRectPath(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-function cornerPt(cx, cy, r, a0, k) {
-    const a = a0 + k * (Math.PI / 2);
-    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, nx: Math.cos(a), ny: Math.sin(a) };
+/* ── drawing ─────────────────────────────────────────────────────────────── */
+
+function drawPaper(ctx) {
+    ctx.save();
+    roundedRectPath(ctx, 0, 0, W, H, R);
+    ctx.clip();
+    ctx.fillStyle = THEME_PAPER[theme()];
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
 }
 
-// Point and outward normal at fraction t along a rounded rect's perimeter.
-function perimeterPoint(x, y, w, h, r, t) {
-    const sw = w - 2 * r, sh = h - 2 * r, arc = (Math.PI / 2) * r;
-    const segs = [
-        { len: sw,  f: (u) => ({ x: x + r + u, y: y, nx: 0, ny: -1 }) },
-        { len: arc, f: (u) => cornerPt(x + w - r, y + r, r, -Math.PI / 2, u / arc) },
-        { len: sh,  f: (u) => ({ x: x + w, y: y + r + u, nx: 1, ny: 0 }) },
-        { len: arc, f: (u) => cornerPt(x + w - r, y + h - r, r, 0, u / arc) },
-        { len: sw,  f: (u) => ({ x: x + w - r - u, y: y + h, nx: 0, ny: 1 }) },
-        { len: arc, f: (u) => cornerPt(x + r, y + h - r, r, Math.PI / 2, u / arc) },
-        { len: sh,  f: (u) => ({ x: x, y: y + h - r - u, nx: -1, ny: 0 }) },
-        { len: arc, f: (u) => cornerPt(x + r, y + r, r, Math.PI, u / arc) },
-    ];
-    let d = t * segs.reduce((a, s) => a + s.len, 0);
-    for (const s of segs) {
-        if (d <= s.len) return s.f(d);
-        d -= s.len;
-    }
-    return segs[0].f(0);
-}
-
-// A wobbling rounded rectangle. Walking the perimeter and pushing each step
-// sideways by a sine gives a line that reads as hand-drawn without needing a
-// second set of coordinates for every corner.
-function wigglyRectPath(ctx, x, y, w, h, r, amp, waves) {
-    const per = 2 * (w + h) - 8 * r + 2 * Math.PI * r;
-    const steps = Math.max(240, Math.round(per / 6));
+// The photo box, with the folded corner at the top-left that the number sits
+// in. A straight copy of tmplPhotoClipPath in script.js — it is not a simple
+// arc: the notch rises from the left edge, holds briefly flat, then rises
+// again into the diagonal and curves into the top edge.
+function cutoutPath(ctx, x, y) {
     ctx.beginPath();
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const p = perimeterPoint(x, y, w, h, r, t);
-        const off = Math.sin(t * Math.PI * 2 * waves) * amp;
-        const px = p.x + p.nx * off, py = p.y + p.ny * off;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
+    ctx.moveTo(x + 992.662, y);
+    ctx.bezierCurveTo(x + 1005.92, y, x + 1016.66, y + 10.7452, x + 1016.66, y + 24);
+    ctx.lineTo(x + 1016.66, y + 793);
+    ctx.bezierCurveTo(x + 1016.66, y + 806.255, x + 1005.92, y + 817, x + 992.662, y + 817);
+    ctx.lineTo(x + 24, y + 817);
+    ctx.bezierCurveTo(x + 10.7452, y + 817, x, y + 806.255, x, y + 793);
+    ctx.lineTo(x, y + 111);
+    ctx.bezierCurveTo(x, y + 78, x + 19.9, y + 58.5, x + 51.5, y + 58.5);
+    ctx.lineTo(x + 117.932, y + 58.5);
+    ctx.bezierCurveTo(x + 129.052, y + 58.5, x + 139.578, y + 53.4981, x + 146.604, y + 44.8789);
+    ctx.lineTo(x + 167.294, y + 19.5);
+    ctx.bezierCurveTo(x + 167.294, y + 19.5, x + 182, y, x + 210, y);
     ctx.closePath();
 }
 
-/* ── drawing ─────────────────────────────────────────────────────────────── */
-
-function drawPaper(ctx, model, ink) {
+// Empty, because it is the visitor's to fill: the box tracks the stock rather
+// than sitting on it as a bright slab, the same way a template card with no
+// photo yet does.
+function drawCutout(ctx, ink) {
     ctx.save();
-    roundedRectPath(ctx, CARD.x, CARD.y, CARD.w, CARD.h, R);
-    ctx.clip();
-    ctx.fillStyle = THEME_PAPER[theme()];
-    ctx.fillRect(CARD.x, CARD.y, CARD.w, CARD.h);
-
-    if (model.paper === 'dots') {
-        ctx.fillStyle = ink;
-        ctx.globalAlpha = 0.16;
-        const step = 46;
-        for (let gy = CARD.y + step; gy < CARD.y + CARD.h; gy += step)
-            for (let gx = step; gx < CARD.w; gx += step) {
-                ctx.beginPath(); ctx.arc(gx, gy, 3.5, 0, Math.PI * 2); ctx.fill();
-            }
-    } else if (model.paper === 'checker') {
-        // Tied to the cord colour rather than a fourth palette: one choice
-        // moving two things keeps the card looking designed rather than
-        // assembled out of unrelated parts.
-        ctx.fillStyle = CORDS[model.cord].hex;
-        ctx.globalAlpha = 0.20;
-        const cell = 74;
-        for (let row = 0; row * cell < CARD.h; row++)
-            for (let col = 0; col * cell < CARD.w; col++)
-                if ((row + col) % 2 === 0) ctx.fillRect(col * cell, CARD.y + row * cell, cell, cell);
-    }
-    ctx.restore();
-}
-
-function drawBorder(ctx, model, ink) {
-    if (model.border === 'none') return;
-    const inset = 34;
-    ctx.save();
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = 5;
-    ctx.lineJoin = 'round';
-    if (model.border === 'dashed') {
-        ctx.setLineDash([26, 20]);
-        roundedRectPath(ctx, CARD.x + inset, CARD.y + inset, CARD.w - inset * 2, CARD.h - inset * 2, R - 14);
-    } else {
-        wigglyRectPath(ctx, CARD.x + inset, CARD.y + inset, CARD.w - inset * 2, CARD.h - inset * 2, R - 14, 7, 58);
-    }
-    ctx.stroke();
-    ctx.restore();
-}
-
-// The cord is drawn first and the card's paper goes over it, so its two ends
-// disappear behind the card's top edge; a short segment is painted back across
-// the slot afterwards (see drawSlot) and the whole thing reads as threaded
-// through rather than resting on top.
-const CORD_SPAN = 58;      // half the distance between the cord's two ends
-
-function drawCord(ctx, model) {
-    const cx = W / 2, endY = CARD.y + 100;
-    ctx.save();
-    ctx.strokeStyle = CORDS[model.cord].hex;
-    ctx.lineWidth = 19;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(cx - CORD_SPAN, endY);
-    ctx.bezierCurveTo(cx - CORD_SPAN - 4, CORD_H * 0.34, cx - 44, 12, cx, 12);
-    ctx.bezierCurveTo(cx + 44, 12, cx + CORD_SPAN + 4, CORD_H * 0.34, cx + CORD_SPAN, endY);
-    ctx.stroke();
-    ctx.restore();
-}
-
-// The card floats a little off the page, the way the carousel's cards do. Drawn
-// under the paper rather than as a CSS shadow because the canvas extends above
-// the card and a box-shadow would trace that empty strip as well.
-function drawCardShadow(ctx) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.20)';
-    ctx.shadowBlur = 54;
-    ctx.shadowOffsetY = 22;
-    ctx.fillStyle = '#000';
-    roundedRectPath(ctx, CARD.x + 6, CARD.y + 6, CARD.w - 12, CARD.h - 12, R);
+    cutoutPath(ctx, CUTOUT.x, CUTOUT.y);
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = theme() === 'dark' ? 0.10 : 0.055;
     ctx.fill();
     ctx.restore();
 }
 
-function drawSlot(ctx, model, ink) {
-    const cx = W / 2, slotY = CARD.y + 74, slotW = 178, slotH = 24;
+// The number and the tag pills. Skipped on the canvas the visitor is typing
+// into — there the real <input>s are what they see, and painting the text
+// underneath them would double every glyph.
+function drawSlots(ctx, model, ink) {
     ctx.save();
-    ctx.fillStyle = theme() === 'dark' ? '#1C1C1C' : '#E4E1E1';
-    roundedRectPath(ctx, cx - slotW / 2, slotY, slotW, slotH, slotH / 2);
-    ctx.fill();
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-
-    // The bit of cord you would see through the punched slot. Clipped to the
-    // slot so it cannot spill over the card either side of it.
-    roundedRectPath(ctx, cx - slotW / 2, slotY, slotW, slotH, slotH / 2);
-    ctx.clip();
-    ctx.strokeStyle = CORDS[model.cord].hex;
-    ctx.lineWidth = 19;
-    ctx.lineCap = 'butt';
-    ctx.beginPath();
-    ctx.moveTo(cx - CORD_SPAN, slotY - 20);
-    ctx.lineTo(cx - CORD_SPAN, slotY + slotH + 20);
-    ctx.moveTo(cx + CORD_SPAN, slotY - 20);
-    ctx.lineTo(cx + CORD_SPAN, slotY + slotH + 20);
-    ctx.stroke();
-    ctx.restore();
-}
-
-// The masthead is the one part the visitor does not control, because it is
-// what makes the finished thing a card from this site rather than a blank.
-function drawMasthead(ctx, ink) {
-    const y = CARD.y + 152, h = 128;
-    ctx.save();
-    ctx.font = '700 82px Play, "DM Sans", system-ui, sans-serif';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = ink;
+    ctx.font = 'italic 400 36px "DM Sans", system-ui, sans-serif';
     ctx.textAlign = 'center';
-    const nameW = ctx.measureText('HFYJ').width + 76;
-    const yearW = ctx.measureText('2026').width + 76;
-    const gap = 18;
-    const x0 = (W - (nameW + gap + yearW)) / 2;
+    ctx.textBaseline = 'middle';
+    if (model.number) {
+        ctx.fillText(model.number, SLOT_NUMBER.x + SLOT_NUMBER.w / 2,
+                     SLOT_NUMBER.y + SLOT_NUMBER.h / 2);
+    }
 
-    ctx.fillStyle = ink;
-    roundedRectPath(ctx, x0, y, nameW, h, h / 2.6);
-    ctx.fill();
-    ctx.fillStyle = THEME_PAPER[theme()];
-    ctx.fillText('HFYJ', x0 + nameW / 2, y + h / 2 + 3);
+    for (let i = 0; i < TAG_COUNT; i++) {
+        const r = pillRect(i);
+        ctx.beginPath();
+        roundedRectPath(ctx, r.x, r.y, r.w, r.h, r.h / 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = ink;
+        ctx.globalAlpha = 0.28;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        const label = (model.tags && model.tags[i]) || '';
+        if (!label) continue;
+        ctx.fillStyle = ink;
+        ctx.font = '600 40px "DM Sans", system-ui, sans-serif';
+        ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 2);
+    }
+    ctx.restore();
+}
 
-    ctx.strokeStyle = ink;
-    ctx.lineWidth = 5;
-    roundedRectPath(ctx, x0 + nameW + gap, y, yearW, h, h / 2.6);
+// Midpoint quadratics: pointer samples are coarse, and joining them with
+// straight segments looks like it. Curving through the midpoints gives the
+// smooth line a drawn mark is expected to have.
+function strokePath(ctx, pts) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length - 1; i++) {
+        const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+        ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last[0], last[1]);
+}
+
+function drawStroke(ctx, item) {
+    const size = item.size;
+    ctx.save();
+    ctx.strokeStyle = item.color;
+    ctx.fillStyle = item.color;
+    ctx.lineWidth = size;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    if (item.brush === 'dashed') {
+        // Scaled to the nib, so a fat dashed line reads as dashes rather than
+        // as a solid line with occasional nicks in it.
+        ctx.setLineDash([size * 0.2, size * 1.9]);
+    } else if (item.brush === 'marker') {
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = size * 1.7;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'bevel';
+    }
+
+    // A single tap is a dot, not a zero-length line — which most canvas
+    // line caps refuse to render at all.
+    if (item.pts.length < 2) {
+        ctx.beginPath();
+        ctx.arc(item.pts[0][0], item.pts[0][1], ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
+
+    if (item.brush === 'pencil') {
+        // Grain, cheaply: the same path drawn a few times, faint and nudged a
+        // little each pass. Deterministic offsets rather than random ones,
+        // because this redraws on every pointer sample and a random jitter
+        // would make the finished line crawl.
+        ctx.globalAlpha = 0.30;
+        const nudge = [[0, 0], [0.6, -0.5], [-0.5, 0.6], [0.3, 0.4]];
+        for (const [dx, dy] of nudge) {
+            ctx.save();
+            ctx.translate(dx * size * 0.18, dy * size * 0.18);
+            strokePath(ctx, item.pts);
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+        return;
+    }
+
+    strokePath(ctx, item.pts);
     ctx.stroke();
-    ctx.fillStyle = ink;
-    ctx.fillText('2026', x0 + nameW + gap + yearW / 2, y + h / 2 + 3);
     ctx.restore();
 }
 
@@ -262,71 +259,50 @@ export function stickerBox(ctx, label) {
     return { w, h: 76 };
 }
 
-function drawItems(ctx, model, ink) {
+function drawSticker(ctx, item) {
+    const { w, h } = stickerBox(ctx, item.label);
     ctx.save();
-    roundedRectPath(ctx, CARD.x, CARD.y, CARD.w, CARD.h, R);
+    ctx.translate(item.x, item.y);
+    ctx.rotate(item.rot);
+    ctx.fillStyle = item.tone;
+    roundedRectPath(ctx, -w / 2, -h / 2, w, h, h / 2);
+    ctx.fill();
+    ctx.strokeStyle = '#232323';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = '#232323';
+    ctx.font = '600 40px "DM Sans", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.label, 0, 2);
+    ctx.restore();
+}
+
+function drawItems(ctx, model) {
+    ctx.save();
+    roundedRectPath(ctx, 0, 0, W, H, R);
     ctx.clip();
     for (const item of model.items) {
-        if (item.type === 'stroke') {
-            ctx.strokeStyle = ink;
-            ctx.fillStyle = ink;
-            ctx.lineWidth = item.size;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            if (item.pts.length < 2) {
-                ctx.beginPath();
-                ctx.arc(item.pts[0][0], item.pts[0][1], item.size / 2, 0, Math.PI * 2);
-                ctx.fill();
-                continue;
-            }
-            // Midpoint quadratics: pointer samples are coarse, and joining them
-            // with straight segments looks like it. Curving through the
-            // midpoints gives the smooth line a drawn mark is expected to have.
-            ctx.beginPath();
-            ctx.moveTo(item.pts[0][0], item.pts[0][1]);
-            for (let i = 1; i < item.pts.length - 1; i++) {
-                const [ax, ay] = item.pts[i], [bx, by] = item.pts[i + 1];
-                ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
-            }
-            const last = item.pts[item.pts.length - 1];
-            ctx.lineTo(last[0], last[1]);
-            ctx.stroke();
-        } else {
-            const { w, h } = stickerBox(ctx, item.label);
-            ctx.save();
-            ctx.translate(item.x, item.y);
-            ctx.rotate(item.rot);
-            ctx.fillStyle = item.tone;
-            roundedRectPath(ctx, -w / 2, -h / 2, w, h, h / 2);
-            ctx.fill();
-            ctx.strokeStyle = '#232323';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            ctx.fillStyle = '#232323';
-            ctx.font = '600 40px "DM Sans", system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(item.label, 0, 2);
-            ctx.restore();
-        }
+        if (item.type === 'stroke') drawStroke(ctx, item);
+        else drawSticker(ctx, item);
     }
     ctx.restore();
 }
 
-// One draw for the screen and for the export, so what is downloaded is exactly
-// what was on screen.
-export function drawCard(ctx, model, scale) {
+const THEME_INK = { light: '#232323', dark: '#EDEDED' };
+
+// One draw for the screen and for the carousel face, so the card in the ring
+// is exactly the card that was made. `slots: false` leaves the number and tags
+// unpainted, which is what the canvas being typed into wants — see drawSlots.
+export function drawCard(ctx, model, scale, opts) {
     const ink = THEME_INK[theme()];
     ctx.save();
     ctx.scale(scale, scale);
     ctx.clearRect(0, 0, W, H);
-    drawCardShadow(ctx);
-    drawCord(ctx, model);
-    drawPaper(ctx, model, ink);
-    drawSlot(ctx, model, ink);
-    drawBorder(ctx, model, ink);
-    drawMasthead(ctx, ink);
-    drawItems(ctx, model, ink);
+    drawPaper(ctx);
+    drawCutout(ctx, ink);
+    drawItems(ctx, model);
+    if (!opts || opts.slots !== false) drawSlots(ctx, model, ink);
     ctx.restore();
 }
 
@@ -337,290 +313,302 @@ function el(tag, attrs, kids) {
     for (const k in (attrs || {})) {
         if (k === 'class') n.className = attrs[k];
         else if (k === 'text') n.textContent = attrs[k];
+        else if (k === 'html') n.innerHTML = attrs[k];
         else n.setAttribute(k, attrs[k]);
     }
     (kids || []).forEach((c) => n.appendChild(c));
     return n;
 }
 
-// A row of labelled choices that all write the same key on the model. The
-// preview inside each swatch is drawn by the caller, because what makes a
-// paper or a cord recognisable is not something a generic control can know.
-function swatchGroup(title, keys, labelOf, previewOf, get, set) {
-    const boxes = [];
-    const row = el('div', { class: 'cb-swatches' });
-    keys.forEach((key) => {
-        const box = el('span', { class: 'cb-swatch-box' });
-        const prev = previewOf(key);
-        if (prev) box.appendChild(prev);
-        const btn = el('button', {
-            class: 'cb-swatch', type: 'button', 'aria-pressed': 'false', 'data-key': key,
-        }, [box, el('span', { text: labelOf(key) })]);
-        btn.addEventListener('click', () => { set(key); sync(); });
-        boxes.push(btn);
-        row.appendChild(btn);
-    });
-    function sync() {
-        boxes.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === get())));
-    }
-    sync();
-    return { node: el('section', { class: 'cb-group' }, [el('h3', { text: title }), row]), sync };
-}
-
-function styled(css) {
-    const s = el('span');
-    s.setAttribute('style', css);
-    return s;
-}
-
-function paperPreview(key) {
-    const s = styled('display:block;width:100%;height:100%;background:var(--cb-stock)');
-    if (key === 'dots') {
-        s.style.backgroundImage = 'radial-gradient(color-mix(in srgb, var(--cb-ink) 45%, transparent) 1.1px, transparent 1.2px)';
-        s.style.backgroundSize = '8px 8px';
-    } else if (key === 'checker') {
-        s.style.backgroundImage =
-            'linear-gradient(45deg,#C7D2FE 25%,transparent 25%,transparent 75%,#C7D2FE 75%),' +
-            'linear-gradient(45deg,#C7D2FE 25%,transparent 25%,transparent 75%,#C7D2FE 75%)';
-        s.style.backgroundSize = '14px 14px';
-        s.style.backgroundPosition = '0 0, 7px 7px';
-    }
-    return s;
-}
-
-function borderPreview(key) {
-    const s = styled('display:block;width:100%;height:100%;background:var(--cb-stock);position:relative');
-    if (key === 'none') return s;
-    const style = key === 'dashed' ? 'dashed' : 'solid';
-    const inner = styled('position:absolute;inset:7px;border-radius:4px;border:1.5px ' + style + ' var(--cb-ink)');
-    // "Wiggly" is not a border-style, so the preview shows what the option
-    // actually produces — a wavy edge — rather than a straight one mislabelled.
-    if (key === 'wiggly') inner.style.borderRadius = '40% 60% 45% 55% / 55% 45% 60% 40%';
-    s.appendChild(inner);
-    return s;
-}
-
-function cordPreview(key) {
-    const s = styled('display:block;width:100%;height:100%;background:var(--cb-stock);position:relative');
-    s.appendChild(styled(
-        'position:absolute;left:50%;top:7px;width:22px;height:22px;margin-left:-11px;' +
-        'border-radius:50% 50% 0 0;border:5px solid ' + CORDS[key].hex + ';border-bottom:0'));
-    return s;
-}
-
-function brushPreview(key) {
-    const d = BRUSHES[key] * 0.9 + 3;
-    const s = styled('display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--cb-stock)');
-    s.appendChild(styled('display:block;border-radius:50%;background:var(--cb-ink);width:' + d + 'px;height:' + d + 'px'));
-    return s;
-}
+// The four brush glyphs from the design: one stroke each, drawn in the tile so
+// the tool is recognised by its line rather than by its name.
+const BRUSH_WAVE = 'M4 22C9 22 10 11 16 11S23 22 28 11';
+const BRUSH_GLYPH = {
+    pen:    `<path d="${BRUSH_WAVE}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>`,
+    dashed: `<path d="${BRUSH_WAVE}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="1 5"/>`,
+    marker: `<path d="${BRUSH_WAVE}" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`,
+    pencil: `<path d="${BRUSH_WAVE}" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" opacity=".55"/>`,
+};
 
 export function mountCardBuilder(root) {
     const model = newModel();
+
+    /* the card ---------------------------------------------------------- */
     const canvas = el('canvas', { class: 'cb-card' });
     const ctx = canvas.getContext('2d');
-    const wrap = el('div', { class: 'cb-card-wrap' }, [canvas]);
 
-    const backBtn = el('button', { class: 'cb-btn', type: 'button', text: 'Back' });
-    const undoBtn = el('button', { class: 'cb-btn', type: 'button', text: 'Undo' });
-    const clearBtn = el('button', { class: 'cb-btn', type: 'button', text: 'Clear' });
-    const doneBtn = el('button', { class: 'cb-btn cb-btn--primary', type: 'button', text: 'Save my card' });
+    // The number and the tags are real inputs sitting over the canvas, placed
+    // in percentages of the design frame so they track the card at any size.
+    // Everything else on the card is painted; only the things that are typed
+    // into are DOM, because nothing else gives a caret and an IME for free.
+    const pct = (v, of) => (v / of * 100) + '%';
+    function slot(cls, rect, extra) {
+        const n = el('input', Object.assign({
+            class: cls, type: 'text', autocomplete: 'off', spellcheck: 'false',
+        }, extra || {}));
+        n.style.left = pct(rect.x, W);
+        n.style.top = pct(rect.y, H);
+        n.style.width = pct(rect.w, W);
+        n.style.height = pct(rect.h, H);
+        return n;
+    }
+
+    const numberInput = slot('cb-slot cb-slot--number', SLOT_NUMBER, {
+        maxlength: '6', placeholder: '#001', 'aria-label': 'Card number',
+    });
+    numberInput.addEventListener('input', () => { model.number = numberInput.value; render(); });
+
+    const tagInputs = [];
+    const slotLayer = el('div', { class: 'cb-slots' }, [numberInput]);
+    for (let i = 0; i < TAG_COUNT; i++) {
+        const t = slot('cb-slot cb-slot--tag', pillRect(i), {
+            maxlength: '14', placeholder: 'tag', 'aria-label': 'Tag ' + (i + 1),
+        });
+        t.addEventListener('input', () => { model.tags[i] = t.value; render(); });
+        tagInputs.push(t);
+        slotLayer.appendChild(t);
+    }
+
+    const clearBtn = el('button', { class: 'cb-btn cb-btn--quiet', type: 'button', text: 'Clear' });
+    const saveBtn = el('button', { class: 'cb-btn cb-btn--primary', type: 'button', text: 'Save' });
     const stage = el('div', { class: 'cb-stage' }, [
-        wrap, el('div', { class: 'cb-actions' }, [backBtn, undoBtn, clearBtn, doneBtn]),
+        el('div', { class: 'cb-card-wrap' }, [canvas, slotLayer]),
+        el('div', { class: 'cb-actions' }, [clearBtn, saveBtn]),
     ]);
 
-    const groups = [];
-    const kit = el('div', { class: 'cb-kit' }, [
-        el('div', { class: 'cb-kit-head' }, [
-            el('h2', { text: 'Make it yours' }),
-            el('p', { text: 'Pick your paper, thread a cord, sign it, stick on whatever fits.' }),
+    /* the draw panel ---------------------------------------------------- */
+    const brushBtns = {};
+    const brushRow = el('div', { class: 'cb-brushes' });
+    Object.keys(BRUSHES).forEach((key) => {
+        const b = el('button', {
+            class: 'cb-brush', type: 'button', 'aria-label': BRUSHES[key].label,
+            html: '<svg viewBox="0 0 32 32" width="32" height="32">' + BRUSH_GLYPH[key] + '</svg>',
+        });
+        b.addEventListener('click', () => { model.brush = key; syncTools(); });
+        brushBtns[key] = b;
+        brushRow.appendChild(b);
+    });
+
+    const colorBtns = [];
+    const colorRow = el('div', { class: 'cb-colors' });
+    COLORS.forEach((hex) => {
+        const b = el('button', { class: 'cb-color', type: 'button', 'aria-label': hex });
+        b.style.background = hex;
+        b.addEventListener('click', () => { model.color = hex; syncTools(); });
+        colorBtns.push(b);
+        colorRow.appendChild(b);
+    });
+
+    const slider = el('input', {
+        class: 'cb-slider', type: 'range',
+        min: String(STROKE_MIN), max: String(STROKE_MAX), value: String(model.size),
+        'aria-label': 'Stroke width',
+    });
+    slider.addEventListener('input', () => { model.size = Number(slider.value); });
+
+    const drawPanel = el('section', { class: 'cb-panel' }, [
+        el('h2', { class: 'cb-panel-title', text: 'Draw' }),
+        brushRow,
+        colorRow,
+        el('p', { class: 'cb-field-label', text: 'Stroke width' }),
+        el('div', { class: 'cb-slider-row' }, [
+            el('span', { class: 'cb-slider-cap', text: STROKE_MIN + 'px' }),
+            slider,
+            el('span', { class: 'cb-slider-cap', text: STROKE_MAX + 'px' }),
         ]),
     ]);
-    const add = (g) => { groups.push(g); kit.appendChild(g.node); };
-    const cap = (k) => k[0].toUpperCase() + k.slice(1);
 
-    add(swatchGroup('Paper', Object.keys(PAPER), (k) => PAPER[k], paperPreview,
-        () => model.paper, (k) => { model.paper = k; render(); }));
-    add(swatchGroup('Border', Object.keys(BORDERS), (k) => BORDERS[k], borderPreview,
-        () => model.border, (k) => { model.border = k; render(); }));
-    add(swatchGroup('Cord', Object.keys(CORDS), (k) => CORDS[k].label, cordPreview,
-        () => model.cord, (k) => { model.cord = k; render(); }));
-    add(swatchGroup('Draw', Object.keys(BRUSHES), cap, brushPreview,
-        () => model.brush, (k) => { model.brush = k; }));
-
-    // Stickers: tabs over a palette. One category at a time, because all five
-    // at once is a wall of pills nobody reads.
-    const tabs = el('div', { class: 'cb-tabs', role: 'tablist' });
-    const palette = el('div', { class: 'cb-palette' });
-    const cats = Object.keys(STICKERS);
-    let activeCat = cats[0];
-    cats.forEach((cat) => {
-        const t = el('button', {
-            class: 'cb-tab', type: 'button', role: 'tab', text: cat,
-            'aria-selected': 'false', 'data-cat': cat,
+    /* the sticker tray -------------------------------------------------- */
+    const tray = el('div', { class: 'cb-tray' });
+    let toneAt = 0;
+    Object.keys(STICKERS).forEach((group) => {
+        STICKERS[group].forEach((label) => {
+            const tone = TONES[toneAt++ % TONES.length];
+            const tile = el('button', {
+                class: 'cb-sticker', type: 'button', text: label,
+                'data-label': label, 'data-tone': tone,
+                'aria-label': 'Add sticker: ' + label,
+            });
+            tile.style.setProperty('--tone', tone);
+            tray.appendChild(tile);
         });
-        t.addEventListener('click', () => { activeCat = cat; syncStickers(); });
-        tabs.appendChild(t);
     });
-    function syncStickers() {
-        [...tabs.children].forEach((t) => t.setAttribute('aria-selected', String(t.dataset.cat === activeCat)));
-        palette.textContent = '';
-        STICKERS[activeCat].forEach((label, i) => {
-            const tone = TONES[i % TONES.length];
-            const b = el('button', { class: 'cb-sticker', type: 'button', text: label });
-            b.style.background = tone;
-            b.addEventListener('click', () => placeSticker(label, tone));
-            palette.appendChild(b);
-        });
-    }
-    syncStickers();
-    kit.appendChild(el('section', { class: 'cb-group' }, [
-        el('h3', { text: 'Stickers' }), tabs, palette,
-        el('p', { class: 'cb-hint', text: 'Tap to add, then drag it around the card. Drag anywhere else to draw.' }),
-    ]));
 
+    const stickerPanel = el('section', { class: 'cb-panel cb-panel--tray' }, [
+        el('h2', { class: 'cb-panel-title', text: 'Stickers' }),
+        el('p', { class: 'cb-panel-sub', text: 'Drag the stickers onto the card' }),
+        tray,
+    ]);
+
+    const kit = el('div', { class: 'cb-kit' }, [drawPanel, stickerPanel]);
+    root.textContent = '';
     root.appendChild(stage);
     root.appendChild(kit);
 
-    /* ── canvas sizing ───────────────────────────────────────────────────── */
-
-    // The canvas is a fixed design-space drawing scaled to whatever room the
-    // layout gave it, so nothing in draw() ever has to know the display size.
-    // Re-measured on resize because the left pane is fluid.
-    let scale = 1;
+    /* sizing ------------------------------------------------------------ */
+    //
+    // The canvas backing store is the design frame times the device pixel
+    // ratio; CSS decides how big it looks. Pointer coordinates are converted
+    // through the element's own rect, so the two never need to agree on a
+    // scale factor and a resize mid-drawing cannot shift what is already down.
+    let dpr = 1;
     function resize() {
-        const r = wrap.getBoundingClientRect();
-        if (!r.width) return;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        scale = (r.width / CARD_DESIGN.W) * dpr;
-        canvas.width = Math.round(CARD_DESIGN.W * scale);
-        canvas.height = Math.round(CARD_DESIGN.H * scale);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
         render();
     }
-    // Watching the wrapper rather than the window catches the layout changing
-    // for reasons the window never hears about — the kit growing a scrollbar,
-    // the overlay opening for the first time.
     const ro = new ResizeObserver(resize);
-    ro.observe(wrap);
+    ro.observe(canvas);
 
-    let raf = 0;
     function render() {
-        if (raf) return;         // several control changes in one turn still cost one draw
-        raf = requestAnimationFrame(() => {
-            raf = 0;
-            drawCard(ctx, model, scale);
-            undoBtn.disabled = clearBtn.disabled = model.items.length === 0;
-        });
+        // slots: false — the number and tags are the <input>s above, and
+        // painting them here as well would double every glyph.
+        drawCard(ctx, model, dpr, { slots: false });
+        api.onChange(model);
     }
 
-    /* ── pointer ─────────────────────────────────────────────────────────── */
+    function syncTools() {
+        Object.keys(brushBtns).forEach((k) => {
+            brushBtns[k].classList.toggle('is-on', k === model.brush);
+        });
+        colorBtns.forEach((b, i) => b.classList.toggle('is-on', COLORS[i] === model.color));
+    }
 
-    // Screen point to design point. Everything stored on the model is in design
-    // space, so a card made in a small window is the same card in a large one.
-    function toDesign(ev) {
+    /* drawing on the card ----------------------------------------------- */
+    //
+    // Design-space coordinates, not CSS pixels: what is stored has to survive
+    // the window being resized, and it has to mean the same thing when the
+    // model is drawn again at carousel resolution.
+    function atEvent(e) {
         const r = canvas.getBoundingClientRect();
-        return {
-            x: ((ev.clientX - r.left) / r.width) * CARD_DESIGN.W,
-            y: ((ev.clientY - r.top) / r.height) * CARD_DESIGN.H,
+        return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
+    }
+
+    let drawing = null;
+    canvas.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        // Pointer capture, so a stroke that runs off the edge of the card keeps
+        // following the pointer instead of stopping dead at the boundary.
+        canvas.setPointerCapture(e.pointerId);
+        drawing = {
+            type: 'stroke', brush: model.brush, color: model.color,
+            size: model.size, pts: [atEvent(e)],
         };
-    }
+        model.items.push(drawing);
+        render();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+        if (!drawing) return;
+        drawing.pts.push(atEvent(e));
+        render();
+    });
+    const endStroke = () => { if (drawing) { drawing = null; render(); } };
+    canvas.addEventListener('pointerup', endStroke);
+    canvas.addEventListener('pointercancel', endStroke);
 
-    // Hit-test in the sticker's own rotated frame: undo the rotation about its
-    // centre and the test is an ordinary box again. Walked back to front so the
-    // sticker on top is the one that answers.
-    function stickerAt(p) {
-        for (let i = model.items.length - 1; i >= 0; i--) {
-            const it = model.items[i];
-            if (it.type !== 'sticker') continue;
-            const { w, h } = stickerBox(ctx, it.label);
-            const dx = p.x - it.x, dy = p.y - it.y;
-            const c = Math.cos(-it.rot), s = Math.sin(-it.rot);
-            if (Math.abs(dx * c - dy * s) <= w / 2 && Math.abs(dx * s + dy * c) <= h / 2) return i;
+    /* dragging stickers onto the card ------------------------------------ */
+    //
+    // Pointer events rather than HTML5 drag-and-drop: the card is a canvas, so
+    // there is no drop target to speak of, and drag-and-drop has no useful
+    // touch story. A ghost follows the pointer and the sticker is committed
+    // wherever it is let go, if that is over the card.
+    let ghost = null, ghostTile = null;
+    tray.addEventListener('pointerdown', (e) => {
+        const tile = e.target.closest('.cb-sticker');
+        if (!tile) return;
+        e.preventDefault();
+        tray.setPointerCapture(e.pointerId);
+        ghostTile = tile;
+        ghost = el('div', { class: 'cb-ghost', text: tile.dataset.label });
+        ghost.style.setProperty('--tone', tile.dataset.tone);
+        document.body.appendChild(ghost);
+        moveGhost(e);
+    });
+    function moveGhost(e) {
+        if (!ghost) return;
+        ghost.style.left = e.clientX + 'px';
+        ghost.style.top = e.clientY + 'px';
+        const r = canvas.getBoundingClientRect();
+        const over = e.clientX >= r.left && e.clientX <= r.right
+                  && e.clientY >= r.top  && e.clientY <= r.bottom;
+        ghost.classList.toggle('is-over', over);
+    }
+    tray.addEventListener('pointermove', moveGhost);
+    tray.addEventListener('pointerup', (e) => {
+        if (!ghost) return;
+        const r = canvas.getBoundingClientRect();
+        const over = e.clientX >= r.left && e.clientX <= r.right
+                  && e.clientY >= r.top  && e.clientY <= r.bottom;
+        if (over) {
+            const [x, y] = atEvent(e);
+            model.items.push({
+                type: 'sticker', label: ghostTile.dataset.label,
+                tone: ghostTile.dataset.tone, x, y,
+                // A little off square, so a card full of them looks stuck on
+                // by hand rather than laid out on a grid.
+                rot: (Math.random() - 0.5) * 0.22,
+            });
+            render();
         }
-        return -1;
-    }
+        ghost.remove();
+        ghost = null;
+        ghostTile = null;
+    });
+    tray.addEventListener('pointercancel', () => {
+        if (ghost) { ghost.remove(); ghost = null; ghostTile = null; }
+    });
 
-    // New stickers land down the middle of the free area rather than all on one
-    // spot, so adding several in a row does not bury them in a single stack.
-    let placed = 0;
-    function placeSticker(label, tone) {
-        const step = (placed++ % 6);
-        model.items.push({
-            type: 'sticker', label, tone,
-            x: CARD_DESIGN.W * (step % 2 === 0 ? 0.36 : 0.64),
-            y: CARD_DESIGN.CARD.y + 480 + step * 118,
-            rot: (Math.random() - 0.5) * 0.18,
-        });
-        render();
-    }
-
-    let drag = null;
-    canvas.addEventListener('pointerdown', (ev) => {
-        const p = toDesign(ev);
-        const hit = stickerAt(p);
-        canvas.setPointerCapture(ev.pointerId);
-        if (hit >= 0) {
-            // Dragging also raises it: the one being moved should end up on top
-            // of whatever it is moved over.
-            const [it] = model.items.splice(hit, 1);
-            model.items.push(it);
-            drag = { kind: 'sticker', item: it, dx: it.x - p.x, dy: it.y - p.y };
-            canvas.classList.add('cb-dragging');
-        } else {
-            const stroke = { type: 'stroke', size: BRUSHES[model.brush], pts: [[p.x, p.y]] };
-            model.items.push(stroke);
-            drag = { kind: 'stroke', item: stroke };
-        }
+    // Clear takes the card back to blank — the marks and the typing both, since
+    // the alternative is a "clear" that visibly leaves things behind.
+    clearBtn.addEventListener('click', () => {
+        model.items.length = 0;
+        model.number = '';
+        model.tags.fill('');
+        numberInput.value = '';
+        tagInputs.forEach((t) => { t.value = ''; });
         render();
     });
-    canvas.addEventListener('pointermove', (ev) => {
-        if (!drag) return;
-        const p = toDesign(ev);
-        if (drag.kind === 'sticker') { drag.item.x = p.x + drag.dx; drag.item.y = p.y + drag.dy; }
-        else drag.item.pts.push([p.x, p.y]);
-        render();
-    });
-    const endDrag = () => { drag = null; canvas.classList.remove('cb-dragging'); };
-    canvas.addEventListener('pointerup', endDrag);
-    canvas.addEventListener('pointercancel', endDrag);
-
-    /* ── actions ─────────────────────────────────────────────────────────── */
-
-    undoBtn.addEventListener('click', () => { model.items.pop(); render(); });
-    clearBtn.addEventListener('click', () => { model.items.length = 0; placed = 0; render(); });
-
-    // Exported at a fixed 2x of the design rather than at whatever the window
-    // happened to be, so the file a visitor keeps does not depend on the size
-    // of the browser they made it in.
-    doneBtn.addEventListener('click', () => {
-        const out = document.createElement('canvas');
-        out.width = CARD_DESIGN.W * 2;
-        out.height = CARD_DESIGN.H * 2;
-        drawCard(out.getContext('2d'), model, 2);
-        out.toBlob((blob) => {
-            if (!blob) return;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'hfyj-card.png';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            // Revoked on the next turn, not immediately: Safari has not
-            // finished with the URL by the time click() returns.
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }, 'image/png');
-    });
+    saveBtn.addEventListener('click', () => api.onSave());
 
     const api = {
         model, canvas, render,
-        onBack: () => {},
-        // The theme decides the card stock and the ink, so a toggle while the
-        // kit is open has to reach the canvas — CSS cannot repaint it.
-        refresh: () => { groups.forEach((g) => g.sync()); render(); },
-        destroy: () => { ro.disconnect(); root.textContent = ''; },
+        // What the Save button means is the page's business, not the kit's:
+        // here it is only the fact that it was pressed.
+        onSave: () => {},
+        // Fires on every change to the model, which is what the page above
+        // listens to when it wants to keep the card in the carousel in step
+        // with the one being drawn on.
+        onChange: () => {},
+        // The theme decides the card stock, and CSS cannot repaint a canvas.
+        refresh: () => { syncTools(); render(); },
+        // Replaces the whole model in place — the reference is handed out in
+        // `api.model`, so it is refilled rather than reassigned.
+        load: (saved) => {
+            if (!saved || !Array.isArray(saved.items)) return;
+            model.brush = BRUSHES[saved.brush] ? saved.brush : 'pen';
+            model.color = COLORS.indexOf(saved.color) >= 0 ? saved.color : COLORS[0];
+            model.size = Math.min(STROKE_MAX, Math.max(STROKE_MIN, Number(saved.size) || 8));
+            // Snapshot first: `saved` may be an object whose arrays are these
+            // arrays, in which case emptying them below would empty the source.
+            const items = saved.items.slice();
+            const tags = Array.isArray(saved.tags) ? saved.tags.slice() : [];
+            model.items.length = 0;
+            items.forEach((it) => model.items.push(it));
+            model.number = typeof saved.number === 'string' ? saved.number : '';
+            for (let i = 0; i < TAG_COUNT; i++) {
+                model.tags[i] = typeof tags[i] === 'string' ? tags[i] : '';
+            }
+            numberInput.value = model.number;
+            tagInputs.forEach((t, i) => { t.value = model.tags[i]; });
+            slider.value = String(model.size);
+            syncTools();
+            render();
+        },
+        destroy: () => { ro.disconnect(); if (ghost) ghost.remove(); root.textContent = ''; },
     };
-    backBtn.addEventListener('click', () => api.onBack());
+
+    syncTools();
     resize();
     return api;
 }

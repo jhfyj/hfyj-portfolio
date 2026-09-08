@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { mountCardBuilder, drawCard, newModel, CARD_DESIGN } from "./card-builder.js";
 
 // ── Theme (light ↔ dark) ──────────────────────────────────────────────────────
 const THEME_KEY = 'theme';
@@ -43,10 +44,10 @@ const cards = [];
 
 let targetRotation = null;
 let snapSpeed = 0.1;
-const cardCount = 9;
+const cardCount = 10;
 let scrollTimeout = null;
 let currentView = 'cards';
-let totalModels = 9;
+let totalModels = 10;
 let loadedModels = 0;
 
 // Loader
@@ -534,6 +535,20 @@ document.head.appendChild(cursorStyle);
 const cardCursor = document.createElement('div');
 cardCursor.id = 'card-cursor';
 cardCursor.textContent = 'open project';
+
+// The customize card is the only one whose label carries a glyph, so the label
+// is set through here rather than by assigning textContent in five places. The
+// pen is IBM Carbon's `edit`, inlined: one glyph is not worth a dependency.
+const PEN_ICON = '<svg viewBox="0 0 32 32" width="14" height="14" fill="currentColor" '
+    + 'aria-hidden="true"><path d="M2 26h28v2H2zM25.4 9c.8-.8.8-2 0-2.8l-3.6-3.6c-.8-.8-2-.8-2.8 0'
+    + 'l-15 15V24h6.4l15-15zm-5-5L24 7.6l-3 3L17.4 7l3-3zM6 22v-3.6l10-10 3.6 3.6-10 10H6z"/></svg>';
+
+function setCardCursor(label, icon) {
+    if (!icon) { cardCursor.textContent = label; return; }
+    cardCursor.textContent = '';
+    cardCursor.insertAdjacentHTML('afterbegin', icon);
+    cardCursor.appendChild(document.createTextNode(label));
+}
 document.body.appendChild(cardCursor);
 
 const dotCursor = document.createElement('div');
@@ -771,6 +786,10 @@ const CARD_URLS = [
     // so the live site is the right destination. Do not "fix" this to a local
     // path. The nav links to it in index.html are external for the same reason.
     "https://hfyj-art.com/sketchbook",
+    // 9 — Make your own. The only card with no destination at all: it
+    // opens the kit over this same page, so there is nothing for it to
+    // navigate to. openCard turns back before it ever reads this.
+    null,
 ];
 
 // Cards with no real destination page yet — hovering shows "coming soon" and
@@ -945,6 +964,9 @@ function stashCardHandoff(index, url) {
 // keyboard route through here so neither can forget the hand-off.
 function openCard(index) {
     if (COMING_SOON_INDICES.has(index)) return;
+    // The kit opens over this page rather than as one. No hand-off, no
+    // navigation, and nothing written down about it anywhere but this tab.
+    if (index === CUSTOMIZE_INDEX) { openCustomize(); return; }
     stashCardHandoff(index, CARD_URLS[index]);
     // Here rather than at either call site for the same reason the hand-off is:
     // this is the single funnel every carousel open passes through. No-op unless
@@ -2053,6 +2075,289 @@ function loadCard7() {
 // ── Card 8 — Sketchbook ──────────────────────────────────────────────────────
 // Kept next to card 0 (About Me) — they're adjacent in the ring (8 and 0 sit
 // next to each other since the carousel wraps around).
+
+// ── Card 9 — make your own ───────────────────────────
+//
+// The tenth card starts blank, and it is the only one that goes nowhere:
+// clicking it opens the kit over this same page. No navigation, no second
+// document, and nothing it makes leaves the tab it was made in.
+const CUSTOMIZE_INDEX = 9;
+const CUSTOMIZE_KEY = 'hfyj:my-card';
+
+// How far the chosen card lifts, and how far the rest of the ring falls away
+// beneath it. The lift is small: the card is already the thing being looked at,
+// so it only has to read as stepping forward, not as leaving.
+const CUSTOMIZE_RISE_Y = 0.55;
+const CUSTOMIZE_DROP_Y = -9;
+const CUSTOMIZE_EASE = 0.11;
+// Long enough for the ring to clear out from under the card before the kit
+// arrives over it.
+const CUSTOMIZE_HANDOFF_MS = 460;
+
+// The whole ring slides left as it opens, so the card comes to rest in the
+// space the panels leave rather than behind them. Below the width where the
+// kit stacks, there is nothing to make room for.
+function customizeShiftX() {
+    return window.innerWidth <= 900 ? 0 : -0.9;
+}
+
+// Where card 9 actually is on screen, in CSS pixels. The card being drawn on
+// is a DOM canvas and the card in the ring is a WebGL mesh; this is what lets
+// the second one be put down exactly where the first one is, so the swap
+// between them is not visible.
+function customizeCardRect() {
+    const card = cards[CUSTOMIZE_INDEX];
+    if (!card || !card.children.length) return null;
+    const mesh = card.children[0];
+    mesh.updateWorldMatrix(true, false);
+    mesh.geometry.computeBoundingBox();
+    const bb = mesh.geometry.boundingBox;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    [[bb.min.x, bb.min.y], [bb.max.x, bb.min.y],
+     [bb.max.x, bb.max.y], [bb.min.x, bb.max.y]].forEach(([x, y]) => {
+        const v = new THREE.Vector3(x, y, 0).applyMatrix4(mesh.matrixWorld).project(camera);
+        const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+        if (sx < minX) minX = sx;
+        if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy;
+        if (sy > maxY) maxY = sy;
+    });
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+// Puts the drawn card, and the buttons under it, on the ring card's footprint.
+function pinCustomizeCard() {
+    const host = document.getElementById('card-builder');
+    if (!host || !customizeKit) return;
+    const rect = customizeCardRect();
+    const wrap = host.querySelector('.cb-card-wrap');
+    const actions = host.querySelector('.cb-actions');
+    if (!rect || !wrap) return;
+    host.classList.add('is-pinned');
+    wrap.style.left = rect.x + 'px';
+    wrap.style.top = rect.y + 'px';
+    wrap.style.width = rect.w + 'px';
+    wrap.style.height = rect.h + 'px';
+    if (actions) {
+        actions.style.left = rect.x + 'px';
+        actions.style.top = (rect.y + rect.h + 22) + 'px';
+        actions.style.width = rect.w + 'px';
+    }
+}
+
+function unpinCustomizeCard() {
+    const host = document.getElementById('card-builder');
+    if (!host) return;
+    host.classList.remove('is-pinned');
+    ['.cb-card-wrap', '.cb-actions'].forEach((sel) => {
+        const n = host.querySelector(sel);
+        if (!n) return;
+        n.style.left = n.style.top = n.style.width = n.style.height = '';
+    });
+}
+
+const cardCustomizeY = new Array(cardCount).fill(0);
+let customizeOpen = false;
+let customizeKit = null;
+let customizeHandoff = null;
+let customizeFace = null;   // { ctx, texture } once card 9 has been built
+
+// The model lives here rather than inside the kit, so the card in the ring can
+// be painted from it before the kit has ever been mounted — someone who made a
+// card, went back to the carousel and reloaded still sees it on the ring
+// without the overlay being built at all.
+const customizeModel = newModel();
+
+// sessionStorage, deliberately and only. The card belongs to whoever drew it,
+// it is not ours to keep, and it goes when the tab does. Nothing about it is
+// ever sent anywhere — there is no request in this file.
+function saveCustomizeCard() {
+    try {
+        sessionStorage.setItem(CUSTOMIZE_KEY, JSON.stringify({
+            brush: customizeModel.brush, color: customizeModel.color,
+            size: customizeModel.size, number: customizeModel.number,
+            tags: customizeModel.tags, items: customizeModel.items,
+        }));
+    } catch (err) { /* private mode, or full — the card simply is not kept */ }
+}
+
+function restoreCustomizeCard() {
+    try {
+        const raw = sessionStorage.getItem(CUSTOMIZE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!saved || !Array.isArray(saved.items)) return;
+        customizeModel.brush = saved.brush || customizeModel.brush;
+        customizeModel.color = saved.color || customizeModel.color;
+        customizeModel.size = Number(saved.size) || customizeModel.size;
+        customizeModel.number = typeof saved.number === 'string' ? saved.number : '';
+        if (Array.isArray(saved.tags)) {
+            for (let i = 0; i < customizeModel.tags.length; i++) {
+                customizeModel.tags[i] = typeof saved.tags[i] === 'string' ? saved.tags[i] : '';
+            }
+        }
+        customizeModel.items.length = 0;
+        saved.items.forEach((it) => customizeModel.items.push(it));
+    } catch (err) { /* nothing stored, or not ours — start blank */ }
+}
+
+// The ring card and the card in the kit are the same drawing at two sizes.
+function repaintCustomizeFace() {
+    if (!customizeFace) return;
+    drawCard(customizeFace.ctx, customizeModel, CARD_TEXTURE_SCALE);
+    customizeFace.texture.needsUpdate = true;
+}
+
+function loadCard9() {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(CARD_DESIGN.W * CARD_TEXTURE_SCALE);
+    canvas.height = Math.round(CARD_DESIGN.H * CARD_TEXTURE_SCALE);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    restoreCustomizeCard();
+    drawCard(ctx, customizeModel, CARD_TEXTURE_SCALE);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    customizeFace = { ctx: ctx, texture: texture };
+    // The stock is themed, so a toggle has to reach the canvas; drawCard reads
+    // the theme off the document itself, so repainting is the whole job.
+    cardFaceRepaints.push({ index: CUSTOMIZE_INDEX, repaint: repaintCustomizeFace });
+
+    const aspect = CARD_DESIGN.W / CARD_DESIGN.H;
+    const cardH = 1.7, cardW = cardH * aspect;
+    const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
+    const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
+    const group = new THREE.Group();
+    group.userData.cardIndex = CUSTOMIZE_INDEX;
+    group.add(new THREE.Mesh(geometry, frontMat));
+    _placeCard(CUSTOMIZE_INDEX, group);
+}
+
+// Built on first open rather than at load: it is a canvas widget and a few
+// dozen DOM nodes that most visits never ask for, and the intro has better
+// things to do with those frames.
+function ensureCustomizeKit() {
+    if (customizeKit) return customizeKit;
+    const host = document.getElementById('card-builder');
+    if (!host) return null;
+    customizeKit = mountCardBuilder(host);
+    customizeKit.load(customizeModel);
+    // Every mark reaches the ring card and the session store as it is made, so
+    // leaving by any route — a scroll, Escape, a reload — keeps what was drawn.
+    // Save is the same promise as scrolling down: the card is kept for the
+    // session and the carousel comes back with it on the ring. Everything is
+    // already written on every change, so this is a way out, not a commit.
+    customizeKit.onSave = () => closeCustomize();
+    customizeKit.onChange = (m) => {
+        customizeModel.brush = m.brush;
+        customizeModel.color = m.color;
+        customizeModel.size = m.size;
+        customizeModel.number = m.number;
+        // Copies, not the kit's own arrays. Aliasing them means the next
+        // kit.load(customizeModel) empties the very array it is about to read
+        // back, and the card silently loses everything on it.
+        customizeModel.tags = m.tags.slice();
+        customizeModel.items = m.items.slice();
+        repaintCustomizeFace();
+        saveCustomizeCard();
+    };
+    return customizeKit;
+}
+
+function openCustomize() {
+    if (customizeOpen) return;
+    customizeOpen = true;
+    currentView = 'customize';
+    // The ring is parked, not just ignored: momentum, the snap easing and the
+    // idle auto-rotate would all keep turning the card out from under the kit.
+    isFlinging = false;
+    autoRotating = false;
+    targetRotation = null;
+    hoveredCard = null;
+    lastPaperCard = null;
+    cardCursor.classList.remove('visible');
+    dotCursor.classList.remove('visible');
+    document.body.classList.add('customizing');
+
+    clearTimeout(customizeHandoff);
+    customizeHandoff = setTimeout(() => {
+        const kit = ensureCustomizeKit();
+        if (!kit) return;
+        kit.load(customizeModel);
+        kit.refresh();
+
+        // Land the rise exactly before measuring, and put the card where the
+        // render loop is going to leave it rather than where it has got to.
+        // Two things move it: the eased lift, which at any given moment is
+        // merely close to its target, and the hover lift it still carries from
+        // being clicked — which decays to nothing over the next few frames and
+        // would slide the card out from under the pin.
+        const ringCard = cards[CUSTOMIZE_INDEX];
+        cardHoverY[CUSTOMIZE_INDEX] = 0;
+        cardCustomizeY[CUSTOMIZE_INDEX] = CUSTOMIZE_RISE_Y;
+        if (ringCard) ringCard.position.y = CUSTOMIZE_RISE_Y;
+        cardgroup.position.x = customizeShiftX();
+        cardgroup.updateMatrixWorld(true);
+
+        pinCustomizeCard();
+        // Anything the pointer put back up during the rise goes now, before
+        // the kit covers the canvas and strands it there.
+        cardCursor.classList.remove('visible');
+        dotCursor.classList.remove('visible');
+        document.getElementById('card-builder').classList.add('visible');
+        // The ring card goes out in the same frame the drawn one comes up, on
+        // the same footprint, so there is nothing to see between them. The
+        // WebGL canvas itself stays exactly where it was — fading it out is
+        // what made this read as leaving for another page.
+        if (ringCard) ringCard.visible = false;
+    }, CUSTOMIZE_HANDOFF_MS);
+}
+
+function closeCustomize() {
+    if (!customizeOpen) return;
+    customizeOpen = false;
+    currentView = 'cards';
+    clearTimeout(customizeHandoff);
+    saveCustomizeCard();
+    repaintCustomizeFace();
+    const host = document.getElementById('card-builder');
+    if (host) host.classList.remove('visible');
+    // The ring card comes back before the kit has finished fading, so the card
+    // is never missing from the scene — it is simply handed back.
+    const ringCard = cards[CUSTOMIZE_INDEX];
+    if (ringCard) ringCard.visible = true;
+    unpinCustomizeCard();
+    document.body.classList.remove('customizing');
+    resetIdleTimer();
+}
+
+// The pin is measured in CSS pixels, so a resize invalidates it.
+window.addEventListener('resize', () => {
+    if (customizeOpen) pinCustomizeCard();
+});
+
+// A read-only window onto the ring, for the drivers in pw-driver/. The rise
+// happens in WebGL and the canvas is faded out by the time the kit is up, so
+// there is otherwise no way to tell a card that lifted from one that did not.
+// Localhost only: nothing about the internals is exposed on the live site.
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    window.__probe = {
+        customizeY: () => cardCustomizeY.slice(),
+        customizeOpen: () => customizeOpen,
+        cardCount: () => cardCount,
+        ringX: () => cardgroup.position.x,
+        // Where the ring's own card 9 is on screen. The drawn card is supposed
+        // to be sitting exactly on top of this.
+        cardRect: () => customizeCardRect(),
+        cardVisible: () => !!(cards[CUSTOMIZE_INDEX] && cards[CUSTOMIZE_INDEX].visible),
+    };
+}
+
 function loadCard8() {
     texLoader.load("https://jhfyj.github.io/New-Website-Code/Cards/SKETCH.jpg", (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -2077,12 +2382,21 @@ loadCard5();
 loadCard6();
 loadCard7();
 loadCard8();
+loadCard9();
 
 scene.add(cardgroup);
 
 // Scroll handling
 window.addEventListener("wheel", (e) => {
     if (currentView === 'grid') return; // allow normal scroll in grid view
+    // Scrolling down is how the kit is left: the card is kept, and the
+    // carousel comes back up under it. Scrolling up inside the kit does
+    // nothing, so a trackpad nudge cannot throw the visitor out mid-stroke.
+    if (customizeOpen) {
+        e.preventDefault();
+        if (e.deltaY > 12) closeCustomize();
+        return;
+    }
     e.preventDefault();
     resetIdleTimer();
     if (introPhase === 'waitForScroll') { playWhooshThrottled(); triggerDealing(); return; }
@@ -2158,6 +2472,13 @@ window.addEventListener('mousemove', (e) => {
         return;
     }
 
+    if (customizeOpen) {
+        cardCursor.classList.remove('visible');
+        dotCursor.classList.remove('visible');
+        canvas.style.cursor = '';
+        return;
+    }
+
     cardCursor.style.left = e.clientX + 'px';
     cardCursor.style.top = e.clientY + 'px';
 
@@ -2195,10 +2516,11 @@ window.addEventListener('mousemove', (e) => {
                 cardCursor.textContent = 'scroll down';
             } else {
                 const idx = root.userData.cardIndex;
-                cardCursor.textContent = idx === 0 ? 'about me'
+                if (idx === CUSTOMIZE_INDEX) setCardCursor('customize', PEN_ICON);
+                else setCardCursor(idx === 0 ? 'about me'
                     : idx === 8 ? 'view sketchbook'
                     : COMING_SOON_INDICES.has(idx) ? 'coming soon'
-                    : 'open project';
+                    : 'open project');
             }
         } else {
             hoveredCard = null;
@@ -2465,7 +2787,15 @@ const renderloop = (now = 0) => {
             cardIntroY[i] = CARD_DROP_START_Y * (1 - t);
             if (t >= 1) { cardIntroY[i] = 0; cardDropStartTime[i] = -Infinity; cardDropOffset[i] = Infinity; sfx.land(); }
         }
-        card.position.y = cardHoverY[i] + cardIntroY[i];
+        // The customize card steps up and holds; every other card drops out
+        // from under it. Eased per frame rather than animated once, so opening
+        // and closing in quick succession stays continuous instead of fighting
+        // over the same property.
+        const riseTo = !customizeOpen ? 0
+            : i === CUSTOMIZE_INDEX ? CUSTOMIZE_RISE_Y : CUSTOMIZE_DROP_Y;
+        cardCustomizeY[i] += (riseTo - cardCustomizeY[i]) * CUSTOMIZE_EASE;
+
+        card.position.y = cardHoverY[i] + cardIntroY[i] + cardCustomizeY[i];
 
         // Shadow: stay in place, shrink + fade on hover
         const shadow = cardShadows[i];
@@ -2478,6 +2808,12 @@ const renderloop = (now = 0) => {
             shadow.scale.z += (targetScale - shadow.scale.z) * HOVER_ANIM_SPEED;
         }
     });
+
+    // The ring itself slides aside while the kit is open — see customizeShiftX.
+    const ringShiftTo = customizeOpen ? customizeShiftX() : 0;
+    if (Math.abs(cardgroup.position.x - ringShiftTo) > 0.0005) {
+        cardgroup.position.x += (ringShiftTo - cardgroup.position.x) * CUSTOMIZE_EASE;
+    }
 
     // Card-0 mouse-tilt + push spring (waitForScroll / early dealing fade-out)
     const c0 = cards[0];
@@ -2641,6 +2977,7 @@ function snaptoNearestCard() {
 // attributes use. Card i's slot here is at position (cardCount - i) % cardCount.
 const CARD_NAMES = [
     'About Me',            // card 0
+    'Make Your Own',       // card 9
     'Sketchbook',          // card 8
     'Nenos Inc.',          // card 7
     'BMW Designworks',     // card 6
@@ -2801,6 +3138,10 @@ renderloop();
 // Enter / Space           →  activate (select) the front card
 window.addEventListener('keydown', (e) => {
     resetIdleTimer();
+    if (customizeOpen) {
+        if (e.key === 'Escape') { e.preventDefault(); closeCustomize(); }
+        return;   // arrows and Enter belong to the kit while it is open
+    }
     // Ignore if focus is inside a text input / textarea
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;

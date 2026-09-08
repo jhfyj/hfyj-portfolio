@@ -37,7 +37,6 @@
     <script type="module">
         import { mountCardBuilder } from './card-builder.js';
         const kit = mountCardBuilder(document.getElementById('card-builder'));
-        kit.onBack = () => console.log('back');
         window.__kit = kit;   // the verification driver reads the model through this
 
         document.getElementById('theme-toggle').addEventListener('click', () => {

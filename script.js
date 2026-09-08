@@ -529,6 +529,28 @@ cursorStyle.textContent = `
   html.gh-handle-drag * {
     cursor: grabbing !important;
   }
+  /* While the make-your-own kit is up, the real pointer comes back. The dot is
+     a carousel affordance — it says "this whole surface is one thing you turn".
+     The kit is the opposite: buttons, sliders, text fields and a drawing
+     surface, each wanting its own pointer. Hiding the dot without this left no
+     cursor at all from the moment the card starts rising. Same !important the
+     resize handles use, for the same reason. */
+  body.customizing,
+  body.customizing *,
+  body.customizing *::before,
+  body.customizing *::after {
+    cursor: auto !important;
+  }
+  body.customizing .cb-btn,
+  body.customizing .cb-brush,
+  body.customizing .cb-color,
+  body.customizing .cb-slider {
+    cursor: pointer !important;
+  }
+  body.customizing .cb-slot { cursor: text !important; }
+  body.customizing .cb-card { cursor: crosshair !important; }
+  body.customizing .cb-sticker { cursor: grab !important; }
+  body.customizing .cb-sticker:active { cursor: grabbing !important; }
 `;
 document.head.appendChild(cursorStyle);
 

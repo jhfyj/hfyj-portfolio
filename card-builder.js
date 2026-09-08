@@ -55,28 +55,38 @@ export const STICKERS = {
 // varied without the visitor having to choose a colour they do not care about.
 const TONES = ['#C7D2FE', '#FFE27A', '#7FC8A9', '#F2A28C', '#C6B8F0'];
 
-// The card keeps the shape every other card in the carousel has: the same
-// photo box with the same folded-corner notch, the number sitting in that
-// notch, and three tag pills on the bottom-right shelf. What it does not keep
-// is anything printed in them — the box is empty and the number and tags are
-// the visitor's to type.
+// The card takes card 0's full-bleed layout rather than the project cards'
+// half-height photo well: the silhouette runs almost the whole face, with the
+// same folded-corner notch at the top-left and the same shelf cut out of the
+// bottom-right corner for the tag pills to sit on. A visitor handed a blank
+// card should get the whole of it to draw on, not the top half of one.
 //
-// Geometry lifted from tmplPhotoClipPath / buildTemplateCardTexture in
-// script.js, in the same 1059x1449 design units. If the cards there ever move,
-// these move with them.
-const CUTOUT = { x: 21, y: 20, w: 1016.663, h: 817 };
+// Both shapes are the same Figma nodes the About Me card uses —
+// ABOUTME_PHOTO_MASK and ABOUTME_BOTTOM_CUT in script.js — in the same
+// 1059x1449 design units. If the cards there ever move, these move with them.
+const PHOTO_MASK = 'M1014 20C1027.25 20 1038 30.7452 1038 44V1400C1038 1413.25 1027.25 1424 1014 1424H45C31.7452 1424 21 1413.25 21 1400V131C21 98 40.9 78.5 72.5 78.5H138.932C150.052 78.5 160.578 73.4981 167.604 64.8789L188.294 39.5C188.294 39.5 203 20 231 20H1014Z';
+const BOTTOM_CUT = 'M92.1527 105.785C39 105.785 19.571 132.5 19.571 170L0 83.7852L17.7362 11.0083L155.345 0L837 9.70899C802.751 9.70899 784.763 33.5602 784.763 33.5602L768.188 63.2673C754.411 87.96 728.41 103.32 700.134 103.432C556.671 103.997 124.699 105.785 92.1527 105.785Z';
+// The shelf is kept in its node's own local coordinates; Figma places it by a
+// 180° rotation, so local (x, y) lands at (1058 - x, 1434 - y).
+const CUT_MATRIX = new DOMMatrix([-1, 0, 0, -1, 1058, 1434]);
+// The silhouette's bounds, for anything that only needs the box.
+const CUTOUT = { x: 21, y: 20, w: 1017, h: 1404 };
 const SLOT_NUMBER = { x: 20.5, y: 17, w: 160, h: 54 };
-const SLOT_PILL = { y: 1354, h: 68, w: 200, gap: 24, right: 21 };
+// The tag row on the shelf, off the same Figma row card 0 uses (node 1122:55):
+// 68 tall at y 1352, ending on the same 21px inset the photo does, 12px gaps.
+// `w` is the whole row — pillRect divides it.
+const SLOT_PILL = { x: 315, y: 1352, w: 723, h: 68, gap: 12 };
 const TAG_COUNT = 3;
 
-// Where each pill sits, right-aligned to the same inset the photo box uses.
-// Fixed widths rather than measured ones: these are inputs, and a pill that
-// resized under the caret would shove its neighbours around mid-word.
+// Three equal pills across the row, rather than card 0's 153/280/266: those
+// widths are cut to the words "NYU / TINKERER / DESIGNER", and these are empty
+// boxes to type into. Fixed rather than measured for the same reason they are
+// there — a pill that resized under the caret would shove its neighbours
+// around mid-word.
 function pillRect(i) {
-    const total = TAG_COUNT * SLOT_PILL.w + (TAG_COUNT - 1) * SLOT_PILL.gap;
-    const x0 = W - SLOT_PILL.right - total;
-    return { x: x0 + i * (SLOT_PILL.w + SLOT_PILL.gap), y: SLOT_PILL.y,
-             w: SLOT_PILL.w, h: SLOT_PILL.h };
+    const w = (SLOT_PILL.w - (TAG_COUNT - 1) * SLOT_PILL.gap) / TAG_COUNT;
+    return { x: SLOT_PILL.x + i * (w + SLOT_PILL.gap), y: SLOT_PILL.y,
+             w, h: SLOT_PILL.h };
 }
 
 export const CARD_DESIGN = { W, H, R, CUTOUT, SLOT_NUMBER, SLOT_PILL, TAG_COUNT, pillRect };
@@ -116,36 +126,72 @@ function drawPaper(ctx) {
     ctx.restore();
 }
 
-// The photo box, with the folded corner at the top-left that the number sits
-// in. A straight copy of tmplPhotoClipPath in script.js — it is not a simple
-// arc: the notch rises from the left edge, holds briefly flat, then rises
-// again into the diagonal and curves into the top edge.
-function cutoutPath(ctx, x, y) {
-    ctx.beginPath();
-    ctx.moveTo(x + 992.662, y);
-    ctx.bezierCurveTo(x + 1005.92, y, x + 1016.66, y + 10.7452, x + 1016.66, y + 24);
-    ctx.lineTo(x + 1016.66, y + 793);
-    ctx.bezierCurveTo(x + 1016.66, y + 806.255, x + 1005.92, y + 817, x + 992.662, y + 817);
-    ctx.lineTo(x + 24, y + 817);
-    ctx.bezierCurveTo(x + 10.7452, y + 817, x, y + 806.255, x, y + 793);
-    ctx.lineTo(x, y + 111);
-    ctx.bezierCurveTo(x, y + 78, x + 19.9, y + 58.5, x + 51.5, y + 58.5);
-    ctx.lineTo(x + 117.932, y + 58.5);
-    ctx.bezierCurveTo(x + 129.052, y + 58.5, x + 139.578, y + 53.4981, x + 146.604, y + 44.8789);
-    ctx.lineTo(x + 167.294, y + 19.5);
-    ctx.bezierCurveTo(x + 167.294, y + 19.5, x + 182, y, x + 210, y);
-    ctx.closePath();
+/* ── the drawing region ──────────────────────────────────────────────────── */
+//
+// Where the photo would have been: the silhouette, with the shelf taken out of
+// it. This is the only part of the card that can be drawn on, so it is also
+// the wash the empty card shows — one region, so the two can never disagree
+// about where the edge is.
+//
+// Built once. Path2D is immutable once constructed, and these are handed to
+// clip() on every pointer sample.
+let _mask = null, _shelf = null, _notShelf = null;
+function maskPath() {
+    if (!_mask) _mask = new Path2D(PHOTO_MASK);
+    return _mask;
+}
+function shelfPath() {
+    if (!_shelf) { _shelf = new Path2D(); _shelf.addPath(new Path2D(BOTTOM_CUT), CUT_MATRIX); }
+    return _shelf;
+}
+function notShelfPath() {
+    if (!_notShelf) {
+        _notShelf = new Path2D();
+        _notShelf.rect(0, 0, W, H);
+        _notShelf.addPath(shelfPath());
+    }
+    return _notShelf;
 }
 
-// Empty, because it is the visitor's to fill: the box tracks the stock rather
-// than sitting on it as a bright slab, the same way a template card with no
-// photo yet does.
+// Two intersecting clips rather than one even-odd path holding both subpaths.
+// In the design the shelf is a cover, not a cutter: it is filled with the card
+// stock and laid over the photo, and it overhangs the silhouette by ~20px on
+// the right and bottom edges. Even-odd would count that overhang as inside and
+// fill a sliver of wash back in outside the photo. Intersecting the mask with
+// "the card, minus the shelf" cannot do that.
+//
+// Cutting the shelf out of the clip, rather than clipping to the whole
+// silhouette and painting the shelf over the top afterwards: the latter looks
+// the same on a finished card, but it makes ink vanish under the shelf while
+// the visitor is still drawing the line, which reads as a bug rather than as
+// an edge.
+function clipRegion(ctx) {
+    ctx.clip(maskPath());
+    ctx.clip(notShelfPath(), 'evenodd');
+}
+
+// isPointInPath is evaluated in the context's current transform. drawCard puts
+// its scale back when it is done, so the transform here is whatever the caller
+// left — pinned to the identity so the design-space point and the design-space
+// paths are being compared in the same units.
+function inRegion(ctx, x, y) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const ok = ctx.isPointInPath(maskPath(), x, y)
+            && !ctx.isPointInPath(shelfPath(), x, y);
+    ctx.restore();
+    return ok;
+}
+
+// Empty, because it is the visitor's to fill: the region tracks the stock
+// rather than sitting on it as a bright slab, the same way a template card
+// with no photo yet does.
 function drawCutout(ctx, ink) {
     ctx.save();
-    cutoutPath(ctx, CUTOUT.x, CUTOUT.y);
+    clipRegion(ctx);
     ctx.fillStyle = ink;
     ctx.globalAlpha = theme() === 'dark' ? 0.10 : 0.055;
-    ctx.fill();
+    ctx.fillRect(0, 0, W, H);
     ctx.restore();
 }
 
@@ -278,10 +324,12 @@ function drawSticker(ctx, item) {
     ctx.restore();
 }
 
+// Clipped to the drawing region, not to the card: ink belongs where the photo
+// would have been and nowhere else. The region sits well inside the card's
+// rounded corners, so this is also what keeps a stroke off them.
 function drawItems(ctx, model) {
     ctx.save();
-    roundedRectPath(ctx, 0, 0, W, H, R);
-    ctx.clip();
+    clipRegion(ctx);
     for (const item of model.items) {
         if (item.type === 'stroke') drawStroke(ctx, item);
         else drawSticker(ctx, item);
@@ -485,11 +533,26 @@ export function mountCardBuilder(root) {
         return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H];
     }
 
+    // Over the part of the card that can be drawn on — the photo region, not
+    // merely the canvas element.
+    function overRegion(e) {
+        const r = canvas.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right
+         || e.clientY < r.top || e.clientY > r.bottom) return false;
+        const [x, y] = atEvent(e);
+        return inRegion(ctx, x, y);
+    }
+
     let drawing = null;
     canvas.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
-        // Pointer capture, so a stroke that runs off the edge of the card keeps
-        // following the pointer instead of stopping dead at the boundary.
+        // A press on the margin or the shelf is not the start of anything. The
+        // clip in drawItems is what actually confines the ink; this is so a
+        // press out there does not leave an invisible stroke in the model for
+        // Clear to have to account for.
+        if (!overRegion(e)) return;
+        // Pointer capture, so a stroke that runs off the edge of the region
+        // keeps following the pointer instead of stopping dead at the boundary.
         canvas.setPointerCapture(e.pointerId);
         drawing = {
             type: 'stroke', brush: model.brush, color: model.color,
@@ -529,18 +592,14 @@ export function mountCardBuilder(root) {
         if (!ghost) return;
         ghost.style.left = e.clientX + 'px';
         ghost.style.top = e.clientY + 'px';
-        const r = canvas.getBoundingClientRect();
-        const over = e.clientX >= r.left && e.clientX <= r.right
-                  && e.clientY >= r.top  && e.clientY <= r.bottom;
-        ghost.classList.toggle('is-over', over);
+        // The region, not the element: a sticker let go over the shelf would be
+        // clipped away to nothing, so the ghost must not promise otherwise.
+        ghost.classList.toggle('is-over', overRegion(e));
     }
     tray.addEventListener('pointermove', moveGhost);
     tray.addEventListener('pointerup', (e) => {
         if (!ghost) return;
-        const r = canvas.getBoundingClientRect();
-        const over = e.clientX >= r.left && e.clientX <= r.right
-                  && e.clientY >= r.top  && e.clientY <= r.bottom;
-        if (over) {
+        if (overRegion(e)) {
             const [x, y] = atEvent(e);
             model.items.push({
                 type: 'sticker', label: ghostTile.dataset.label,

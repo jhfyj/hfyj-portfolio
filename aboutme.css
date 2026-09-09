@@ -434,7 +434,17 @@
 
 /* The tonearm. Pivoted at its own top-right corner, which is where the post
    sits, so rotating it swings the head across the record the way the real
-   thing does. Resting clear of the disc; playing, down on the outer groove. */
+   thing does. Resting clear of the disc; playing, down on the outer groove.
+
+   The angles are not free-hand. The plinth is 4:3, the record sits at left 7%
+   / top 8% / height 84%, so its centre is at (38.5%, 37.5%) of the plinth's
+   width with a radius of 31.5% of it; the arm pivots at (85.7%, 8.6%) and its
+   head is 49.9% of that width out. Resting at 14deg puts the head 40% out from
+   the centre — a quarter past the rim, clear of the record. Playing has to be
+   a LARGER angle, not a smaller one: positive rotation is clockwise, which
+   swings the head left onto the disc. It was -19deg, which sent the arm the
+   other way and off the side of the plinth. 31deg lands the head 24.7% from
+   the centre, which is 78% of the way out — the outer groove. */
 .deck-arm {
   position: absolute;
   right: 13%;
@@ -449,7 +459,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
-.deck.is-playing .deck-arm { transform: rotate(-19deg); }
+.deck.is-playing .deck-arm { transform: rotate(31deg); }
 
 .deck-arm::before {           /* the pivot post */
   content: '';
@@ -515,6 +525,30 @@
      Reclaiming that width for the text would leave 24px between a date and its
      entry against Experience's 96px, and the two lists sit side by side — the
      mismatch reads immediately even across the column gap. */
+}
+
+/* The deck beside the text rather than under it. It is a fixed 420px object
+   next to a paragraph that can have any width, so the copy takes the flexible
+   track and the deck takes what it asks for. Centred across the row: the copy
+   is three short lines against a 315px-tall plinth, and top-aligning them
+   would leave the deck hanging below a block of text that stopped long ago.
+   Below this the row is too narrow for both and they stack — .deck's own
+   margin-top is what opens the gap there. */
+@media (min-width: 901px) {
+  .guitar {
+    display: grid;
+    /* A definite track, not `auto`. The plinth is sized by aspect-ratio off a
+       `min(420px, 100%)` width, and a percentage against a content-sized track
+       is circular — the column measures 0, so the plinth resolves to 0 wide
+       and, through the ratio, 0 tall. The clamp gives the ratio something real
+       to work from at every width in this range. */
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 36%, 420px);
+    gap: 48px;
+    align-items: center;
+  }
+  .guitar .deck { margin-top: 0; }
+  .guitar .deck-plinth { width: 100%; }
+  .guitar-copy > :last-child { margin-bottom: 0; }
 }
 
 @media (max-width: 900px) {

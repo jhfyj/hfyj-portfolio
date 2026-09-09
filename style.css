@@ -1834,14 +1834,66 @@ html.gh-handle-drag .gh-handle.br::before {
 .gf-status-block { grid-column: 1; grid-row: 2; align-self: end; }
 .gf-col--contact { grid-column: 2; grid-row: 2; align-self: end; }
 
-/* Face down, and the same 1059:1449 the carousel's cards are cut to, so the
-   artwork can drop in without the row changing shape. */
+/* Three cards off the deck, at the same 1059:1449 the carousel's cards are cut
+   to. footer-deck.js fills each button with a front and a back and turns them
+   over on click; everything here is the shape and the turn itself.
+
+   The 3D lives on three elements on purpose: the button holds the perspective,
+   the inner span is what rotates, and the two faces sit on top of each other
+   back-to-back. Rounding is on the faces rather than on the button, because
+   `overflow: hidden` on an ancestor flattens preserve-3d and the card would
+   turn into a sliding picture instead of a card. */
 .gf-cards { display: flex; gap: 14px; }
 .gf-card {
   width: clamp(84px, 9vw, 128px);
   aspect-ratio: 1059 / 1449;
+  flex: none;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  perspective: 900px;
+  transition: transform 220ms ease;
+}
+/* Empty until the script runs, so the row still holds its place. */
+.gf-cards:not([data-deck-dealt]) { min-height: 0; }
+.gf-card:hover { transform: translateY(-6px); }
+.gf-card:focus-visible { outline: 2px solid var(--t1); outline-offset: 4px; border-radius: 8px; }
+
+.gf-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 560ms cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.gf-card.is-flipped .gf-card-inner { transform: rotateY(180deg); }
+
+.gf-card-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  /* Beats the site-wide `img { height: auto }` in skeleton.css by
+     specificity — these two have to fill the button, not size themselves. */
+  height: 100%;
+  object-fit: cover;
   border-radius: 6px;
   background: rgba(var(--ink-rgb), 0.10);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  user-select: none;
+}
+.gf-card-back { transform: rotateY(180deg); }
+
+/* The turn is the whole idea, so it does not go away entirely — it just stops
+   being a spin. The face still changes; footer-deck.js drops its timer to zero
+   to match. */
+@media (prefers-reduced-motion: reduce) {
+  .gf-card, .gf-card-inner { transition: none; }
+  .gf-card:hover { transform: none; }
 }
 
 /* Hide the floating bottom-left social buttons whenever grid view is up
@@ -1855,7 +1907,9 @@ html.gh-handle-drag .gh-handle.br::before {
   font-style: normal;
   line-height: 1.4;
   margin: 0;
-  max-width: 22ch;
+  /* Wide enough to run as a sentence rather than a column of four short
+     lines, and still short of the cards. */
+  max-width: 44ch;
   color: var(--t1);
 }
 .gf-quote-attr {

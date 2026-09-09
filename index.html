@@ -283,16 +283,12 @@
                     <p class="gf-quote-attr">— Jawaharlal Nehru</p>
                 </div>
 
-                <!-- Three cards, face down for now. Placeholders until the
-                     artwork arrives — decorative either way, so they are hidden
-                     from a screen reader rather than announced as three empty
-                     things. Swapping each <div> for an <img data-skel> is the
-                     whole change when the art lands. -->
-                <div class="gf-cards" aria-hidden="true">
-                    <div class="gf-card"></div>
-                    <div class="gf-card"></div>
-                    <div class="gf-card"></div>
-                </div>
+                <!-- Three cards off the top of the deck, dealt fresh on every
+                     visit and built by footer-deck.js. Left empty on purpose:
+                     which three these are is decided at runtime, and writing
+                     fixed faces here would mean the first paint showed a hand
+                     the script then threw away. -->
+                <div class="gf-cards" data-deck-hand></div>
 
                 <div class="gf-status-block">
                     <p class="gf-status">SHOUTOUT TO POKEMON TCG</p>
@@ -367,6 +363,7 @@
          way it is deferred, so it is behind first paint and behind the pre-paint
          blocks in <head>, and it runs before script.js. Inert until a key is
          filled in; see analytics.js. -->
+    <script src="./footer-deck.js"></script>
     <script type="module" src="./analytics.js"></script>
     <script type="module" src="./script.js"></script>
 

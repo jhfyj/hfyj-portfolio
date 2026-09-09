@@ -22,11 +22,26 @@
      on the table, in the grid — is that shape, so the works crop into it
      rather than each tile taking its own proportions. */
   --card-ar: 5 / 7;
-  --card-w: 172px;         /* the fan and the table; the grid sizes its own */
+  --card-w: 172px;         /* the hand; the grid sizes its own */
+  /* A card on the table is smaller than one you are holding. That is partly
+     perspective — the hand is nearer than the table — and mostly room: at the
+     hand's size only three or four fit before they start burying each other. */
+  --card-w-played: 118px;
+  --card-w-modal: min(280px, 64vw);
   --card-r: 10px;
+  /* The corner control's box. Smaller than the live site's 36px because the
+     card it sits on is smaller, and because it has to stay in the corner of a
+     card that is tilted: the further it is from the corner the further it
+     swings in as the card turns. */
+  --expand: 28px;
+  /* site.css has no readable-on-the-accent token yet; style.css's two values
+     are repeated here so the one control that fills with the accent has ink
+     that passes on both palettes. */
+  --accent-ink: #10131C;
 }
 
 :root[data-theme="dark"] {
+  --accent-ink: #16160A;   /* the yellow wants its own, warmer */
   --felt: #171717;
   --felt-line: rgba(255, 255, 255, 0.06);
   --stock: #202020;
@@ -40,9 +55,21 @@
 
 .sketchbook {
   --col: 1180px;
+  --gutter: 24px;
+  /* No column here: the table is meant to run the full width of the window, so
+     the measure is put on the parts that want one instead of being put here and
+     then fought by the one part that does not. */
+  padding: 0 0 96px;
+}
+
+/* Everything except the table itself keeps the site's measure. */
+#table-hint,
+#upcoming {
   max-width: var(--col);
-  margin: 0 auto;
-  padding: 0 24px 96px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
 }
 
 .visually-hidden {
@@ -65,7 +92,9 @@
      viewport is short — below it there is no room to play a card into. */
   height: 64vh;
   min-height: 460px;
-  border-radius: 16px;
+  /* Edge to edge, so the corners and the side rule would sit off-screen. Only
+     the two edges that are actually on the page are drawn. */
+  border-radius: 0;
   background-color: var(--felt);
   /* Grid paper. 28px squares, drawn as two hairline gradients rather than a
      tiled image so it takes the theme with it and costs no request. */
@@ -73,7 +102,7 @@
     linear-gradient(to right, var(--felt-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--felt-line) 1px, transparent 1px);
   background-size: 28px 28px;
-  box-shadow: inset 0 0 0 1px var(--rule);
+  box-shadow: inset 0 1px 0 var(--rule), inset 0 -1px 0 var(--rule);
   overflow: hidden;
   /* The cards inside are dragged with the pointer; without this a drag on a
      touch screen scrolls the page out from under the card instead. */
@@ -98,7 +127,7 @@
 }
 
 #table-hint {
-  margin: 14px 2px 0;
+  margin-top: 14px;
   font-size: 13px;
   color: var(--faint);
   letter-spacing: 0.01em;
@@ -134,6 +163,31 @@
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* An interactive card is a wrapper holding two controls: the card itself, which
+   turns over, and the expand control in its corner. They are separate buttons
+   because they do separate things — a button inside a button is not allowed,
+   and putting the expand on the card's own click would make "turn it over" and
+   "open it" the same gesture. .card-flip is the card's whole face and carries
+   the pressed state; the wrapper only positions them. */
+.card-flip {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  /* The 3D box the flip turns inside. It has to be on the direct parent of
+     .card-inner, which is this rather than .card now. */
+  perspective: 1000px;
+  cursor: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-flip:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 .card-inner {
   position: relative;
@@ -194,17 +248,58 @@
   line-height: 1.2;
 }
 
+/* The corner control, out of the way until you want it. It is in the document
+   the whole time rather than mounted on hover, so it can be tabbed to — and it
+   is hidden with opacity alone for exactly that reason. visibility: hidden and
+   display: none both take an element out of the tab order and make .focus() do
+   nothing, which broke both tabbing to it and handing focus back to it when its
+   modal closed. pointer-events does the part visibility was there for. */
+.card-expand {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--expand);
+  height: var(--expand);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(20, 20, 20, 0.55);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, background-color 0.18s ease;
+}
+.card-expand svg { width: calc(var(--expand) * 0.5); height: calc(var(--expand) * 0.5); display: block; }
+.card-expand:hover { background: rgba(20, 20, 20, 0.78); }
+.card:hover > .card-expand,
+.card-expand:focus,
+.card-expand:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.card-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
 /* ---------- cards in the fan ---------- */
 
 /* Only the top card of the fan responds; the rest are behind it. The lift is a
    separate custom property from --y so hovering never disturbs the arc. */
 #fan .card { transition: transform 0.22s ease; }
-#fan .card:hover, #fan .card:focus-visible { --lift: -16px; }
-#fan .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+/* :focus-within, not :focus-visible — the thing that takes focus is the button
+   inside the card, and the card is what lifts. */
+#fan .card:hover, #fan .card:focus-within { --lift: -16px; }
 
 /* ---------- cards on the table ---------- */
 
-#played .card { box-shadow: none; }
+#played .card {
+  width: var(--card-w-played);
+  box-shadow: none;
+}
 #played .card.is-dragging { cursor: grabbing; }
 #played .card.is-dragging .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
 
@@ -213,7 +308,11 @@
    away — so this transition runs on real coordinates and the card is already
    where it belongs if it never gets to animate. */
 #played .card.is-dealing {
-  transition: transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
+  /* Width too: the card leaves the hand at the hand's size and arrives at the
+     table's, so the shrink is part of the throw rather than a snap at the
+     moment it is let go of. */
+  transition: transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1),
+              width 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
 /* ---------- the catalogue ---------- */
@@ -260,6 +359,148 @@
 
 #grid-empty { color: var(--caption); font-size: 15px; }
 
+/* ---------- the card, opened ---------- */
+
+/* A modal, and the page behind it is genuinely behind it: blurred, unscrollable
+   and unreachable by the pointer. #card-modal is the overlay; .modal-panel is
+   the dialog proper, which is what carries the role and the name. */
+#card-modal {
+  position: fixed;
+  inset: 0;
+  /* Above the sticky top bar (10) and below the cursor dot (100), which should
+     keep following the pointer over the modal like it does everywhere else. */
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+/* The UA's [hidden] rule is display:none, which the flex above outranks; this
+   puts it back. */
+#card-modal[hidden] { display: none; }
+
+/* The page behind a modal does not scroll. Set on <body>, which propagates to
+   the viewport, so the scrollbar goes with it and the scrim measures exactly
+   the window. */
+body.modal-open { overflow: hidden; }
+
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 22, 0.42);
+  animation: modal-fade 0.28s ease both;
+}
+:root[data-theme="dark"] .modal-scrim { background: rgba(0, 0, 0, 0.6); }
+/* Only while it is open. A backdrop-filter that is merely display:none still
+   reports itself in the computed style, and "is the page blurred right now" is
+   a question about the open state, not about the rule existing. */
+#card-modal:not([hidden]) .modal-scrim {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.modal-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-height: 100%;
+}
+
+.modal-close {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  background: var(--page);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.modal-close svg { width: 14px; height: 14px; display: block; }
+.modal-close:hover { background: var(--accent); color: var(--accent-ink, #10131C); }
+.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+#modal-card { display: flex; }
+
+/* The card in the modal sits in the flow rather than being placed on a table,
+   and it arrives by rising into place. The rise is an animation and not a
+   transition because it plays once, on a card that was created a frame ago —
+   there is no previous value for a transition to run from. */
+#modal-card > .card {
+  position: relative;
+  width: var(--card-w-modal);
+  cursor: pointer;
+  animation: card-rise 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) both;
+}
+#modal-card > .card .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
+
+@keyframes card-rise {
+  from { transform: translate3d(0, 88px, 0); opacity: 0; }
+  to   { transform: translate3d(0, 0, 0);    opacity: 1; }
+}
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The information side. It replaces the card back on this one card: turning the
+   card over in the modal is how you read about the work. */
+#modal-card .card-face--back {
+  display: flex;
+  background: var(--stock);
+}
+.card-detail {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 26px 22px;
+  text-align: left;
+  color: var(--ink);
+  overflow: auto;
+}
+.card-detail .detail-cat {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.card-detail .detail-title {
+  font-family: "DM Sans", "Figtree", system-ui, sans-serif;
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0 0 16px;
+  color: var(--head);
+}
+.card-detail dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 14px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+}
+.card-detail dt { color: var(--caption); }
+.card-detail dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Pushed to the foot of the card: the fields are a short list and the card is
+   5:7, so without this the whole side sits in its top third. */
+.card-detail .detail-note {
+  margin: auto 0 0;
+  padding-top: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--caption);
+}
+
 /* ---------- narrower ---------- */
 
 @media (max-width: 900px) {
@@ -267,9 +508,18 @@
 }
 
 @media (max-width: 700px) {
-  .sketchbook { padding: 0 16px 64px; }
-  :root { --card-w: 124px; }
+  /* The gutter narrows; the table still runs the full width, so the padding
+     stays off .sketchbook itself. */
+  .sketchbook { --gutter: 16px; padding: 0 0 64px; }
+  :root {
+    --card-w: 124px;
+    --card-w-played: 84px;
+    --expand: 24px;
+  }
   #felt { height: 56vh; min-height: 380px; }
+  #card-modal { padding: 16px; }
+  .card-detail { padding: 20px 18px; }
+  .card-detail .detail-title { font-size: 18px; }
   #grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   #upcoming h2 { font-size: 19px; }
   /* Hover is not available here, so the name that would be revealed by it has
@@ -284,5 +534,10 @@
   #fan .card,
   #played .card.is-dealing,
   #grid .card-face img,
+  .card-expand,
   #grid .card-name { transition-duration: 0.001s; }
+  /* The rise and the scrim's fade are decoration over a modal that is just as
+     usable arriving all at once. */
+  #modal-card > .card,
+  .modal-scrim { animation-duration: 0.001s; }
 }

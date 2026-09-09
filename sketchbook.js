@@ -105,15 +105,77 @@
         return face;
     }
 
-    // A card element: the face, plus the back it turns to. `interactive` is
-    // false for grid tiles, which are the same face without a card's behaviour.
+    // The deck's own back, which is what a card on the table turns over onto.
+    function buildBackArt() {
+        var img = document.createElement('img');
+        img.src = BACK;
+        img.setAttribute('data-skel', '');
+        img.alt = '';
+        img.decoding = 'async';
+        img.draggable = false;
+        return img;
+    }
+
+    // The information side, which is what the card in the modal turns over onto
+    // instead. Everything on it comes from the manifest; a field the manifest
+    // has nothing for is left out rather than printed empty.
+    function buildDetail(work) {
+        var d = document.createElement('div');
+        d.className = 'card-detail';
+
+        var cat = document.createElement('div');
+        cat.className = 'detail-cat';
+        cat.setAttribute('data-field', 'category');
+        cat.textContent = work.category || 'Sketchbook';
+        d.appendChild(cat);
+
+        var h = document.createElement('h3');
+        h.className = 'detail-title';
+        h.setAttribute('data-field', 'title');
+        h.textContent = work.title;
+        d.appendChild(h);
+
+        var rows = [
+            ['format', 'Format', String(work.file || '').split('.').pop().toUpperCase()],
+            ['size', 'Size', work.width && work.height ? work.width + ' \u00d7 ' + work.height : ''],
+        ];
+        var dl = document.createElement('dl');
+        for (var i = 0; i < rows.length; i++) {
+            if (!rows[i][2]) continue;
+            var dt = document.createElement('dt');
+            dt.textContent = rows[i][1];
+            var dd = document.createElement('dd');
+            dd.setAttribute('data-field', rows[i][0]);
+            dd.textContent = rows[i][2];
+            dl.appendChild(dt);
+            dl.appendChild(dd);
+        }
+        d.appendChild(dl);
+
+        var note = document.createElement('p');
+        note.className = 'detail-note';
+        note.textContent = work.animated
+            ? 'Animated \u2014 the card plays it in place.'
+            : 'One of the hundred cards this sketchbook is being built towards.';
+        d.appendChild(note);
+        return d;
+    }
+
+    // A card element. An interactive one is a wrapper holding two controls: the
+    // card's own face, which turns over, and the expand control addExpand()
+    // puts in its corner. They are two buttons and not one because a button
+    // cannot contain a button, and because turning a card over and opening it
+    // are different things that must not share a gesture. A grid tile is
+    // neither - it is a <figure> holding the same face and no behaviour.
     function buildCard(work, opts) {
         opts = opts || {};
-        var el = document.createElement(opts.interactive ? 'button' : 'figure');
+        var el = document.createElement(opts.interactive ? 'div' : 'figure');
         el.className = 'card';
-        if (opts.interactive) el.type = 'button';
         el.dataset.id = work.id;
         el.dataset.title = work.title;
+        // Held on the element so the expand control and the modal can read the
+        // work straight back rather than looking it up by id.
+        el.__work = work;
 
         var inner = document.createElement('div');
         inner.className = 'card-inner';
@@ -123,18 +185,51 @@
         if (opts.interactive) {
             var back = document.createElement('div');
             back.className = 'card-face card-face--back';
-            var bimg = document.createElement('img');
-            bimg.src = BACK;
-            bimg.setAttribute('data-skel', '');
-            bimg.alt = '';
-            bimg.decoding = 'async';
-            bimg.draggable = false;
-            back.appendChild(bimg);
+            back.appendChild(opts.detail ? buildDetail(work) : buildBackArt());
             inner.appendChild(back);
-        }
 
-        el.appendChild(inner);
+            var flip = document.createElement('button');
+            flip.className = 'card-flip';
+            flip.type = 'button';
+            flip.appendChild(inner);
+            el.appendChild(flip);
+            el.flipBtn = flip;
+        } else {
+            el.appendChild(inner);
+        }
         return el;
+    }
+
+    // Turning a card over. The pressed state goes on the button rather than on
+    // the wrapper, because the button is the control a screen reader is on.
+    function toggleFlip(el) {
+        el.classList.toggle('is-flipped');
+        var on = el.classList.contains('is-flipped');
+        if (el.flipBtn) el.flipBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    // Two corners pulling apart: the same idea the live sketchbook's card uses.
+    var EXPAND_SVG = '<svg viewBox="0 0 15 15" fill="none" aria-hidden="true">'
+        + '<path d="M9 1.5h4.5V6M6 13.5H1.5V9M13.5 1.5l-5 5M1.5 13.5l5-5" stroke="currentColor"'
+        + ' stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function addExpand(el) {
+        var b = document.createElement('button');
+        b.className = 'card-expand';
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Expand ' + el.dataset.title);
+        b.innerHTML = EXPAND_SVG;
+        // The card underneath turns over on click and starts a drag on
+        // pointerdown, and both of those listeners are on the wrapper this
+        // button sits inside. Stopping here is what keeps the two gestures
+        // apart without the wrapper having to know what is in its corner.
+        b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openModal(el.__work, b);
+        });
+        el.appendChild(b);
+        return b;
     }
 
     function place(el, x, y, rot) {
@@ -151,8 +246,8 @@
     // at the desktop spread come to 392px, which is more than the canvas is
     // wide on a phone, and the outer two hang off the edge and get clipped.
     function fanSpread() {
-        var loose = 0.54 * cardW();
-        var room = felt.getBoundingClientRect().width - cardW() - 2 * FAN_EDGE;
+        var loose = 0.54 * fanCardW();
+        var room = felt.getBoundingClientRect().width - fanCardW() - 2 * FAN_EDGE;
         return Math.max(0, Math.min(loose, room / (HAND - 1)));
     }
 
@@ -168,15 +263,24 @@
         };
     }
 
-    function cardW() {
-        // Read from a real card rather than the custom property: the property is
-        // in whatever unit the media query left it in, and the fan is sized off
-        // the same value, so one measurement keeps them in step.
-        return fanEl.getBoundingClientRect().width;
+    // A card in the hand. Read from the fan's real box rather than from the
+    // custom property: the property is in whatever unit the media query left it
+    // in, and the fan is sized off the same value, so one measurement keeps the
+    // two in step.
+    function fanCardW() { return fanEl.getBoundingClientRect().width; }
+    function fanCardH() { return fanEl.getBoundingClientRect().height; }
+
+    // A card on the table, which is smaller - at the hand's size only three or
+    // four fit before they start burying each other. Taken from the custom
+    // property and not measured off a card already down, because a played card
+    // is tilted (its bounding box is wider and taller than the card itself) and
+    // because the first card has to be placed before there is one to measure.
+    function playedW() {
+        var v = parseFloat(getComputedStyle(document.documentElement)
+            .getPropertyValue('--card-w-played'));
+        return v || fanCardW();
     }
-    function cardH() {
-        return fanEl.getBoundingClientRect().height;
-    }
+    function playedH() { return playedW() * 7 / 5; }
 
     function layOutFan() {
         for (var i = 0; i < hand.length; i++) {
@@ -192,7 +296,7 @@
         if (!work) return null;
         var el = buildCard(work, { interactive: true });
         el.setAttribute('data-cursor', 'play this card');
-        el.setAttribute('aria-label', 'Play ' + work.title);
+        el.flipBtn.setAttribute('aria-label', 'Play ' + work.title);
         // Held on the element so play() can take it off again: the card keeps
         // living once it reaches the table, where a click means something else.
         el.__play = function () { play(el); };
@@ -228,7 +332,7 @@
     // x = 0 with a 10 degree tilt has its top corner sliced off.
     function overhang(rotDeg) {
         var a = Math.abs(rotDeg) * Math.PI / 180;
-        var w = cardW(), h = cardH();
+        var w = playedW(), h = playedH();
         var sin = Math.sin(a), cos = Math.cos(a);
         return {
             x: Math.ceil((w * cos + h * sin - w) / 2),
@@ -243,9 +347,9 @@
         var pad = 8;
         return {
             minX: o.x + pad,
-            maxX: Math.max(o.x + pad, f.width - cardW() - o.x - pad),
+            maxX: Math.max(o.x + pad, f.width - playedW() - o.x - pad),
             minY: o.y + pad,
-            maxY: Math.max(o.y + pad, f.height - cardH() - o.y - pad),
+            maxY: Math.max(o.y + pad, f.height - playedH() - o.y - pad),
             top: f.top, left: f.left,
         };
     }
@@ -254,7 +358,7 @@
     // fan — a card that landed on the hand would be unreachable behind it.
     function landingSpot(rot) {
         var f = felt.getBoundingClientRect();
-        var w = cardW(), h = cardH();
+        var w = playedW(), h = playedH();
         var b = bounds(rot);
         // The fan's own top edge in felt coordinates: the floor for a landing.
         var fanTop = fanEl.getBoundingClientRect().top - f.top;
@@ -268,20 +372,31 @@
 
         // The average of two uniform draws is triangular: still random, but it
         // clusters towards the centre, which is where the mockup's played card
-        // sits. Twelve tries at not covering a card already down; the last one
-        // is taken regardless, so a crowded table still deals.
-        var best = null;
-        for (var t = 0; t < 12; t++) {
+        // sits.
+        //
+        // Candidates are scored rather than taken as soon as one is clear. A
+        // card only covers another when it overlaps on both axes, so clearing
+        // either one is far enough; the score is how far the nearest card
+        // already down is on its better axis, in units of half a card, and the
+        // best of the batch wins. Taking the first clear draw was fine for two
+        // or three cards and fell apart at seven, where most draws touch
+        // something and the twelfth was accepted whatever it looked like.
+        var down = playedEl.children;
+        var best = null, bestScore = -1;
+        for (var t = 0; t < 60; t++) {
             var x = minX + (maxX - minX) * (Math.random() + Math.random()) / 2;
             var y = minY + (maxY - minY) * (Math.random() + Math.random()) / 2;
-            var clear = true;
-            var down = playedEl.children;
+            var score = Infinity;
             for (var i = 0; i < down.length; i++) {
-                var dx = readVar(down[i], '--x') - x, dy = readVar(down[i], '--y') - y;
-                if (Math.abs(dx) < w * 0.5 && Math.abs(dy) < h * 0.5) { clear = false; break; }
+                var dx = Math.abs(readVar(down[i], '--x') - x);
+                var dy = Math.abs(readVar(down[i], '--y') - y);
+                var clear = Math.max(dx / (w * 0.5), dy / (h * 0.5));
+                if (clear < score) score = clear;
             }
-            best = { x: x, y: y };
-            if (clear) break;
+            if (score > bestScore) { bestScore = score; best = { x: x, y: y }; }
+            // 1 is touching exactly; a little past it is clear with room to
+            // spare for the rounding a measurement goes through.
+            if (bestScore >= 1.06) break;
         }
         return best;
     }
@@ -307,20 +422,30 @@
         el.className = 'card';
         el.style.zIndex = String(++topZ);
         el.setAttribute('data-cursor', 'flip · drag');
-        el.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
+        el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
+        el.flipBtn.setAttribute('aria-pressed', 'false');
+        // It leaves the hand at the hand's size and arrives at the table's, so
+        // the width has to start explicitly at the old value or there is
+        // nothing for the transition to run from and the shrink is a snap at
+        // the moment the card is let go of.
+        el.style.width = fanCardW() + 'px';
         place(el, fromX, fromY, slot.rot);
 
         // A slight tilt, and never quite square: a card dealt flat onto the
         // table reads as placed rather than thrown. Settled before the landing
         // spot because the tilt is what decides how far from the edges a whole
         // card can sit.
-        var rot = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 9);
+        // Three to nine degrees. Twelve was enough to swing the expand control
+        // noticeably in from the corner it is meant to sit in, and on a card
+        // this size the gentler tilt still reads as thrown rather than placed.
+        var rot = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 6);
         var to = landingSpot(rot);
 
         // Read back a layout value so the browser cannot fold the two writes
         // into one and skip the transition entirely.
         void el.offsetWidth;
         el.classList.add('is-dealing');
+        el.style.width = '';
         place(el, to.x, to.y, rot);
         el.addEventListener('transitionend', function done(e) {
             if (e.propertyName !== 'transform') return;
@@ -329,6 +454,7 @@
         });
 
         makePlayable(el);
+        addExpand(el);
 
         // The hand is five wide at all times, so the gap closes immediately.
         drawInto(i);
@@ -397,8 +523,86 @@
         // Space on a focused card turn it over too.
         el.addEventListener('click', function () {
             if (swallowClick) { swallowClick = false; return; }
-            el.classList.toggle('is-flipped');
-            el.setAttribute('aria-pressed', el.classList.contains('is-flipped') ? 'true' : 'false');
+            toggleFlip(el);
+        });
+    }
+
+    /* ---------------- the card, opened ---------------- */
+
+    /* A card's expand control puts it in a modal, larger, over a blurred page.
+       The card in there is built fresh on every open and thrown away on close:
+       there is then never a second copy of a work sitting in the document, and
+       the rise always has a new element to play on. */
+
+    var modalEl = document.getElementById('card-modal');
+    var modalPanel = modalEl && modalEl.querySelector('[role="dialog"]');
+    var modalCardEl = document.getElementById('modal-card');
+    var modalOpener = null;
+
+    function modalFocusable() {
+        var all = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        return Array.prototype.filter.call(all, function (el) {
+            return !el.disabled && el.getClientRects().length > 0;
+        });
+    }
+
+    function openModal(work, opener) {
+        if (!modalEl || !modalCardEl || !work) return;
+        modalOpener = opener || null;
+        modalCardEl.innerHTML = '';
+
+        var card = buildCard(work, { interactive: true, detail: true });
+        card.setAttribute('data-cursor', 'turn it over');
+        card.flipBtn.setAttribute('aria-label', work.title + ' — turn over to read about it');
+        card.flipBtn.setAttribute('aria-pressed', 'false');
+        card.addEventListener('click', function () { toggleFlip(card); });
+        modalCardEl.appendChild(card);
+
+        // The dialog is named after the work it is showing, so it announces
+        // something better than "dialog" when it takes focus.
+        if (modalPanel) modalPanel.setAttribute('aria-label', work.title);
+        modalEl.removeAttribute('hidden');
+        // On <body>, which propagates to the viewport, so the scrollbar goes
+        // with it and the scrim measures exactly the window.
+        document.body.classList.add('modal-open');
+
+        var close = modalEl.querySelector('.modal-close');
+        if (close) close.focus();
+    }
+
+    function closeModal() {
+        if (!modalEl || modalEl.hasAttribute('hidden')) return;
+        modalEl.setAttribute('hidden', '');
+        document.body.classList.remove('modal-open');
+        modalCardEl.innerHTML = '';
+        // Back to the control that opened it, or focus is left on nothing and
+        // the next Tab starts from the top of the page.
+        if (modalOpener && document.contains(modalOpener)) modalOpener.focus();
+        modalOpener = null;
+    }
+
+    if (modalEl) {
+        // The scrim and the close button both carry data-modal-close, so the
+        // two ways out are one listener rather than two that could drift.
+        modalEl.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('[data-modal-close]')) closeModal();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (modalEl.hasAttribute('hidden')) return;
+            if (e.key === 'Escape') { closeModal(); return; }
+            if (e.key !== 'Tab') return;
+            // Tab must not walk out of the modal and start operating the page
+            // that is blurred behind it. Only the two ends are handled; in
+            // between, the browser's own order is the right one.
+            var f = modalFocusable();
+            if (!f.length) { e.preventDefault(); return; }
+            var i = f.indexOf(document.activeElement);
+            var next = e.shiftKey ? i - 1 : i + 1;
+            if (i === -1 || next < 0 || next >= f.length) {
+                e.preventDefault();
+                f[e.shiftKey ? f.length - 1 : 0].focus();
+            }
         });
     }
 

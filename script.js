@@ -4,9 +4,19 @@ import { mountCardBuilder, drawCard, newModel, CARD_DESIGN } from "./card-builde
 
 // ── Theme (light ↔ dark) ──────────────────────────────────────────────────────
 const THEME_KEY = 'theme';
+// Only an explicit press is ever stored, so with nothing written down the OS
+// preference is what to honour. This has to resolve exactly the way the <head>
+// block in index.html and the other eight pages do — the whole point of the
+// shared key is that every page reaches the same answer, and a home page that
+// pinned itself to light while every other page followed the OS was a visible
+// disagreement the moment a dark-mode reader left the carousel.
 function getStoredTheme() {
-    const saved = localStorage.getItem(THEME_KEY);
-    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+    let saved = null;
+    // storage throws outright in some privacy modes rather than returning null
+    try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
+    if (saved === 'dark' || saved === 'light') return saved;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ? 'dark' : 'light';
 }
 let currentTheme = getStoredTheme();
 document.documentElement.setAttribute('data-theme', currentTheme);
@@ -509,9 +519,27 @@ cursorStyle.textContent = `
     pointer-events: none;
     z-index: 999999;
     opacity: 0;
-    transition: opacity 0.25s ease;
+    /* The pill does not jump between states. Moving onto a coming-soon card
+       changes its fill, its ink and its border at once, and snapping all three
+       reads as a different pill appearing rather than as this one answering.
+
+       This rule is the one that wins: style.css also has a #card-cursor block
+       with the same properties, and this one is injected at runtime, so at
+       equal specificity it comes later and takes the cascade. Anything about
+       the pill's own box has to be changed HERE — a change to the copy in
+       style.css is dead unless it carries a class (.is-soon does, which is why
+       the accent fill works at all). */
+    transition:
+      opacity 0.25s ease,
+      background-color 0.22s ease,
+      border-color 0.22s ease,
+      color 0.22s ease,
+      box-shadow 0.22s ease;
     white-space: nowrap;
     user-select: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #card-cursor { transition: opacity 0.25s ease; }
   }
   #card-cursor.visible {
     opacity: 1;
@@ -578,7 +606,13 @@ document.head.appendChild(cursorStyle);
 
 const cardCursor = document.createElement('div');
 cardCursor.id = 'card-cursor';
-cardCursor.textContent = 'open project';
+// The words sit in their own element so they can be faded independently of the
+// pill. Fading the pill itself would take its fill with it, and the fill is
+// what is meant to be changing smoothly underneath the swap.
+const cardCursorLabel = document.createElement('span');
+cardCursorLabel.className = 'cc-label';
+cardCursorLabel.textContent = 'open project';
+cardCursor.appendChild(cardCursorLabel);
 
 // The customize card is the only one whose label carries a glyph, so the label
 // is set through here rather than by assigning textContent in five places. The
@@ -591,12 +625,43 @@ const PEN_ICON = '<svg viewBox="0 0 32 32" width="14" height="14" fill="currentC
 // with the theme's accent when it is showing — see #card-cursor.is-soon.
 const COMING_SOON_LABEL = 'coming soon';
 
+// How long .cc-label takes to fade out, kept in step with style.css. The words
+// are swapped at the far end of that fade so the change happens behind it.
+const CURSOR_SWAP_MS = 80;
+let cursorLabel = 'open project';
+let cursorSwapTimer = 0;
+
+function writeCardCursor(label, icon) {
+    cardCursorLabel.textContent = '';
+    if (icon) cardCursorLabel.insertAdjacentHTML('afterbegin', icon);
+    cardCursorLabel.appendChild(document.createTextNode(label));
+}
+
 function setCardCursor(label, icon) {
+    // The fill is a property of the pill and transitions on its own; only the
+    // words need the fade, and only when they are actually changing. Hovering
+    // along a row of project cards asks for 'open project' on every frame, and
+    // fading it out and back in each time would flicker.
+    if (label === cursorLabel) return;
+    cursorLabel = label;
+
     cardCursor.classList.toggle('is-soon', label === COMING_SOON_LABEL);
-    if (!icon) { cardCursor.textContent = label; return; }
-    cardCursor.textContent = '';
-    cardCursor.insertAdjacentHTML('afterbegin', icon);
-    cardCursor.appendChild(document.createTextNode(label));
+
+    // Not yet on screen: there is nothing to fade out of, and a swap animation
+    // would only delay the first label behind the pill's own fade-in.
+    if (!cardCursor.classList.contains('visible')) {
+        window.clearTimeout(cursorSwapTimer);
+        cardCursorLabel.classList.remove('is-swapping');
+        writeCardCursor(label, icon);
+        return;
+    }
+
+    window.clearTimeout(cursorSwapTimer);
+    cardCursorLabel.classList.add('is-swapping');
+    cursorSwapTimer = window.setTimeout(function () {
+        writeCardCursor(label, icon);
+        cardCursorLabel.classList.remove('is-swapping');
+    }, CURSOR_SWAP_MS);
 }
 document.body.appendChild(cardCursor);
 
@@ -2622,6 +2687,30 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         cardCentred: () => customizeIsCentred(),
         // True while a click is waiting for the ring to bring card 9 round.
         customizePending: () => customizePendingOpen,
+        // The theme as the *carousel* holds it, which is a separate thing from
+        // <html data-theme>: the fog and the card stock are painted from
+        // currentTheme, and a page whose attribute says dark while the ring is
+        // still drawing light stock is only half caught up. Raw values, so the
+        // driver does the comparing — a probe that reported its own verdict
+        // would agree with itself no matter what was on screen.
+        theme: () => ({
+            current: currentTheme,
+            fog: '#' + scene.fog.color.getHexString(),
+            fogLight: '#' + new THREE.Color(THEME_COLORS.light.fog).getHexString(),
+            fogDark: '#' + new THREE.Color(THEME_COLORS.dark.fog).getHexString(),
+            // A pixel of the painted card back, well inside the accent border,
+            // so this is the card stock itself.
+            cardBack: (() => {
+                if (!cardBackCanvas.width) return null;
+                const d = cardBackCtx.getImageData(
+                    Math.round(cardBackCanvas.width / 2),
+                    Math.round(cardBackCanvas.height * 0.15), 1, 1).data;
+                return '#' + [d[0], d[1], d[2]]
+                    .map(v => v.toString(16).padStart(2, '0')).join('');
+            })(),
+            cardBgLight: THEME_COLORS.light.cardBg.toLowerCase(),
+            cardBgDark: THEME_COLORS.dark.cardBg.toLowerCase(),
+        }),
     };
 }
 
@@ -3476,10 +3565,15 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ── Theme toggle (light ↔ dark) ───────────────────────────────────────────────
-function applyTheme(theme) {
+// `persist` is false whenever this is only catching up with a choice made
+// somewhere else — the OS changing, or a restored page re-reading storage.
+// Writing those down would turn a mirror into a decision, and a reader who has
+// never pressed the toggle would end up pinned to whatever their OS happened
+// to be at the moment they first scrolled past.
+function applyTheme(theme, persist = true) {
     currentTheme = theme;
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, theme);
+    if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch (err) {} }
     scene.fog.color.set(THEME_COLORS[theme].fog);
     updateCardBackTexture(theme);
     updateCardFaceTextures(theme);
@@ -3489,6 +3583,33 @@ function applyTheme(theme) {
 
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
     applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+});
+
+// Restored from the back/forward cache rather than loaded. Nothing above has
+// re-run — not the <head> block that stamps data-theme, not this module — so
+// <html>, currentTheme, the fog and every card texture are all still the theme
+// this page was left in. A reader who pressed the toggle on a case page and
+// came back arrives here with a stored choice this page has never seen, which
+// is precisely the trip flyHome() in card-transition.js makes: it calls
+// history.back() so the carousel does not have to be rebuilt, and a restore is
+// the common way home. Re-read the choice and catch the whole page up.
+//
+// site.js does the same thing for every other page, for the same reason.
+window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    const theme = getStoredTheme();
+    if (theme !== currentTheme) applyTheme(theme, false);
+});
+
+// Nothing stored means the page is still mirroring the OS, so it should keep
+// mirroring it if the OS changes mid-visit. A stored choice outranks this,
+// which is why the guard re-reads storage rather than trusting a local flag.
+// The mirror of the same listener in site.js.
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    let saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
+    if (saved === 'dark' || saved === 'light') return;
+    applyTheme(e.matches ? 'dark' : 'light', false);
 });
 
 // ── View toggle (cards ↔ grid) ───────────────────────────────────────────────

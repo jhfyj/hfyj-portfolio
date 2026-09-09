@@ -665,6 +665,10 @@ canvas.threejs {
   pointer-events: none;
   z-index: 99999;
   opacity: 0;
+  /* Note: script.js injects its own #card-cursor block at runtime, and at equal
+     specificity that one wins. Everything here about the pill's box is what the
+     other pages get; the home page takes the injected copy. The transition that
+     smooths the fill lives there for that reason. */
   transition: opacity 0.18s ease;
   white-space: nowrap;
   user-select: none;
@@ -696,6 +700,29 @@ canvas.threejs {
   gap: 7px;
 }
 #card-cursor svg { flex: none; }
+
+/* The words themselves cannot be transitioned — textContent changes in one
+   frame or not at all — so they are swapped behind a fade instead. The label
+   lives in its own element for exactly this reason: fading #card-cursor would
+   take the fill with it and the pill would blink, and the fill is the thing
+   that is supposed to be smoothly changing underneath.
+
+   Out is quicker than in. The old label leaving is not information; the new
+   one arriving is, and it should not feel like it is catching up. */
+.cc-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 1;
+  transition: opacity 0.13s ease;
+}
+.cc-label.is-swapping { opacity: 0; transition-duration: 0.08s; }
+
+/* Nothing here is load-bearing — the label still changes, it just changes at
+   once. The pill's own fill is handled in the injected block in script.js. */
+@media (prefers-reduced-motion: reduce) {
+  .cc-label, .cc-label.is-swapping { transition: none; opacity: 1; }
+}
 
 /* — While the make-your-own kit is open — 
    The kit is the whole screen: the nav, the scrubber, the social links and the

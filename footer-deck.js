@@ -30,11 +30,11 @@
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Kept in step with the transition in style.css, but only as a backstop.
     var FLIP_MS = reduced ? 0 : 560;
-    var FLIP_SLACK_MS = 1200;
+    var FLIP_SLACK_MS = 500;
     // Long enough to read the back as a card rather than as a glitch, short
     // enough that nobody has to click twice to get on with it. The card turns
     // itself back over and the new face is simply there.
-    var AUTO_RETURN_MS = 1000;
+    var AUTO_RETURN_MS = 500;
 
     function isDark() {
         return document.documentElement.getAttribute('data-theme') === 'dark';

@@ -77,6 +77,21 @@ window.Site = (function () {
     if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemTheme);
     else if (darkQuery.addListener) darkQuery.addListener(onSystemTheme);   // Safari < 14
 
+    // Restored from the back/forward cache rather than loaded. The document was
+    // never re-parsed, so the <head> block that resolves the theme never ran
+    // again and <html> still carries whatever this page was left in — which is
+    // stale the moment the reader pressed the toggle somewhere else in between.
+    // Back and forward are ordinary ways around this site (card-transition.js
+    // goes home with history.back() so the carousel does not have to be
+    // rebuilt), so the choice has to be re-read here.
+    //
+    // Not persisted: this is catching up with a choice, not making one. script.js
+    // carries the same handler for the home page.
+    window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        applyTheme(readStoredTheme() || (darkQuery.matches ? 'dark' : 'light'), false);
+    });
+
     // Hides on the way down, comes back on the way up, and is always there at
     // the very top. The 6px deadband keeps trackpad jitter from flapping it.
     const topbar = document.getElementById('topbar');

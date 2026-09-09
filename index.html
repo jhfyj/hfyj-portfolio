@@ -8,12 +8,23 @@
     <script>
         // Set the theme (and matching favicon) before first paint so there's
         // no flash of the wrong theme.
+        //
+        // The key, the two values and the shape of the read are the other
+        // eight pages' — see the theme section at the top of site.js. This
+        // block used to leave the attribute off entirely when nothing was
+        // stored and fall back to light, while every other page fell back to
+        // the OS: a dark-mode reader got a light home page and a dark
+        // everything-else, with no press involved. getStoredTheme() in
+        // script.js resolves it the same way.
         (function () {
-            var saved = localStorage.getItem('theme');
-            var theme = (saved === 'dark' || saved === 'light') ? saved : 'light';
-            if (saved === 'dark' || saved === 'light') {
-                document.documentElement.setAttribute('data-theme', saved);
-            }
+            var saved = null;
+            // storage throws outright in some privacy modes rather than returning null
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            // Only an explicit press is ever stored, so the OS preference gets
+            // consulted exactly when there is no choice to honour instead.
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
             var favicon = document.getElementById('favicon');
             if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
         })();

@@ -2137,12 +2137,130 @@ const CUSTOMIZE_EASE = 0.11;
 // Long enough for the ring to clear out from under the card before the kit
 // arrives over it.
 const CUSTOMIZE_HANDOFF_MS = 460;
+// The width where the kit stops standing beside the card and stacks under it.
+// Kept in step with the @media (max-width: 900px) block in card-builder.css:
+// the shift, the lift and the pin are all solved against that layout, so the
+// two have to change together.
+const CUSTOMIZE_STACK_W = 900;
+// Between the Clear/Save row and the top of the stacked panels. The overlay's
+// own column gap, so the stacked layout keeps its rhythm once the card is
+// pinned out of the flow.
+const CUSTOMIZE_STACK_GAP = 22;
 
-// The whole ring slides left as it opens, so the card comes to rest in the
-// space the panels leave rather than behind them. Below the width where the
-// kit stacks, there is nothing to make room for.
-function customizeShiftX() {
-    return window.innerWidth <= 900 ? 0 : -0.9;
+// Card 9 only rises once it is the card being looked at.
+//
+// Off-centre it is turned away from the camera, and a turned card projects to
+// a bounding box narrower than the card itself — pinCustomizeCard would hand
+// the drawn card that box, and the 1059:1449 frame the canvas is drawn in
+// would come out squashed. Head-on, the card's plane is parallel to the image
+// plane and the projection is a plain scale, so the footprint the pin measures
+// is the right shape by construction rather than by correction.
+//
+// It is also the more honest reading of the click. Every other card goes to a
+// page, so clicking one off-centre only brings it round; this one opens in
+// place, so it comes round and then rises rather than asking for a second
+// click on something that already said "customize".
+//
+// The tolerance is a snap's tail, not a card's turn. The ring is rarely stopped
+// dead when the click lands — the idle drift alone leaves a degree or two still
+// easing out — and calling that "turned away" would send the card round the
+// houses for something nobody can see. Anything inside this is finished as part
+// of the rise: the ring eases the rest over the hand-off, and the angle is
+// landed exactly before the pin measures, so the footprint is square either
+// way. Anything outside it is another card's worth of turn, and comes round
+// first.
+const CUSTOMIZE_CENTRED_EPS = 0.1;    // rad, ~5.7° — a sixth of the 36° step
+                                      // between one card and the next.
+
+// Signed rotation from here to where card 9 faces the camera, shortest way
+// round. Same arithmetic the click-to-front path uses, so the two cannot
+// disagree about where "centred" is.
+function customizeAngleOffset() {
+    const TWO_PI = Math.PI * 2;
+    const cardAngle = THREE.MathUtils.degToRad((CUSTOMIZE_INDEX * 360) / cardCount);
+    const diff = -cardAngle - cardgroup.rotation.y;
+    return diff - Math.round(diff / TWO_PI) * TWO_PI;
+}
+
+function customizeIsCentred() {
+    return Math.abs(customizeAngleOffset()) <= CUSTOMIZE_CENTRED_EPS;
+}
+
+// The whole ring slides aside as the kit opens, so the card comes to rest in
+// the middle of the space the panels leave rather than behind them — or, once
+// the kit stacks, in the middle of the window.
+//
+// Solved rather than fixed. The old -0.9 was one window's worth of "aside":
+// at 1857px it left the card 129px to the left of the middle of that space,
+// and every width was a different amount wrong. Working the shift out from
+// where the panels actually are means the projection is already centred by the
+// time the pin measures it, so nothing has to be nudged afterwards and there
+// is no jump to see.
+let customizeShift = 0;
+function customizeShiftX() { return customizeShift; }
+
+// Where the projected card's centre lands for a given ring shift. Centred, the
+// card's plane is parallel to the image plane, so screen x is affine in the
+// ring's world x — two samples pin the mapping down without this file having
+// to restate the camera's arithmetic.
+function projectedCentreX(x) {
+    const saved = cardgroup.position.x;
+    cardgroup.position.x = x;
+    cardgroup.updateMatrixWorld(true);
+    const r = customizeCardRect();
+    cardgroup.position.x = saved;
+    cardgroup.updateMatrixWorld(true);
+    return r ? r.x + r.w / 2 : null;
+}
+
+function solveCustomizeShift() {
+    const host = document.getElementById('card-builder');
+    if (!host) return 0;
+    const a = projectedCentreX(0);
+    const b = projectedCentreX(-1);
+    if (a === null || b === null) return 0;
+    const perUnit = a - b;              // px the card moves per world unit
+    if (Math.abs(perUnit) < 1) return 0;
+
+    // The free space: everything left of the panels. Stacked, the panels are
+    // under the card rather than beside it, so the free space is the window
+    // and this comes out at ~0.
+    const kit = host.querySelector('.cb-kit');
+    const kitRect = kit ? kit.getBoundingClientRect() : null;
+    let want = window.innerWidth / 2;
+    if (window.innerWidth > CUSTOMIZE_STACK_W && kitRect && kitRect.width > 0) {
+        const padLeft = parseFloat(getComputedStyle(host).paddingLeft) || 0;
+        want = (padLeft + kitRect.left) / 2;
+    }
+    return (want - a) / perUnit;
+}
+
+// How far the card lifts. Beside the panels it is the small step forward the
+// constant describes; stacked, the panels are below it and the lift is what
+// leaves them the room, so the card goes up until its top edge sits on the
+// overlay's own top padding.
+let customizeRise = CUSTOMIZE_RISE_Y;
+function customizeRiseY() { return customizeRise; }
+
+function solveCustomizeRise() {
+    if (window.innerWidth > CUSTOMIZE_STACK_W) return CUSTOMIZE_RISE_Y;
+    const host = document.getElementById('card-builder');
+    const card = cards[CUSTOMIZE_INDEX];
+    const rect = customizeCardRect();
+    if (!host || !card || !rect) return CUSTOMIZE_RISE_Y;
+    // Vertical pixels per world unit are the horizontal ones: the camera's
+    // aspect is exactly the viewport's, so projectedCentreX's slope is the
+    // scale on both axes.
+    const a = projectedCentreX(0);
+    const b = projectedCentreX(-1);
+    if (a === null || b === null) return CUSTOMIZE_RISE_Y;
+    const perUnit = a - b;
+    if (Math.abs(perUnit) < 1) return CUSTOMIZE_RISE_Y;
+    const padTop = parseFloat(getComputedStyle(host).paddingTop) || 0;
+    // rect was measured wherever the card is standing now, so this solves for
+    // an absolute y rather than a delta — the hover lift it is still carrying
+    // cancels out instead of being baked in.
+    return card.position.y + (rect.y - padTop) / perUnit;
 }
 
 // Where card 9 actually is on screen, in CSS pixels. The card being drawn on
@@ -2171,22 +2289,40 @@ function customizeCardRect() {
 }
 
 // Puts the drawn card, and the buttons under it, on the ring card's footprint.
+// The rect is only ever measured head-on — see CUSTOMIZE_CENTRED_EPS — so what
+// goes on the wrap here is 1059:1449, and the pin is not quietly reshaping the
+// frame the canvas is drawn in.
 function pinCustomizeCard() {
     const host = document.getElementById('card-builder');
     if (!host || !customizeKit) return;
     const rect = customizeCardRect();
     const wrap = host.querySelector('.cb-card-wrap');
     const actions = host.querySelector('.cb-actions');
+    const kit = host.querySelector('.cb-kit');
     if (!rect || !wrap) return;
     host.classList.add('is-pinned');
     wrap.style.left = rect.x + 'px';
     wrap.style.top = rect.y + 'px';
     wrap.style.width = rect.w + 'px';
     wrap.style.height = rect.h + 'px';
+    let bottom = rect.y + rect.h + 22;
     if (actions) {
         actions.style.left = rect.x + 'px';
-        actions.style.top = (rect.y + rect.h + 22) + 'px';
+        actions.style.top = bottom + 'px';
         actions.style.width = rect.w + 'px';
+        const ar = actions.getBoundingClientRect();
+        if (ar.height) bottom = ar.bottom;
+    }
+    // Stacked, the card is pinned across the top of the window and is out of
+    // the column the panels are still in — left in the flow they would run
+    // straight underneath it, which is what put the Draw panel behind the card
+    // and the buttons through the Stickers heading. They take the rest of the
+    // window instead, starting from where the buttons actually landed rather
+    // than from a guess at how tall the card is.
+    if (kit) {
+        kit.style.top = window.innerWidth <= CUSTOMIZE_STACK_W
+            ? Math.round(bottom + CUSTOMIZE_STACK_GAP) + 'px'
+            : '';
     }
 }
 
@@ -2194,7 +2330,7 @@ function unpinCustomizeCard() {
     const host = document.getElementById('card-builder');
     if (!host) return;
     host.classList.remove('is-pinned');
-    ['.cb-card-wrap', '.cb-actions'].forEach((sel) => {
+    ['.cb-card-wrap', '.cb-actions', '.cb-kit'].forEach((sel) => {
         const n = host.querySelector(sel);
         if (!n) return;
         n.style.left = n.style.top = n.style.width = n.style.height = '';
@@ -2203,6 +2339,12 @@ function unpinCustomizeCard() {
 
 const cardCustomizeY = new Array(cardCount).fill(0);
 let customizeOpen = false;
+// Set when the kit was asked for while card 9 was still turned away: the ring
+// is on its way round, and the render loop opens it the moment it arrives.
+// The angle is kept alongside so the loop can tell "still on its way" from
+// "someone else has taken the ring since".
+let customizePendingOpen = false;
+let customizePendingRot = 0;
 let customizeKit = null;
 let customizeHandoff = null;
 let customizeFace = null;   // { ctx, texture } once card 9 has been built
@@ -2315,18 +2457,53 @@ function ensureCustomizeKit() {
 
 function openCustomize() {
     if (customizeOpen) return;
+
+    // Not from here. Bring card 9 round first and let the rise happen once it
+    // has arrived — see CUSTOMIZE_CENTRED_EPS for why the rise cannot start
+    // from an angle. Nothing else changes yet: no lift, no drop, no chrome
+    // going out, so a ring that is merely on its way is still just a ring.
+    if (!customizeIsCentred()) {
+        customizePendingOpen = true;
+        isFlinging = false;
+        autoRotating = false;
+        customizePendingRot = cardgroup.rotation.y + customizeAngleOffset();
+        targetRotation = customizePendingRot;
+        return;
+    }
+    customizePendingOpen = false;
     customizeOpen = true;
     currentView = 'customize';
     // The ring is parked, not just ignored: momentum, the snap easing and the
     // idle auto-rotate would all keep turning the card out from under the kit.
     isFlinging = false;
     autoRotating = false;
-    targetRotation = null;
+    // Parked on the angle, not merely near it. A click can land while the last
+    // of a snap is still easing — inside CUSTOMIZE_CENTRED_EPS, but a fraction
+    // of a degree short — and parking there leaves the card very slightly
+    // turned and its footprint very slightly narrow. This is the rest of that
+    // snap: a few hundredths of a degree, eased over the hand-off and landed
+    // exactly before anything is measured.
+    targetRotation = cardgroup.rotation.y + customizeAngleOffset();
     hoveredCard = null;
     lastPaperCard = null;
     cardCursor.classList.remove('visible');
     dotCursor.classList.remove('visible');
     document.body.classList.add('customizing');
+
+    // Built and laid out now rather than at the hand-off: where the panels
+    // come to rest is what decides how far the ring has to slide, and the ring
+    // starts sliding on this frame. is-pinned takes the card and the buttons
+    // out of the flex flow first, so the kit is measured where it will be.
+    // Both are solved again at the hand-off, on a card whose angle has by then
+    // been landed exactly; this pair is what the ease aims at meanwhile, and
+    // the correction between the two is a pixel or so.
+    const kit = ensureCustomizeKit();
+    const host = document.getElementById('card-builder');
+    if (kit && host) {
+        host.classList.add('is-pinned');
+        customizeRise = solveCustomizeRise();
+        customizeShift = solveCustomizeShift();
+    }
 
     clearTimeout(customizeHandoff);
     customizeHandoff = setTimeout(() => {
@@ -2341,10 +2518,23 @@ function openCustomize() {
         // merely close to its target, and the hover lift it still carries from
         // being clicked — which decays to nothing over the next few frames and
         // would slide the card out from under the pin.
+        //
+        // The angle lands here for the same reason, and it is the one that
+        // decides the shape: a card measured even a fraction of a degree off
+        // projects to a box narrower than it is, and the drawn card would take
+        // that box instead of 1059:1449.
         const ringCard = cards[CUSTOMIZE_INDEX];
+        cardgroup.rotation.y += customizeAngleOffset();
+        targetRotation = null;
+        cardgroup.updateMatrixWorld(true);
+        // Now that it is square to the camera, where it wants to be is worth
+        // asking again: solved a moment ago against a card still a degree or
+        // two round, both answers were a pixel or two out.
+        customizeRise = solveCustomizeRise();
+        customizeShift = solveCustomizeShift();
         cardHoverY[CUSTOMIZE_INDEX] = 0;
-        cardCustomizeY[CUSTOMIZE_INDEX] = CUSTOMIZE_RISE_Y;
-        if (ringCard) ringCard.position.y = CUSTOMIZE_RISE_Y;
+        cardCustomizeY[CUSTOMIZE_INDEX] = customizeRiseY();
+        if (ringCard) ringCard.position.y = customizeRiseY();
         cardgroup.position.x = customizeShiftX();
         cardgroup.updateMatrixWorld(true);
 
@@ -2380,9 +2570,29 @@ function closeCustomize() {
     resetIdleTimer();
 }
 
-// The pin is measured in CSS pixels, so a resize invalidates it.
+// The pin is measured in CSS pixels, so a resize invalidates it — and with it
+// the shift that centres the card in the space beside the panels and, across
+// the stacking width, the lift that leaves the stacked panels their room.
+//
+// A frame late, deliberately. The camera's aspect and the ring's radius are
+// updated by another resize listener further down this file, and this one was
+// registered first: measuring here would project through the window's new size
+// and the camera's old one, and pin the card where the ring is not.
+let customizeResizeRaf = 0;
 window.addEventListener('resize', () => {
-    if (customizeOpen) pinCustomizeCard();
+    if (!customizeOpen) return;
+    cancelAnimationFrame(customizeResizeRaf);
+    customizeResizeRaf = requestAnimationFrame(() => {
+        if (!customizeOpen) return;
+        const ringCard = cards[CUSTOMIZE_INDEX];
+        customizeRise = solveCustomizeRise();
+        cardCustomizeY[CUSTOMIZE_INDEX] = customizeRise;
+        if (ringCard) ringCard.position.y = customizeRise;
+        customizeShift = solveCustomizeShift();
+        cardgroup.position.x = customizeShift;
+        cardgroup.updateMatrixWorld(true);
+        pinCustomizeCard();
+    });
 });
 
 // A read-only window onto the ring, for the drivers in pw-driver/. The rise
@@ -2400,6 +2610,13 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         // to be sitting exactly on top of this.
         cardRect: () => customizeCardRect(),
         cardVisible: () => !!(cards[CUSTOMIZE_INDEX] && cards[CUSTOMIZE_INDEX].visible),
+        // How far card 9 is from facing the camera, and whether that counts as
+        // centred. The rise is gated on this, and so is the pin being able to
+        // measure a 1059:1449 footprint at all.
+        cardAngleOffset: () => customizeAngleOffset(),
+        cardCentred: () => customizeIsCentred(),
+        // True while a click is waiting for the ring to bring card 9 round.
+        customizePending: () => customizePendingOpen,
     };
 }
 
@@ -2641,6 +2858,16 @@ function checkCardIntersections() {
 
     const front = getFrontCard();
 
+    // The customize card is the one that opens here rather than somewhere
+    // else, so a click on it is never wasted: off-centre it brings itself
+    // round and then rises, instead of asking for a second click. Every other
+    // card leaves the page, which is not something to do to someone who was
+    // only turning the ring, so those still need to be at the front first.
+    if (clickedRoot.userData.cardIndex === CUSTOMIZE_INDEX) {
+        openCustomize();
+        return;
+    }
+
     // If the clicked card is the front card, navigate — unless it's a
     // Coming Soon card with no real page to go to yet
     if (front && clickedRoot === front) {
@@ -2837,7 +3064,7 @@ const renderloop = (now = 0) => {
         // and closing in quick succession stays continuous instead of fighting
         // over the same property.
         const riseTo = !customizeOpen ? 0
-            : i === CUSTOMIZE_INDEX ? CUSTOMIZE_RISE_Y : CUSTOMIZE_DROP_Y;
+            : i === CUSTOMIZE_INDEX ? customizeRiseY() : CUSTOMIZE_DROP_Y;
         cardCustomizeY[i] += (riseTo - cardCustomizeY[i]) * CUSTOMIZE_EASE;
 
         card.position.y = cardHoverY[i] + cardIntroY[i] + cardCustomizeY[i];
@@ -2915,9 +3142,40 @@ const renderloop = (now = 0) => {
         }
     }
 
-    // Auto-rotate after idle
+    // A click on card 9 that arrived while it was turned away left the ring on
+    // its way round; this is the arrival. Below the snap so the frame that
+    // lands the angle is the frame that opens, and gated on the angle itself
+    // rather than on the snap having finished, so a ring stopped somewhere
+    // else can never open it by accident.
+    if (customizePendingOpen) {
+        // Anything else that has taken the ring since — a drag, the scrubber,
+        // an arrow key, a nav link, a fling — is now what the ring is doing,
+        // and the click is not. Let it go rather than opening the kit later
+        // under someone who has moved on.
+        if (isDragging || scrubberDragging || isFlinging
+            || (targetRotation !== null
+                && Math.abs(targetRotation - customizePendingRot) > 1e-6)) {
+            customizePendingOpen = false;
+        } else if (!customizeOpen && customizeIsCentred()) {
+            // Near enough is the arrival: the last of the snap is the same
+            // fraction of a degree an ordinary click lands on, and it is
+            // finished during the rise. Waiting for the snap to null itself out
+            // instead would hold the card down for seconds on a slow frame
+            // clock, long after it had visibly come round.
+            customizePendingOpen = false;
+            openCustomize();
+        }
+    }
+
+    // Auto-rotate after idle. Not while the kit is up: openCustomize parks the
+    // ring, but "parked" only lasted until the idle timer came round again and
+    // set it turning under the overlay. Nothing showed — the ring card is
+    // hidden and the rest has dropped out of frame — but the card the pin is
+    // measuring was quietly turning away from the camera, so a re-pin on
+    // resize handed the drawn card the footprint of a card seen at an angle.
     if (introPhase === 'done' && !isDragging && !isFlinging && !scrubberDragging
         && !introAnimActive && targetRotation === null
+        && !customizeOpen && !customizePendingOpen
         && now - lastInteractionTime > IDLE_TIMEOUT) {
         if (!autoRotating) {
             autoRotating = true;

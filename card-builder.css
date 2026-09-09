@@ -57,7 +57,12 @@
   margin: 0;
 }
 #card-builder.is-pinned .cb-card-wrap {
-  /* The pin supplies both, and the aspect would fight the measured height. */
+  /* The pin supplies both, and the aspect would fight the measured height.
+     Safe to give it up: the card only ever rises once it is facing the camera
+     (customizeIsCentred in script.js), and a card parallel to the image plane
+     projects to a plain scale of itself — so what the pin measures is 1059:1449
+     already. This is not the ratio being dropped, it is the ratio being taken
+     from the thing that actually has it. */
   aspect-ratio: auto;
 }
 #card-builder.is-pinned .cb-actions { justify-content: center; }
@@ -377,6 +382,40 @@
   .cb-card-wrap { height: min(42vh, 340px); }
   .cb-kit { width: min(520px, 100%); max-height: none; }
   .cb-tray { max-height: 260px; }
+
+  /* Pinned, the card and its buttons are fixed to the ring card's footprint
+     across the top of the window and are no longer in this column — so the
+     panels cannot be either. Left in the flow they lay themselves out as if
+     the card were not there and it landed on top of them: the Draw panel under
+     the card, the Stickers heading under the Clear/Save row.
+
+     They take the rest of the window instead and scroll inside it, so the card
+     above them can stay exactly where the ring card was. pinCustomizeCard sets
+     the top edge from where the buttons actually finished, and the lift is
+     solved to leave enough of the window below them — see solveCustomizeRise. */
+  #card-builder.is-pinned {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+  #card-builder.is-pinned .cb-kit {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0 auto;
+    width: min(520px, calc(100% - 2 * clamp(20px, 5vw, 80px)));
+    overflow-y: auto;
+    padding-bottom: clamp(20px, 4vh, 56px);
+  }
+  /* One scroller, not two nested ones: the whole column is what moves now, so
+     the tray gives up its own and simply takes the height it needs. The panels
+     stop flexing for the same reason — squeezed to fit a fixed height they clip
+     the tray instead of letting the column scroll. */
+  #card-builder.is-pinned .cb-panel { flex: none; }
+  #card-builder.is-pinned .cb-tray {
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

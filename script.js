@@ -3379,15 +3379,26 @@ gridView.addEventListener('scroll', () => {
 
 // ── Grid-view footer ─────────────────────────────────────────────────────────
 
-// "Last updated" — pick the most-recent mtime among the three source files.
+// "Last updated" — pick the most-recent mtime among the files this page loads.
 // Falls back to document.lastModified when fetch isn't available (e.g. file:// URLs).
+//
+// Asked of the document rather than named as './style.css' and './script.js':
+// under a build those two are bundled and emitted under hashed names, so naming
+// them fetches nothing and logs a 404 on every production load. What the page
+// has actually loaded is the same set of files either way.
+function _gfSourceFiles() {
+    const css = [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.href);
+    const js = [...document.querySelectorAll('script[src]')].map(t => t.src);
+    return ['./index.html', ...css, ...js];
+}
+
 async function _gfSetLastUpdated() {
     const el = document.querySelector('#grid-footer .gf-updated');
     if (!el) return;
     let latest = 0;
     try {
         const results = await Promise.all(
-            ['./index.html', './style.css', './script.js'].map(async (f) => {
+            _gfSourceFiles().map(async (f) => {
                 const r = await fetch(f, { method: 'HEAD', cache: 'no-store' });
                 const lm = r.headers.get('Last-Modified');
                 return lm ? Date.parse(lm) : NaN;

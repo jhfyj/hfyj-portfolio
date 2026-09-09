@@ -277,21 +277,28 @@
         </div>
 
         <footer id="grid-footer">
-            <div class="gf-section gf-section--left">
-                <p class="gf-quote">"Life is like a game of cards. The hand you are dealt is determinism; the way you play it is free will."</p>
-                <p class="gf-quote-attr">— Jawaharlal Nehru</p>
-                <div class="gf-times">
-                    <div class="gf-time"><span class="gf-time-value" data-tz="America/New_York">--:--:--</span><span class="gf-time-city">NEW YORK</span></div>
-                    <div class="gf-time"><span class="gf-time-value" data-tz="America/Los_Angeles">--:--:--</span><span class="gf-time-city">LOS ANGELES</span></div>
-                    <div class="gf-time"><span class="gf-time-value" data-tz="Asia/Shanghai">--:--:--</span><span class="gf-time-city">CHENGDU</span></div>
+            <div class="gf-inner">
+                <div class="gf-quote-block">
+                    <p class="gf-quote">"Life is like a game of cards. The hand you are dealt is determinism; the way you play it is free will."</p>
+                    <p class="gf-quote-attr">— Jawaharlal Nehru</p>
                 </div>
+
+                <!-- Three cards, face down for now. Placeholders until the
+                     artwork arrives — decorative either way, so they are hidden
+                     from a screen reader rather than announced as three empty
+                     things. Swapping each <div> for an <img data-skel> is the
+                     whole change when the art lands. -->
+                <div class="gf-cards" aria-hidden="true">
+                    <div class="gf-card"></div>
+                    <div class="gf-card"></div>
+                    <div class="gf-card"></div>
+                </div>
+
                 <div class="gf-status-block">
                     <p class="gf-status">SHOUTOUT TO POKEMON TCG</p>
                     <p class="gf-updated">Last updated --</p>
                 </div>
-            </div>
 
-            <div class="gf-section gf-section--right">
                 <div class="gf-col gf-col--contact">
                     <div class="gf-contact-group">
                         <p class="gf-contact-prompt">Have an idea? Let's chat!</p>

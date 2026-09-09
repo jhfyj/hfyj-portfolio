@@ -18,6 +18,9 @@
 :root {
   --bg: #FCFCFE;
   --bg-alt: #F7F7F7;
+  /* The footer's own ground — a step darker than the page, so the end of the
+     grid is a place rather than more of the same white. */
+  --footer-bg: #EDEDEF;
   --surface: #ffffff;
   --placeholder: #e0e0e0;
   --ink-rgb: 40,40,40;
@@ -32,6 +35,7 @@
 :root[data-theme="dark"] {
   --bg: #121212;
   --bg-alt: #181818;
+  --footer-bg: #0D0D0D;
   --surface: #2a2a2a;
   --placeholder: #333333;
   --ink-rgb: 255,255,255;
@@ -1800,21 +1804,45 @@ html.gh-handle-drag .gh-handle.br::before {
 /* ════════════════════════════════════════════
    Grid-view footer
    ════════════════════════════════════════════ */
+/* Full-bleed, on its own ground: the footer is the end of the grid rather than
+   one more block sitting in the same column, so it runs the width of the window
+   and the ground is what separates it from the work above. The inset moved from
+   a max-width on the footer to padding inside it — same margin, but the tone
+   now reaches the edges. */
 #grid-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 64px;
-  max-width: 85vw;
-  margin: 0 auto;
-  padding: 60px 0 80px;
+  padding: 64px clamp(24px, 6vw, 96px) 72px;
+  background: var(--footer-bg);
   border-top: 1px solid rgba(var(--ink-rgb), 0.08);
   font-family: 'DM Sans', system-ui, sans-serif;
   color: var(--t1);
   box-sizing: border-box;
 }
-.gf-section--left  { display: flex; flex-direction: column; gap: 0.5rem; max-width: 460px; flex: 0 1 auto; }
-.gf-section--right { display: flex; flex-direction: row;    gap: 72px;    max-width: 520px; flex: 0 1 auto; align-items: flex-start; }
+
+/* Four blocks on a two-by-two: the quote and the cards across the top, the
+   colophon and the contact details along the bottom. The bottom row is pinned
+   to the foot of its track so the two sit on one line however tall the quote
+   runs — a quote that wraps to four lines should not leave "Last updated"
+   floating halfway up beside the cards. */
+.gf-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 48px clamp(32px, 6vw, 96px);
+  align-items: start;
+}
+.gf-quote-block { grid-column: 1; grid-row: 1; }
+.gf-cards       { grid-column: 2; grid-row: 1; }
+.gf-status-block { grid-column: 1; grid-row: 2; align-self: end; }
+.gf-col--contact { grid-column: 2; grid-row: 2; align-self: end; }
+
+/* Face down, and the same 1059:1449 the carousel's cards are cut to, so the
+   artwork can drop in without the row changing shape. */
+.gf-cards { display: flex; gap: 14px; }
+.gf-card {
+  width: clamp(84px, 9vw, 128px);
+  aspect-ratio: 1059 / 1449;
+  border-radius: 6px;
+  background: rgba(var(--ink-rgb), 0.10);
+}
 
 /* Hide the floating bottom-left social buttons whenever grid view is up
    (the JS toggle handler also clears opacity, but this guards against
@@ -1822,7 +1850,14 @@ html.gh-handle-drag .gh-handle.br::before {
 #grid-view.visible ~ #social-links { display: none !important; }
 .gf-col { display: flex; flex-direction: column; gap: 0.5rem; }
 
-.gf-quote { font-size: clamp(0.75rem, 1vw, 0.875rem); font-style: italic; line-height: 1.5; margin: 0; color: rgba(var(--ink-rgb),0.75); }
+.gf-quote {
+  font-size: clamp(1.0625rem, 1.7vw, 1.5rem);
+  font-style: normal;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 22ch;
+  color: var(--t1);
+}
 .gf-quote-attr {
   font-family: 'Caveat', cursive;
   font-size: 1.125rem;
@@ -1830,17 +1865,10 @@ html.gh-handle-drag .gh-handle.br::before {
   margin: 0.25rem 0 0.75rem;
   color: rgba(var(--ink-rgb),0.55);
 }
-.gf-times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0.25rem 0 0.75rem; }
-.gf-time { display: flex; flex-direction: column; gap: 2px; }
-.gf-time-value { font-size: 0.875rem; font-variant-numeric: tabular-nums; color: var(--t1); }
-.gf-time-city { font-size: 0.625rem; letter-spacing: 0.5px; color: rgba(var(--ink-rgb),0.45); }
 .gf-status-block { display: flex; flex-direction: column; gap: 0rem; margin-top: 0.25rem; }
 .gf-status, .gf-updated { font-size: 0.625rem; letter-spacing: 0.5px; margin: 0; color: rgba(var(--ink-rgb),0.45); }
 .gf-updated { font-size: 0.5625rem; }
 
-.gf-col--nav { gap: 0.625rem; }
-.gf-nav-link { font-size: 0.75rem; letter-spacing: 1px; color: rgba(var(--ink-rgb),0.65); text-decoration: none; transition: color 150ms ease; cursor: pointer; }
-.gf-nav-link:hover { color: var(--t1); }
 
 .gf-contact-group { display: flex; flex-direction: column; gap: 0.125rem; margin-bottom: 0.5rem; }
 .gf-contact-prompt { font-size: 0.825rem; margin: 0; color: rgba(var(--ink-rgb),0.55); }
@@ -1855,8 +1883,14 @@ html.gh-handle-drag .gh-handle.br::before {
     gap: 40px;
     padding: 40px 24px 2rem;
     max-width: none;
-    background: var(--bg-alt);
+    background: var(--footer-bg);
   }
-  .gf-section--right { flex-direction: row; gap: 48px; max-width: none; order: 0; }
-  .gf-section--left { order: 1; }
+  /* One column, in reading order: the quote, the cards, then the small print. */
+  .gf-inner { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .gf-quote-block, .gf-cards, .gf-status-block, .gf-col--contact {
+    grid-column: 1;
+    grid-row: auto;
+    align-self: start;
+  }
+  .gf-quote { max-width: none; }
 }

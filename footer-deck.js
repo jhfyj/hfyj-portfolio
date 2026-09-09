@@ -15,7 +15,6 @@
     'use strict';
 
     var DECK_DIR = './assets/PokerDeck/';
-    var BACK_SRC = './Cards/back.jpg';
     var HAND_SIZE = 3;
 
     // The filenames have spaces in them, so every URL is built through
@@ -32,8 +31,38 @@
     // Kept in step with the transition in style.css, but only as a backstop.
     var FLIP_MS = reduced ? 0 : 560;
     var FLIP_SLACK_MS = 1200;
+    // Long enough to read the back as a card rather than as a glitch, short
+    // enough that nobody has to click twice to get on with it. The card turns
+    // itself back over and the new face is simply there.
+    var AUTO_RETURN_MS = 2000;
 
     function url(face) { return DECK_DIR + encodeURIComponent(face); }
+
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+
+    // The accent frame: a 25-wide stroke whose centre line sits 23 + 25/2 in
+    // from the edge of the 1059x1449 card, rounded to 24. Straight out of
+    // paintCardBack() in script.js, so the footer's cards and the carousel's
+    // are cut the same.
+    function buildBackFrame() {
+        var svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'gf-card-frame');
+        svg.setAttribute('viewBox', '0 0 1059 1449');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var r = document.createElementNS(SVG_NS, 'rect');
+        r.setAttribute('x', '35.5');
+        r.setAttribute('y', '35.5');
+        r.setAttribute('width', String(1059 - 35.5 * 2));
+        r.setAttribute('height', String(1449 - 35.5 * 2));
+        r.setAttribute('rx', '24');
+        r.setAttribute('fill', 'none');
+        r.setAttribute('stroke', 'currentColor');
+        r.setAttribute('stroke-width', '25');
+        svg.appendChild(r);
+        return svg;
+    }
 
     function shuffle(a) {
         for (var i = a.length - 1; i > 0; i--) {
@@ -87,19 +116,24 @@
             front.setAttribute('data-skel', '');
             front.setAttribute('draggable', 'false');
 
-            var back = document.createElement('img');
+            // Drawn rather than an image of a card back, so it can take the
+            // theme: the frame and the mark are the accent, on the accent's
+            // stock. See .gf-card-back and friends in style.css — the geometry
+            // is paintCardBack()'s, in the same 1059x1449 units.
+            var back = document.createElement('span');
             back.className = 'gf-card-face gf-card-back';
-            back.src = BACK_SRC;
-            back.alt = '';
-            back.setAttribute('data-skel', '');
-            back.setAttribute('draggable', 'false');
+            back.appendChild(buildBackFrame());
+            var mark = document.createElement('span');
+            mark.className = 'gf-card-mark';
+            back.appendChild(mark);
 
             inner.appendChild(front);
             inner.appendChild(back);
             btn.appendChild(inner);
             root.appendChild(btn);
 
-            cards.push({ el: btn, inner: inner, front: front, face: face, down: false, busy: false });
+            cards.push({ el: btn, inner: inner, front: front, face: face,
+                         down: false, busy: false, returnTimer: 0 });
         }
 
         // Runs `fn` once the turn has actually finished on screen.
@@ -131,6 +165,10 @@
 
         function flip(card) {
             if (card.busy) return;
+            // A click that lands inside the two seconds is the visitor getting
+            // there first; the card should not then turn itself over again
+            // underneath them.
+            window.clearTimeout(card.returnTimer);
             card.busy = true;
             card.down = !card.down;
             card.el.classList.toggle('is-flipped', card.down);
@@ -146,6 +184,15 @@
                     card.front.src = url(face);
                 }
                 card.busy = false;
+                // And back over on its own. Scheduled from here rather than
+                // from the click so the two seconds are two seconds of the
+                // back being visible, not two seconds that the flight has
+                // already eaten most of.
+                if (card.down) {
+                    card.returnTimer = window.setTimeout(function () {
+                        if (card.down) flip(card);
+                    }, AUTO_RETURN_MS);
+                }
             });
         }
 

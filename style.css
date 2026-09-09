@@ -35,6 +35,10 @@
      the pill's label is 13px, well under the size that would let that pass.
      This is 5.0:1 on the blue and 16.5:1 on the yellow. */
   --accent-ink: #10131C;
+  /* The stock a card is printed on. Mirrors CARD_BG / THEME_COLORS.cardBg in
+     script.js, which is what the carousel paints its own card backs with — the
+     footer's cards and the ring's cards are the same deck and have to agree. */
+  --card-stock: #F7F5F5;
 }
 
 :root[data-theme="dark"] {
@@ -51,6 +55,7 @@
   --accent: #FFFA50;
   --accent-tint: #6b6a2c;
   --accent-ink: #16160A;   /* the yellow wants its own, warmer */
+  --card-stock: #373737;
 }
 
 body {
@@ -1905,7 +1910,55 @@ html.gh-handle-drag .gh-handle.br::before {
   -webkit-backface-visibility: hidden;
   user-select: none;
 }
-.gf-card-back { transform: rotateY(180deg); }
+
+/* The back is drawn rather than photographed, so it can follow the theme: the
+   accent frame and the mark are blue in light and yellow in dark, on the same
+   stock the carousel prints its own card backs on. Cards/back.jpg is a single
+   baked image and could only ever be one of those.
+
+   The geometry is the carousel's, in the carousel's own units — see
+   paintCardBack() in script.js: a 25-wide accent border inset 23 from the edge
+   of a 1059x1449 card, with a 437 mark centred in it. */
+.gf-card-back {
+  transform: rotateY(180deg);
+  background: var(--card-stock);
+  /* The thin outer edge the Figma frame has. inset rather than a border so it
+     does not sit outside the 1059:1449 box and change the card's shape. */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* The accent frame. An SVG in the card's own design units, because a
+   percentage inset is a percentage of *width* on the left and right and of
+   *height* on the top and bottom — 23px of 1059 is 2.17%, of 1449 it is 1.59%,
+   and a single `inset` would draw a frame with unequal margins. The viewBox is
+   the card's exact ratio, so preserveAspectRatio="none" scales without
+   distorting anything. */
+.gf-card-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* The mark, tinted by the theme. A mask rather than an <img>: the file's paths
+   are filled with the light theme's blue, and an image cannot be recoloured —
+   as a mask it is a shape, and the colour is this element's background.
+   Sized off width alone with aspect-ratio, so it stays square inside a box
+   that is not. */
+.gf-card-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 41.27%;              /* 437 / 1059 */
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background-color: var(--accent);
+  -webkit-mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  pointer-events: none;
+}
 
 /* The turn is the whole idea, so it does not go away entirely — it just stops
    being a spin. The face still changes; footer-deck.js drops its timer to zero

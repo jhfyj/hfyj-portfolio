@@ -30,6 +30,11 @@
   --t3: #a8a8ac;   /* tertiary / disabled text */
   --accent: #5E81E2;
   --accent-tint: #C7D2FE;
+  /* What to write on top of --accent. Dark in both themes, which is not the
+     obvious answer for the blue — but white on #5E81E2 measures 3.68:1, and
+     the pill's label is 13px, well under the size that would let that pass.
+     This is 5.0:1 on the blue and 16.5:1 on the yellow. */
+  --accent-ink: #10131C;
 }
 
 :root[data-theme="dark"] {
@@ -45,6 +50,7 @@
   --t3: #6b6b6b;
   --accent: #FFFA50;
   --accent-tint: #6b6a2c;
+  --accent-ink: #16160A;   /* the yellow wants its own, warmer */
 }
 
 body {
@@ -661,6 +667,19 @@ canvas.threejs {
 
 #card-cursor.visible {
   opacity: 1;
+}
+
+/* A card with nowhere to go yet. Every other label is the same quiet pill, and
+   "coming soon" reading exactly like "open project" until you have finished
+   the sentence is the problem — filling it with the theme's accent says the
+   card is different before the words do. The inset highlight goes: it is there
+   to lift a translucent panel off the page, and on a solid fill it only reads
+   as a lighter stripe across the top. */
+#card-cursor.is-soon {
+  background: var(--accent);
+  border-color: rgba(var(--ink-rgb), 0.10);
+  color: var(--accent-ink);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* The customize card is the only label with a glyph in it. Flex rather than an

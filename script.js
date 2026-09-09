@@ -587,7 +587,12 @@ const PEN_ICON = '<svg viewBox="0 0 32 32" width="14" height="14" fill="currentC
     + 'aria-hidden="true"><path d="M2 26h28v2H2zM25.4 9c.8-.8.8-2 0-2.8l-3.6-3.6c-.8-.8-2-.8-2.8 0'
     + 'l-15 15V24h6.4l15-15zm-5-5L24 7.6l-3 3L17.4 7l3-3zM6 22v-3.6l10-10 3.6 3.6-10 10H6z"/></svg>';
 
+// The one label that is a state rather than an instruction, so the pill fills
+// with the theme's accent when it is showing — see #card-cursor.is-soon.
+const COMING_SOON_LABEL = 'coming soon';
+
 function setCardCursor(label, icon) {
+    cardCursor.classList.toggle('is-soon', label === COMING_SOON_LABEL);
     if (!icon) { cardCursor.textContent = label; return; }
     cardCursor.textContent = '';
     cardCursor.insertAdjacentHTML('afterbegin', icon);
@@ -2717,13 +2722,13 @@ window.addEventListener('mousemove', (e) => {
         if (gridCard) {
             const alt = gridCard.querySelector('img')?.alt || '';
             if (alt === 'About Me') {
-                cardCursor.textContent = 'about me';
+                setCardCursor('about me');
             } else if (alt === 'Sketchbook') {
-                cardCursor.textContent = 'view sketchbook';
+                setCardCursor('view sketchbook');
             } else if (gridCard.dataset.comingSoon !== undefined) {
-                cardCursor.textContent = 'coming soon';
+                setCardCursor(COMING_SOON_LABEL);
             } else {
-                cardCursor.textContent = 'open project';
+                setCardCursor('open project');
             }
             cardCursor.classList.add('visible');
             dotCursor.classList.remove('visible');
@@ -2775,13 +2780,13 @@ window.addEventListener('mousemove', (e) => {
             dotCursor.classList.remove('visible');
             canvas.style.cursor = 'none';
             if (introPhase === 'waitForScroll') {
-                cardCursor.textContent = 'scroll down';
+                setCardCursor('scroll down');
             } else {
                 const idx = root.userData.cardIndex;
                 if (idx === CUSTOMIZE_INDEX) setCardCursor('customize', PEN_ICON);
                 else setCardCursor(idx === 0 ? 'about me'
                     : idx === 8 ? 'view sketchbook'
-                    : COMING_SOON_INDICES.has(idx) ? 'coming soon'
+                    : COMING_SOON_INDICES.has(idx) ? COMING_SOON_LABEL
                     : 'open project');
             }
         } else {

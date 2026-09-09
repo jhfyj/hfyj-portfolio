@@ -48,6 +48,14 @@
     // thing opening; coming out, the graphic going first and the title
     // following is the point, so the gap has to be visible.
     const EXIT_TITLE_DELAY = 110;
+    // Backstop only. The browser sets a smooth scroll's duration from the
+    // distance, and these pages are long — ten thousand pixels of techatnyu
+    // takes well over a second — so this has to clear the honest case or it
+    // amputates the scroll partway and jumps the rest, which is precisely the
+    // hard cut the scroll exists to avoid. A scroll that genuinely stalls is
+    // caught within five frames by the check below, so nothing waits this long
+    // in practice.
+    const SCROLL_HOME_MAX_MS = 2200;
     // This was the mirror of EASE, on the reasoning that reflecting the
     // arrival's curve through the diagonal makes the two directions the same
     // motion run each way. Mathematically true, and wrong to watch: mirroring
@@ -529,6 +537,38 @@
         Promise.all(flights.map(function (a) { return a.finished; })).then(go, go);
     }
 
+    // Back to the top, then hand over. flyHome measures where the hero is at
+    // the moment it runs, so it cannot start until the scrolling has actually
+    // stopped — starting early would fly from a position the page is no longer
+    // in. Hence waiting on the scroll position itself rather than on a fixed
+    // delay: a smooth scroll's duration is the browser's to decide and varies
+    // with the distance.
+    function scrollHomeThen(done) {
+        const reduce = window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+        const startedAt = Date.now();
+        let last = -1;
+        let still = 0;
+        (function settle() {
+            const y = window.scrollY || window.pageYOffset || 0;
+            if (y <= 1) return done();
+            // A smooth scroll can sit at its starting position for a frame or
+            // two before it gets going, so one unchanged frame means nothing —
+            // only a run of them is a scroll that has genuinely stalled, which
+            // happens when the browser abandons it because the reader touched
+            // the page.
+            still = (y === last) ? still + 1 : 0;
+            if (Date.now() - startedAt > SCROLL_HOME_MAX_MS || still >= 5) {
+                window.scrollTo(0, 0);
+                // A frame for the jump to take effect before anything measures.
+                return requestAnimationFrame(done);
+            }
+            last = y;
+            requestAnimationFrame(settle);
+        })();
+    }
+
     function setupExit() {
         document.addEventListener('click', function (e) {
             // Leave every gesture that means "somewhere else" alone: a new tab,
@@ -546,19 +586,27 @@
             const h1 = document.querySelector('.case-head h1');
             if (!hero || !h1 || hero === document.querySelector('.case-head')) return;
 
+            const href = a.getAttribute('href');
+            e.preventDefault();
+
             // The topbar is fixed, so this link is reachable from the foot of a
             // very long page — by which point the hero is thousands of pixels
-            // above the fold. Shrinking something nobody can see is just a
-            // delay in front of a link, so let it behave like a link.
+            // above the fold. Rather than skip the flight, go and get it: the
+            // page returns to the top and *then* the hero folds into the card,
+            // so leaving reads as one gesture wherever it was started from.
             const r = hero.getBoundingClientRect();
-            if (r.bottom < 40 || r.top > window.innerHeight - 40) return;
+            const visible = r.bottom > 40 && r.top < window.innerHeight - 40;
 
-            e.preventDefault();
-            try {
-                flyHome(hero, h1, origin, a.getAttribute('href'));
-            } catch (err) {
-                window.location.href = a.getAttribute('href');
+            function fly() {
+                try {
+                    flyHome(hero, h1, origin, href);
+                } catch (err) {
+                    window.location.href = href;
+                }
             }
+
+            if (visible) { fly(); return; }
+            scrollHomeThen(fly);
         }, true);
     }
 

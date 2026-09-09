@@ -67,6 +67,25 @@ main { padding-bottom: 0; }
    wrappers, because which one leads is a per-page fact. */
 .case > :first-child { margin-top: 0; }
 
+/* The hero is the picture the carousel card was showing, and going back folds
+   it into that card's photo well — so it takes the well's corner rather than
+   the 12px the media wells further down the page use. The card draws a 24px
+   radius into a 1016.663px-wide well (tmplPhotoClipPath in script.js), and the
+   exit flight ends on that same fraction, so matching it here is what keeps the
+   corner still across the whole trip instead of popping square at the end.
+
+   The expression mirrors .case's own width rule, so it stays correct on a page
+   whose column is 717px and on one whose column is 835px, and it keeps up when
+   the viewport is what is doing the limiting. card-transition.js reads the
+   radius off the element rather than assuming one, so the flight follows. */
+.case > :first-child:not(.case-head) {
+  --hero-radius: calc(min(var(--col), 100vw - 72px) * 0.02361);
+  border-radius: var(--hero-radius);
+  overflow: hidden;
+}
+.case > :first-child:not(.case-head) img,
+.case > :first-child:not(.case-head) video { border-radius: inherit; }
+
 /* And the header, no longer the thing that opens the page, needs the gap the
    hero used to take from it. A shade more than the media's own 40px: a title
    under a full-width image wants more air than an image under a paragraph. */

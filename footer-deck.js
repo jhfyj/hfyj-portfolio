@@ -36,7 +36,19 @@
     // itself back over and the new face is simply there.
     var AUTO_RETURN_MS = 2000;
 
-    function url(face) { return DECK_DIR + encodeURIComponent(face); }
+    function isDark() {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+
+    // Each face has a dark sibling — "Frame 470.jpg" beside "Frame 470-dark.jpg",
+    // the same convention assets/cards uses for the carousel's art. The light
+    // deck is blue on white stock, which in dark mode is a lit window in the
+    // middle of the footer; the dark deck is the same drawing in the dark
+    // theme's five tokens.
+    function url(face) {
+        var name = isDark() ? face.replace(/\.jpg$/, '-dark.jpg') : face;
+        return DECK_DIR + encodeURIComponent(name);
+    }
 
     var SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -200,6 +212,25 @@
             (function (card) {
                 card.el.addEventListener('click', function () { flip(card); });
             })(cards[k]);
+        }
+
+        // The back follows the theme through CSS custom properties, but the
+        // fronts are files, so a theme change has to re-point them. Watching
+        // the attribute rather than listening to the toggle keeps this working
+        // whichever page or control did the changing — the home page, a case
+        // page's toggle, or the pre-paint block on a fresh load.
+        if (typeof MutationObserver === 'function') {
+            var lastDark = isDark();
+            new MutationObserver(function () {
+                if (isDark() === lastDark) return;
+                lastDark = isDark();
+                for (var i = 0; i < cards.length; i++) {
+                    // The face it is showing does not change, only which print
+                    // of it. No skeleton: the card is already on screen, and a
+                    // shimmer here would read as it reloading.
+                    cards[i].front.src = url(cards[i].face);
+                }
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
         }
     }
 

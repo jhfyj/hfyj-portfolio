@@ -96,18 +96,42 @@
      the two edges that are actually on the page are drawn. */
   border-radius: 0;
   background-color: var(--felt);
-  /* Grid paper. 28px squares, drawn as two hairline gradients rather than a
-     tiled image so it takes the theme with it and costs no request. */
-  background-image:
-    linear-gradient(to right, var(--felt-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--felt-line) 1px, transparent 1px);
-  background-size: 28px 28px;
   box-shadow: inset 0 1px 0 var(--rule), inset 0 -1px 0 var(--rule);
   overflow: hidden;
   /* The cards inside are dragged with the pointer; without this a drag on a
      touch screen scrolls the page out from under the card instead. */
   touch-action: none;
 }
+
+/* The table itself, which is larger than the opening you see it through and
+   slides under it. Its transform makes it a stacking context, which is what
+   keeps every played card's z-index inside it and below the hand's - without
+   that the tenth card played would climb over the cards you are holding. */
+#surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  /* Half again as big as the window onto it, in both directions: enough that
+     there is somewhere to push a card to and somewhere to pan, and not so much
+     that a card can be lost on a table you cannot see the edges of. */
+  width: 150%;
+  height: 150%;
+  --px: 0px;
+  --py: 0px;
+  transform: translate3d(var(--px), var(--py), 0);
+  /* Grid paper. 28px squares, drawn as two hairline gradients rather than a
+     tiled image so it takes the theme with it and costs no request. It is on
+     the surface rather than on #felt so the paper moves with the cards when the
+     table is dragged; a fixed background would read as the cards sliding over a
+     table that is standing still. */
+  background-image:
+    linear-gradient(to right, var(--felt-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--felt-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  cursor: grab;
+}
+#felt.is-panning #surface { cursor: grabbing; }
 
 #played { position: absolute; inset: 0; }
 
@@ -117,6 +141,9 @@
   position: absolute;
   left: 50%;
   bottom: 0;
+  /* Above the table, always: the five cards you are holding are never buried
+     by one you have put down. */
+  z-index: 2;
   transform: translateX(-50%);
   /* Its own height is the card's; the cards inside are absolutely placed
      against its centre, which is what makes the arc easy to state. */
@@ -146,9 +173,13 @@
   --y: 0px;
   --rot: 0deg;
   --lift: 0px;
+  /* Where a card arriving in the hand starts from. Separate from --lift, which
+     is hover's to write, and from --y, which is the slot's: three things move a
+     card vertically and none of them should have to know about the others. */
+  --enter: 0px;
   left: 0;
   top: 0;
-  transform: translate3d(var(--x), calc(var(--y) + var(--lift)), 0) rotate(var(--rot));
+  transform: translate3d(var(--x), calc(var(--y) + var(--lift) + var(--enter)), 0) rotate(var(--rot));
   /* The card is a 3D box so the flip has a back to turn to. */
   perspective: 1000px;
   border: 0;
@@ -289,7 +320,10 @@
 
 /* Only the top card of the fan responds; the rest are behind it. The lift is a
    separate custom property from --y so hovering never disturbs the arc. */
-#fan .card { transition: transform 0.22s ease; }
+#fan .card { transition: transform 0.22s ease, opacity 0.22s ease; }
+/* A card played leaves the hand and the rest close up; the new one comes in at
+   the end, rising into the gap rather than appearing in it. */
+#fan .card.is-entering { --enter: 54px; opacity: 0; }
 /* :focus-within, not :focus-visible — the thing that takes focus is the button
    inside the card, and the card is what lifts. */
 #fan .card:hover, #fan .card:focus-within { --lift: -16px; }
@@ -356,6 +390,31 @@
 }
 #grid .card:hover .card-name,
 #grid .card:focus-within .card-name { opacity: 1; }
+
+/* A work that has been dealt out is no longer upcoming, and the heading counts
+   it out. The tile stays so the catalogue is still browsable - it is dimmed and
+   flagged rather than removed, which would jump the whole grid every time a
+   card was played. */
+.played-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: none;
+  padding: 3px 7px;
+  border-radius: 100px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+#grid .card.is-played .played-flag { display: block; }
+#grid .card.is-played .card-face { opacity: 0.4; }
+#grid .card.is-played .card-face img { filter: grayscale(1); }
+#grid .card.is-played:hover .card-face { opacity: 0.72; }
+#grid .card .card-face { transition: opacity 0.22s ease; }
 
 #grid-empty { color: var(--caption); font-size: 15px; }
 
@@ -532,6 +591,7 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .card-inner,
   #fan .card,
+  #grid .card .card-face,
   #played .card.is-dealing,
   #grid .card-face img,
   .card-expand,

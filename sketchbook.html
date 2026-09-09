@@ -83,14 +83,21 @@
          sketchbook.js works out are simply its own box. -->
     <section id="table" aria-labelledby="table-heading">
         <h1 id="table-heading" class="visually-hidden">Sketchbook</h1>
-        <div id="felt">
-            <!-- Played cards are appended here, under the fan in the stacking
-                 order so a card in hand is never buried by one on the table. -->
-            <div id="played" aria-label="Cards on the table"></div>
+        <div id="felt" data-cursor="drag the table">
+            <!-- The table is bigger than the window onto it. #surface is the
+                 table proper - the paper, and every card laid on it - and it
+                 slides under #felt when you drag it, so there is more room to
+                 push cards into than the screen shows. The hand is deliberately
+                 outside it: a hand is held, not lying on the table, so it stays
+                 put while the table moves under it. -->
+            <div id="surface">
+                <!-- Played cards are appended here. -->
+                <div id="played" aria-label="Cards on the table"></div>
+            </div>
             <!-- Exactly five, always. sketchbook.js fills and refills it. -->
             <div id="fan" role="group" aria-label="Your hand"></div>
         </div>
-        <p id="table-hint">Expand a card for its details · click a card to play it · drag it around · click it again to turn it over</p>
+        <p id="table-hint">Click a card to play it · drag the table to see more of it · drag a card around · click it to turn it over · expand it for the details</p>
     </section>
 
     <section id="upcoming" aria-labelledby="upcoming-heading">

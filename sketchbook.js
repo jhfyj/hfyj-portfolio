@@ -45,17 +45,21 @@
     var FAN_EDGE = 24;
 
     var felt = document.getElementById('felt');
+    var surface = document.getElementById('surface');
     var fanEl = document.getElementById('fan');
     var playedEl = document.getElementById('played');
     var gridEl = document.getElementById('grid');
     var emptyEl = document.getElementById('grid-empty');
     var countEl = document.getElementById('upcoming-count');
-    if (!felt || !fanEl || !playedEl || !gridEl) return;
+    if (!felt || !surface || !fanEl || !playedEl || !gridEl) return;
 
     var works = [];      // every work, in manifest order — this is the grid
     var deck = [];       // what the fan draws from next
-    var hand = [];       // the five card elements currently in the fan
+    var hand = [];       // the five card elements currently in the fan, in order
     var topZ = 1;        // last card touched sits above the rest
+    var gridTiles = {};  // id -> the tile in the catalogue, so it can be marked
+    var dealt = {};      // ids that have been played at least once
+    var dealtCount = 0;
 
     /* ---------------- the card face ---------------- */
 
@@ -290,7 +294,12 @@
         }
     }
 
-    function drawInto(i) {
+    // Draws one onto the end of the hand. The hand is a queue: playing a card
+    // takes it out and everything behind it closes up, so a new card always
+    // joins at the back rather than filling the hole the played one left.
+    // `rise` is false for the five the page starts with, which are simply
+    // there rather than arriving.
+    function draw(rise) {
         if (!deck.length) refillDeck();
         var work = deck.shift();
         if (!work) return null;
@@ -301,8 +310,9 @@
         // living once it reaches the table, where a click means something else.
         el.__play = function () { play(el); };
         el.addEventListener('click', el.__play);
+        if (rise) el.classList.add('is-entering');
         fanEl.appendChild(el);
-        hand[i] = el;
+        hand.push(el);
         return el;
     }
 
@@ -325,6 +335,75 @@
         return a;
     }
 
+    /* ---------------- panning the table ---------------- */
+
+    /* The surface is larger than the window onto it, so there is somewhere to
+       push cards to. Dragging anywhere on the table that is not a card slides
+       it; the hand is outside the surface and stays where it is. */
+
+    var pan = { x: 0, y: 0 };
+
+    function panLimits() {
+        var f = felt.getBoundingClientRect();
+        var s = surface.getBoundingClientRect();
+        // Never positive: the surface's top left corner may sit at or left of
+        // the window's, never right of it, or a strip of nothing shows.
+        return { minX: Math.min(0, f.width - s.width), minY: Math.min(0, f.height - s.height) };
+    }
+
+    function applyPan() {
+        var l = panLimits();
+        pan.x = Math.min(0, Math.max(l.minX, pan.x));
+        pan.y = Math.min(0, Math.max(l.minY, pan.y));
+        surface.style.setProperty('--px', pan.x + 'px');
+        surface.style.setProperty('--py', pan.y + 'px');
+    }
+
+    // Open in the middle of the table, so there is room to pan in every
+    // direction rather than only down and to the right.
+    function centrePan() {
+        var l = panLimits();
+        pan.x = l.minX / 2;
+        pan.y = l.minY / 2;
+        applyPan();
+    }
+
+    var panDrag = null;
+
+    felt.addEventListener('pointerdown', function (e) {
+        if (e.button !== undefined && e.button !== 0) return;
+        // A press that lands on a card belongs to that card.
+        if (e.target.closest && e.target.closest('.card')) return;
+        panDrag = {
+            id: e.pointerId,
+            px: e.clientX, py: e.clientY,
+            ox: pan.x, oy: pan.y,
+            moved: false,
+        };
+        if (felt.setPointerCapture) felt.setPointerCapture(e.pointerId);
+    });
+
+    felt.addEventListener('pointermove', function (e) {
+        if (!panDrag || e.pointerId !== panDrag.id) return;
+        var dx = e.clientX - panDrag.px, dy = e.clientY - panDrag.py;
+        if (!panDrag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+        if (!panDrag.moved) { panDrag.moved = true; felt.classList.add('is-panning'); }
+        pan.x = panDrag.ox + dx;
+        pan.y = panDrag.oy + dy;
+        applyPan();
+    });
+
+    function endPan(e) {
+        if (!panDrag || e.pointerId !== panDrag.id) return;
+        if (felt.releasePointerCapture && felt.hasPointerCapture && felt.hasPointerCapture(e.pointerId)) {
+            felt.releasePointerCapture(e.pointerId);
+        }
+        felt.classList.remove('is-panning');
+        panDrag = null;
+    }
+    felt.addEventListener('pointerup', endPan);
+    felt.addEventListener('pointercancel', endPan);
+
     /* ---------------- playing a card ---------------- */
 
     // How far a tilted card's corners reach past the box it would occupy
@@ -340,17 +419,19 @@
         };
     }
 
-    // The rectangle a card of this tilt may be placed in and stay whole.
+    // The rectangle a card of this tilt may be placed in and stay whole, in the
+    // surface's own coordinates. It is the whole surface and not the visible
+    // part: a card dragged off the edge of the window is still on the table,
+    // and panning back to it is the point of the table being bigger.
     function bounds(rotDeg) {
-        var f = felt.getBoundingClientRect();
+        var s = surface.getBoundingClientRect();
         var o = overhang(rotDeg);
         var pad = 8;
         return {
             minX: o.x + pad,
-            maxX: Math.max(o.x + pad, f.width - playedW() - o.x - pad),
+            maxX: Math.max(o.x + pad, s.width - playedW() - o.x - pad),
             minY: o.y + pad,
-            maxY: Math.max(o.y + pad, f.height - playedH() - o.y - pad),
-            top: f.top, left: f.left,
+            maxY: Math.max(o.y + pad, s.height - playedH() - o.y - pad),
         };
     }
 
@@ -358,16 +439,27 @@
     // fan — a card that landed on the hand would be unreachable behind it.
     function landingSpot(rot) {
         var f = felt.getBoundingClientRect();
+        var sr = surface.getBoundingClientRect();
         var w = playedW(), h = playedH();
         var b = bounds(rot);
-        // The fan's own top edge in felt coordinates: the floor for a landing.
-        var fanTop = fanEl.getBoundingClientRect().top - f.top;
+        var o = overhang(rot);
 
-        var minX = b.minX, maxX = b.maxX;
-        var minY = b.minY, maxY = Math.min(b.maxY, fanTop - h - overhang(rot).y - 20);
+        // A card is dealt into view. The surface is larger than the window onto
+        // it, and being handed a card that landed somewhere you have to go
+        // looking for would be a strange way to be handed one — so the landing
+        // band is the visible part of the surface, in surface coordinates,
+        // wherever the table happens to be panned to.
+        var viewX = f.left - sr.left, viewY = f.top - sr.top;
+        var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+
+        var minX = Math.max(b.minX, viewX + o.x + 8);
+        var maxX = Math.min(b.maxX, viewX + f.width - w - o.x - 8);
+        var minY = Math.max(b.minY, viewY + o.y + 8);
+        var maxY = Math.min(b.maxY, fanTop - h - o.y - 20);
         // A short viewport can leave no band at all between the padding and the
         // hand. Landing on the fan is worse than landing tight to the top, so
         // the top wins and the card is simply high on the table.
+        if (maxX < minX) maxX = minX;
         if (maxY < minY) maxY = minY;
 
         // The average of two uniform draws is triangular: still random, but it
@@ -408,15 +500,17 @@
         // Where it is now, in the same coordinates the landing spot is in, so
         // the flight is one transition between two real positions rather than
         // an animation the layout has to be talked out of.
-        var f = felt.getBoundingClientRect();
+        var sr = surface.getBoundingClientRect();
         var fan = fanEl.getBoundingClientRect();
         var slot = fanSlot(i);
-        var fromX = (fan.left - f.left) + slot.x;
-        var fromY = (fan.top - f.top) + slot.y;
+        var fromX = (fan.left - sr.left) + slot.x;
+        var fromY = (fan.top - sr.top) + slot.y;
 
         el.removeEventListener('click', el.__play);
         el.__play = null;
-        hand[i] = null;
+        // Out of the queue, not blanked in place: the cards behind it close up
+        // and the replacement joins at the back.
+        hand.splice(i, 1);
         playedEl.appendChild(el);
 
         el.className = 'card';
@@ -456,9 +550,18 @@
         makePlayable(el);
         addExpand(el);
 
+        markDealt(el.__work);
+
         // The hand is five wide at all times, so the gap closes immediately.
-        drawInto(i);
+        var added = draw(true);
         layOutFan();
+        if (added) {
+            // A frame with the card laid out but still offset, so removing the
+            // class has somewhere to animate from. Without the reflow the two
+            // writes fold into one and it simply appears.
+            void added.offsetWidth;
+            requestAnimationFrame(function () { added.classList.remove('is-entering'); });
+        }
     }
 
     /* ---------------- a card on the table ---------------- */
@@ -611,10 +714,38 @@
     function buildGrid() {
         var frag = document.createDocumentFragment();
         for (var i = 0; i < works.length; i++) {
-            frag.appendChild(buildCard(works[i], { still: true }));
+            var tile = buildCard(works[i], { still: true });
+            // In the document from the start and shown only once the work has
+            // been dealt out, so the tile is marked without the grid reflowing.
+            var flag = document.createElement('span');
+            flag.className = 'played-flag';
+            flag.textContent = 'Played';
+            tile.appendChild(flag);
+            gridTiles[works[i].id] = tile;
+            frag.appendChild(tile);
         }
         gridEl.appendChild(frag);
-        if (countEl) countEl.textContent = '(' + works.length + '/' + PLANNED + ')';
+        updateCount();
+    }
+
+    // What is still to come, not what exists: a card you have played is no
+    // longer upcoming. The hundred is the set the sketchbook is being built
+    // towards, so only the numerator moves.
+    function updateCount() {
+        if (!countEl) return;
+        countEl.textContent = '(' + Math.max(0, works.length - dealtCount) + '/' + PLANNED + ')';
+    }
+
+    // Counted once per work, however many times it comes back round: the deck
+    // reshuffles after sixteen plays, and a work dealt twice has not become two
+    // fewer cards to come.
+    function markDealt(work) {
+        if (!work || dealt[work.id]) return;
+        dealt[work.id] = true;
+        dealtCount++;
+        var tile = gridTiles[work.id];
+        if (tile) tile.classList.add('is-played');
+        updateCount();
     }
 
     /* ---------------- start ---------------- */
@@ -629,8 +760,9 @@
             if (!works.length) throw new Error('works.json held no works');
             buildGrid();
             deck = shuffle(works);
-            for (var i = 0; i < HAND; i++) drawInto(i);
+            for (var i = 0; i < HAND; i++) draw(false);
             layOutFan();
+            centrePan();
         })
         .catch(function (err) {
             // The catalogue is the page; without it there is nothing to show,
@@ -646,6 +778,11 @@
     var resizeTimer = null;
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(layOutFan, 120);
+        resizeTimer = setTimeout(function () {
+            layOutFan();
+            // The surface is sized in percentages, so its limits move with the
+            // window and a pan that was legal a moment ago may not be.
+            applyPan();
+        }, 120);
     });
 })();

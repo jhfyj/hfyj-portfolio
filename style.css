@@ -1870,7 +1870,14 @@ html.gh-handle-drag .gh-handle.br::before {
 .gf-updated { font-size: 0.5625rem; }
 
 
-.gf-contact-group { display: flex; flex-direction: column; gap: 0.125rem; margin-bottom: 0.5rem; }
+/* Ranged right, against the right edge of the footer — it is the block that
+   closes the page, and lining it up with the card above it is what stops the
+   bottom-right corner reading as three things that happen to be near each
+   other. The icons follow the text rather than staying left. */
+.gf-col--contact { align-items: flex-end; text-align: right; }
+.gf-col--contact .gf-socials { justify-content: flex-end; }
+
+.gf-contact-group { display: flex; flex-direction: column; gap: 0.125rem; margin-bottom: 0.5rem; align-items: flex-end; }
 .gf-contact-prompt { font-size: 0.825rem; margin: 0; color: rgba(var(--ink-rgb),0.55); }
 .gf-email { font-size: 0.875rem; font-weight: 500; color: var(--t1); text-decoration: none; }
 .gf-socials { display: flex; gap: 10px; }
@@ -1893,4 +1900,8 @@ html.gh-handle-drag .gh-handle.br::before {
     align-self: start;
   }
   .gf-quote { max-width: none; }
+  /* Stacked, everything shares the left edge — a right-ranged block under a
+     left-ranged one reads as a mistake rather than as a corner. */
+  .gf-col--contact, .gf-contact-group { align-items: flex-start; text-align: left; }
+  .gf-col--contact .gf-socials { justify-content: flex-start; }
 }

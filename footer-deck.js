@@ -34,7 +34,7 @@
     // Long enough to read the back as a card rather than as a glitch, short
     // enough that nobody has to click twice to get on with it. The card turns
     // itself back over and the new face is simply there.
-    var AUTO_RETURN_MS = 2000;
+    var AUTO_RETURN_MS = 1000;
 
     function isDark() {
         return document.documentElement.getAttribute('data-theme') === 'dark';

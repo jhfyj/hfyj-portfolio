@@ -1922,9 +1922,6 @@ html.gh-handle-drag .gh-handle.br::before {
 .gf-card-back {
   transform: rotateY(180deg);
   background: var(--card-stock);
-  /* The thin outer edge the Figma frame has. inset rather than a border so it
-     does not sit outside the 1059:1449 box and change the card's shape. */
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
 }
 
 /* The accent frame. An SVG in the card's own design units, because a

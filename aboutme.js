@@ -179,6 +179,58 @@
 
     Site.reveal(GROUPS);
 
+    // ---------------------------------------------------------------- deck
+
+    // The record is the control. Everything else on the deck — the spin, the
+    // tonearm, the readout — follows the <audio> element's own events rather
+    // than being driven alongside it, so the picture cannot get out of step
+    // with the sound: if playback stalls or the file fails, the disc stops
+    // because 'pause' fired, not because something remembered to stop it.
+    const deck = document.querySelector('[data-deck]');
+    if (deck) {
+        const audio = deck.querySelector('.deck-audio');
+        const platter = deck.querySelector('.deck-platter');
+        const elapsed = deck.querySelector('.deck-elapsed');
+        const total = deck.querySelector('.deck-total');
+
+        function clock(t) {
+            if (!isFinite(t)) return '--:--';
+            const m = Math.floor(t / 60);
+            const s = Math.floor(t % 60);
+            return m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function label() {
+            platter.setAttribute('aria-pressed', audio.paused ? 'false' : 'true');
+            platter.setAttribute('aria-label',
+                (audio.paused ? 'Play' : 'Pause') + ' Andante Largo, Op. 5, No. 5');
+        }
+
+        platter.addEventListener('click', function () {
+            if (audio.paused) {
+                // A rejected play() is the autoplay policy or a missing file.
+                // Either way the deck must not sit there spinning silently.
+                const started = audio.play();
+                if (started && started.catch) started.catch(function () { deck.classList.remove('is-playing'); });
+            } else {
+                audio.pause();
+            }
+        });
+
+        audio.addEventListener('play', function () { deck.classList.add('is-playing'); label(); });
+        audio.addEventListener('pause', function () { deck.classList.remove('is-playing'); label(); });
+        audio.addEventListener('ended', function () {
+            deck.classList.remove('is-playing');
+            audio.currentTime = 0;
+            elapsed.textContent = '0:00';
+            label();
+        });
+        audio.addEventListener('timeupdate', function () { elapsed.textContent = clock(audio.currentTime); });
+        audio.addEventListener('loadedmetadata', function () { total.textContent = clock(audio.duration); });
+        if (audio.readyState >= 1) total.textContent = clock(audio.duration);
+        label();
+    }
+
     // ---------------------------------------------------------------- faq
 
     const items = Array.prototype.slice.call(document.querySelectorAll('.faq-item'));

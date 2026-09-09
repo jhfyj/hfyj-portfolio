@@ -48,14 +48,15 @@
     // thing opening; coming out, the graphic going first and the title
     // following is the point, so the gap has to be visible.
     const EXIT_TITLE_DELAY = 110;
-    // Backstop only. The browser sets a smooth scroll's duration from the
-    // distance, and these pages are long — ten thousand pixels of techatnyu
-    // takes well over a second — so this has to clear the honest case or it
-    // amputates the scroll partway and jumps the rest, which is precisely the
-    // hard cut the scroll exists to avoid. A scroll that genuinely stalls is
-    // caught within five frames by the check below, so nothing waits this long
-    // in practice.
-    const SCROLL_HOME_MAX_MS = 2200;
+    // The trip back to the top is driven here rather than handed to the browser's
+    // own smooth scrolling, because that scales its duration with the distance:
+    // eight thousand pixels of clarusai took 1.3s, and with the flight behind it
+    // that is two seconds between pressing Home and anything happening. Which
+    // reads as a page that did not respond. A fixed budget with a gentle floor
+    // keeps a short trip from feeling abrupt and a long one from feeling broken;
+    // the far end of the page costs about half a second either way.
+    const SCROLL_HOME_MIN_MS = 260;
+    const SCROLL_HOME_MAX_MS = 620;
     // This was the mirror of EASE, on the reasoning that reflecting the
     // arrival's curve through the diagonal makes the two directions the same
     // motion run each way. Mathematically true, and wrong to watch: mirroring
@@ -544,28 +545,34 @@
     // delay: a smooth scroll's duration is the browser's to decide and varies
     // with the distance.
     function scrollHomeThen(done) {
+        const y0 = window.scrollY || window.pageYOffset || 0;
         const reduce = window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
-        const startedAt = Date.now();
-        let last = -1;
-        let still = 0;
-        (function settle() {
-            const y = window.scrollY || window.pageYOffset || 0;
-            if (y <= 1) return done();
-            // A smooth scroll can sit at its starting position for a frame or
-            // two before it gets going, so one unchanged frame means nothing —
-            // only a run of them is a scroll that has genuinely stalled, which
-            // happens when the browser abandons it because the reader touched
-            // the page.
-            still = (y === last) ? still + 1 : 0;
-            if (Date.now() - startedAt > SCROLL_HOME_MAX_MS || still >= 5) {
-                window.scrollTo(0, 0);
-                // A frame for the jump to take effect before anything measures.
-                return requestAnimationFrame(done);
-            }
-            last = y;
-            requestAnimationFrame(settle);
+        if (y0 <= 1 || reduce) { window.scrollTo(0, 0); return requestAnimationFrame(done); }
+
+        // site.css sets scroll-behavior: smooth on <html>, which would make the
+        // browser animate towards every position this sets — an animation
+        // chasing an animation, and far slower than either. Off for the trip,
+        // back on at the end.
+        const root = document.documentElement;
+        const prior = root.style.scrollBehavior;
+        root.style.scrollBehavior = 'auto';
+
+        const ms = Math.min(SCROLL_HOME_MAX_MS,
+                            Math.max(SCROLL_HOME_MIN_MS, SCROLL_HOME_MIN_MS + y0 * 0.03));
+        const t0 = (window.performance && performance.now()) ? performance.now() : Date.now();
+
+        (function step() {
+            const now = (window.performance && performance.now()) ? performance.now() : Date.now();
+            const k = Math.min(1, (now - t0) / ms);
+            // Decelerating, so it arrives rather than stops — the same shape the
+            // flight that follows it uses, which is what lets the two read as
+            // one movement instead of a scroll and then an animation.
+            const e = 1 - Math.pow(1 - k, 3);
+            window.scrollTo(0, Math.round(y0 * (1 - e)));
+            if (k < 1) return requestAnimationFrame(step);
+            root.style.scrollBehavior = prior;
+            requestAnimationFrame(done);
         })();
     }
 

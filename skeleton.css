@@ -17,6 +17,19 @@
    there would be nothing to shimmer and the page would jump when it landed.
    The intrinsic dimensions are on the tags for that reason. */
 
+/* The intrinsic width and height on every tag are what reserve the box, but
+   they are *presentational hints*: they set CSS width and height at the lowest
+   specificity, not an aspect ratio. So a rule that constrains only the width —
+   .polaroid img is width:100% with aspect-ratio 4/5, .strip likewise — left the
+   height hint standing, and the image drew at its full intrinsic height: a
+   polaroid 219px wide and 1031px tall instead of 274.
+
+   height:auto hands the ratio back to whatever the CSS says, or to the tag's
+   own dimensions where it says nothing — which is still a reserved box, and
+   still no layout shift. Anything that genuinely wants a fixed height declares
+   one in its own rule and outranks this by specificity. */
+img { height: auto; }
+
 :root {
   --skel-base: #ECECEC;
   --skel-sheen: #F7F7F7;

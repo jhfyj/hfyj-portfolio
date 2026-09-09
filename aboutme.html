@@ -245,7 +245,27 @@
         <p class="eyebrow">SOME CLASSICAL GUITAR I'VE BEEN PRACTICING</p>
         <p class="statement">Andante Largo, Op. 5, No.5 by Fernando Sor</p>
         <p class="body-copy">Hear a section of it below!</p>
-        <audio controls preload="none" src="assets/about/andante-largo.mp3"></audio>
+        <!-- The browser's own <audio controls> is a grey pill that belongs to no
+             page in particular. This is the same element with its chrome taken
+             off: the record is the control, and the tonearm and the label say
+             what it is doing. preload="metadata" rather than "none" so the
+             length can be shown before anyone commits to pressing play. -->
+        <div class="deck" data-deck>
+            <div class="deck-plinth">
+                <button class="deck-platter" type="button" aria-pressed="false"
+                        aria-label="Play Andante Largo, Op. 5, No. 5">
+                    <span class="deck-disc" aria-hidden="true">
+                        <span class="deck-shine"></span>
+                        <span class="deck-spindle"></span>
+                    </span>
+                </button>
+                <span class="deck-arm" aria-hidden="true"><span class="deck-head"></span></span>
+                <p class="deck-readout" aria-hidden="true">
+                    <span class="deck-elapsed">0:00</span> / <span class="deck-total">--:--</span>
+                </p>
+            </div>
+            <audio class="deck-audio" preload="metadata" src="assets/about/andante-largo.mp3"></audio>
+        </div>
     </section>
 
 </main>

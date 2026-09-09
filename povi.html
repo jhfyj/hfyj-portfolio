@@ -37,6 +37,11 @@
          With no such hand-off waiting it does nothing at all. -->
     <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="povi.css">
 </head>
@@ -135,7 +140,7 @@
         <p class="statement">Designing for Athletes</p>
         <p class="body-copy">We wanted to create something speculative yet grounded in reality, which led us to VR/AR contact lenses. Choosing between a cooking and athletic use case, we combined our personal interest in sports with a key question: what can contact lenses do that glasses and phones can't?</p>
         <figure class="shot">
-            <img src="assets/povi/img-01.png" alt="The FigJam brainstorm board covered in sticky notes">
+            <img src="assets/povi/img-01.png" alt="The FigJam brainstorm board covered in sticky notes" data-skel width="1024" height="573">
         </figure>
     </section>
 
@@ -144,8 +149,8 @@
         <p class="statement">Diving straight in</p>
         <p class="body-copy">After getting the rough wireframe and the overall architecture of the app finalized, we dug straight into hi-fi.</p>
         <div class="media-row" style="--n: 2">
-            <img src="assets/povi/img-02.png" alt="Paper wireframe sketches of the app">
-            <img src="assets/povi/img-03.png" alt="The app architecture laid out in Figma">
+            <img src="assets/povi/img-02.png" alt="Paper wireframe sketches of the app" data-skel width="512" height="319">
+            <img src="assets/povi/img-03.png" alt="The app architecture laid out in Figma" data-skel width="512" height="291">
         </div>
     </section>
 
@@ -154,7 +159,7 @@
         <p class="statement">How can we even begin to imagine, let alone design for, something that doesn't exist yet?</p>
         <p class="body-copy">One of the main challenges we ran into was designing for the untraditional interface of contact lens. We had to consider it from multiple perspectives: 1. Accessibility 2. Eye strain 3. Inputs</p>
         <figure class="shot">
-            <img src="assets/povi/img-04.jpg" alt="Studies of the contact-lens interface and its constraints">
+            <img src="assets/povi/img-04.jpg" alt="Studies of the contact-lens interface and its constraints" data-skel width="1024" height="429">
         </figure>
     </section>
 
@@ -166,16 +171,16 @@
         <p class="body-copy">Try out part of our prototype <a class="accent" href="https://www.figma.com/proto/DQf7n7xX5fksE9quuQBmKO/FigBuild-2026?page-id=41%3A60&amp;node-id=378-700&amp;viewport=-1579%2C853%2C0.48&amp;t=MAHs476W0y9nfbmg-1&amp;scaling=scale-down&amp;content-scaling=fixed&amp;starting-point-node-id=454%3A947" target="_blank" rel="noopener">here</a></p>
 
         <figure class="shot">
-            <img src="assets/povi/img-05.png" alt="POVI app screens: the session overview">
+            <img src="assets/povi/img-05.png" alt="POVI app screens: the session overview" data-skel width="1024" height="576">
         </figure>
         <figure class="shot">
-            <img src="assets/povi/img-06.png" alt="POVI app screens: focus and stress tracking">
+            <img src="assets/povi/img-06.png" alt="POVI app screens: focus and stress tracking" data-skel width="1024" height="576">
         </figure>
         <figure class="shot">
-            <img src="assets/povi/img-07.png" alt="POVI app screens: gameplay playback">
+            <img src="assets/povi/img-07.png" alt="POVI app screens: gameplay playback" data-skel width="1024" height="576">
         </figure>
         <figure class="shot">
-            <img src="assets/povi/img-08.png" alt="POVI app screens: the in-lens display settings">
+            <img src="assets/povi/img-08.png" alt="POVI app screens: the in-lens display settings" data-skel width="1024" height="576">
         </figure>
 
         <!-- Narrower than the column on the original, and centred. -->
@@ -189,7 +194,7 @@
         <p class="statement">The Dream Team.</p>
         <p class="body-copy">We all pitched in, gave it everything we had, and each brought our own strengths to the table. We learned so much from one another, exchanging feedback honestly and openly. It was truly a dream team.</p>
         <figure class="shot">
-            <img src="assets/povi/img-09.png" alt="The team working together during the competition">
+            <img src="assets/povi/img-09.png" alt="The team working together during the competition" data-skel width="768" height="1024">
         </figure>
     </section>
 

@@ -37,6 +37,11 @@
          With no such hand-off waiting it does nothing at all. -->
     <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="puregym.css">
 </head>
@@ -93,7 +98,7 @@
              bytes land: the hero now opens the page, so its box settling late
              would shove the whole column, and the card transition measures it
              on arrival. -->
-        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/puregym/hero.gif" width="854" height="640" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code"></a>
+        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/puregym/hero.gif" width="854" height="640" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code" data-skel></a>
     </figure>
 
     <header class="case-head">
@@ -133,7 +138,7 @@
         <p class="statement">The design is efficient, yet neither intuitive nor engaging enough to retain users.</p>
         <p class="body-copy">I interviewed real PureGym users on how they interact with the app to better understand their challenges and frustrations. From my research, I learned that users use the app not because they want to, but because they have to, and that's an issue.</p>
         <figure class="shot">
-            <img src="assets/puregym/research.png" alt="Quotes from user interviews arranged around a screenshot of the current Puregym app">
+            <img src="assets/puregym/research.png" alt="Quotes from user interviews arranged around a screenshot of the current Puregym app" data-skel width="1024" height="978">
         </figure>
     </section>
 
@@ -142,7 +147,7 @@
         <p class="statement">Designing a check-in process that feels intuitive.</p>
         <p class="body-copy">I went through numerous design iterations, progressively simplifying the process until it required the fewest possible steps for users to check into the gym they want.</p>
         <figure class="shot">
-            <img src="assets/puregym/solution.png" alt="Three iterations of the check-in page, V1 through V3">
+            <img src="assets/puregym/solution.png" alt="Three iterations of the check-in page, V1 through V3" data-skel width="1024" height="925">
         </figure>
     </section>
 
@@ -151,7 +156,7 @@
         <p class="statement">Bringing the product back to the users and actually putting it in their hands.</p>
         <p class="body-copy">While the overall response was largely positive, I identified several key areas for improvement. I refined the product to create an experience that is not only intuitive, but also drives user acquisition and retention.</p>
         <figure class="shot">
-            <img src="assets/puregym/feedback.png" alt="Before and after of the Popular Times chart, and the two guest-pass versions users chose between">
+            <img src="assets/puregym/feedback.png" alt="Before and after of the Popular Times chart, and the two guest-pass versions users chose between" data-skel width="1024" height="558">
         </figure>
     </section>
 
@@ -161,13 +166,13 @@
 
         <!-- One continuous sheet: the panels butt against each other with no gap. -->
         <div class="reel">
-            <img src="assets/puregym/final-1.png" alt="The final login and check-in screens">
+            <img src="assets/puregym/final-1.png" alt="The final login and check-in screens" data-skel width="1024" height="823">
             <video src="assets/puregym/clip-1.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: choosing a gym"></video>
             <video src="assets/puregym/clip-2.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: checking in"></video>
             <video src="assets/puregym/clip-3.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: viewing gym info"></video>
             <video src="assets/puregym/clip-4.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Walkthrough: the progress page"></video>
-            <img src="assets/puregym/final-2.png" alt="Further screens from the final design">
-            <img src="assets/puregym/final-3.png" alt="Further screens from the final design">
+            <img src="assets/puregym/final-2.png" alt="Further screens from the final design" data-skel width="1024" height="621">
+            <img src="assets/puregym/final-3.png" alt="Further screens from the final design" data-skel width="1024" height="820">
         </div>
     </section>
 

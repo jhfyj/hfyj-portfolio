@@ -37,6 +37,11 @@
          With no such hand-off waiting it does nothing at all. -->
     <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="the-dial.css">
 </head>
@@ -142,7 +147,7 @@
         <p class="body-copy">When I came across the moment, I thought to myself: how can I create something that express a moment by taking advantage of the unique advantages provided by working on a digital medium?</p>
         <p class="body-copy">Inspired by <a class="accent" href="https://stripe.com/" target="_blank" rel="noopener">Stripe's landing page</a>, I wanted my interaction to be able to alter the moment as much as it can express it, and turning daytime into nighttime is something that is only possible on a digital screen.</p>
         <figure class="shot">
-            <img src="assets/the-dial/img-01.png" alt="The planning mind map for The Dial, branching from the theme “moments”">
+            <img src="assets/the-dial/img-01.png" alt="The planning mind map for The Dial, branching from the theme “moments”" data-skel width="1024" height="439">
         </figure>
     </section>
 

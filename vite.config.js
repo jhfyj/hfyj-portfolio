@@ -37,6 +37,7 @@ const CLASSIC_SCRIPTS = [
     'card-transition.js',
     'case.js',
     'site.js',
+    'skeleton.js',
 ];
 
 // Asset trees whose URLs are built at runtime rather than written in the HTML:

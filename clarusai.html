@@ -37,6 +37,11 @@
          With no such hand-off waiting it does nothing at all. -->
     <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="clarusai.css">
 </head>
@@ -145,7 +150,7 @@
         <p class="statement">Lots of sketches…</p>
         <p class="body-copy">We slowly narrowed our focus, moving from broad ideas like sustainability and energy toward a clearer, more concrete direction. We landed on the idea of having the users generate energy themselves using three different types of mechanical movements, such as churning or pushing. The energy will be used to generate the responses for the LLM, providing insights as to the physical work behind every usage.</p>
         <figure class="shot">
-            <img src="assets/clarusai/img-01.png" alt="A spread of hand sketches exploring the installation's mechanisms">
+            <img src="assets/clarusai/img-01.png" alt="A spread of hand sketches exploring the installation's mechanisms" data-skel width="1024" height="714">
         </figure>
     </section>
 
@@ -154,7 +159,7 @@
         <p class="statement">3D print prototype, then cardboard, then actual parts</p>
         <p class="body-copy">We first built a 3D model to check the dimension, overall balance, and the relative sizes. We then used carboard to build a rough prototype. After a couple of failed attempts, we had an exact template that we used to laser cut our frosted acrylic and wood panels.</p>
         <figure class="shot">
-            <img src="assets/clarusai/img-02.png" alt="The 3D model, the cardboard mock-up and the laser-cut parts side by side">
+            <img src="assets/clarusai/img-02.png" alt="The 3D model, the cardboard mock-up and the laser-cut parts side by side" data-skel width="1024" height="649">
         </figure>
     </section>
 
@@ -164,9 +169,9 @@
         <p class="body-copy">I learned and experimented with Fusion360 from scratch. We incorporated springs and rubber bands to create resistance for the hand-powered linear-to-rotational movement mechanism.</p>
         <!-- Three renders of different heights, sitting on a shared centre line. -->
         <div class="media-row renders" style="--n: 3">
-            <img src="assets/clarusai/img-05.png" alt="Fusion360 render of the crank mechanism">
-            <img src="assets/clarusai/img-03.png" alt="Fusion360 render of the housing and gear assembly">
-            <img src="assets/clarusai/img-04.png" alt="Cutaway render of the internal gearing">
+            <img src="assets/clarusai/img-05.png" alt="Fusion360 render of the crank mechanism" data-skel width="1024" height="683">
+            <img src="assets/clarusai/img-03.png" alt="Fusion360 render of the housing and gear assembly" data-skel width="971" height="661">
+            <img src="assets/clarusai/img-04.png" alt="Cutaway render of the internal gearing" data-skel width="755" height="796">
         </div>
     </section>
 
@@ -175,10 +180,10 @@
         <p class="statement">Arduino, wiring, rotary motors, and serial communication</p>
         <!-- One unbroken strip on the original: four photos butted edge to edge. -->
         <div class="strip">
-            <img src="assets/clarusai/img-06.jpg" alt="The workbench mid-build">
-            <img src="assets/clarusai/img-07.jpg" alt="Laying out the laser-cut panels">
-            <img src="assets/clarusai/img-08.jpg" alt="The assembled housing">
-            <img src="assets/clarusai/img-09.jpg" alt="Arduino wiring and rotary motors">
+            <img src="assets/clarusai/img-06.jpg" alt="The workbench mid-build" data-skel width="1024" height="768">
+            <img src="assets/clarusai/img-07.jpg" alt="Laying out the laser-cut panels" data-skel width="768" height="1024">
+            <img src="assets/clarusai/img-08.jpg" alt="The assembled housing" data-skel width="768" height="1024">
+            <img src="assets/clarusai/img-09.jpg" alt="Arduino wiring and rotary motors" data-skel width="768" height="1024">
         </div>
     </section>
 
@@ -187,10 +192,10 @@
         <p class="statement">Building out the webpage/Clarus AI</p>
         <p class="body-copy">Towards the end of the semester, we focused on designing the webpage. We took inspiration from existing AI tools, aiming for a clean UI while incorporating unique UX features such as a pop up for displaying the energy used to generate each response.</p>
         <figure class="shot">
-            <img src="assets/clarusai/img-10.png" alt="The Clarus AI interface on a laptop: “What's on your mind today?”">
+            <img src="assets/clarusai/img-10.png" alt="The Clarus AI interface on a laptop: “What's on your mind today?”" data-skel width="1024" height="768">
         </figure>
         <figure class="shot">
-            <img src="assets/clarusai/img-11.png" alt="The interface showing a generated response">
+            <img src="assets/clarusai/img-11.png" alt="The interface showing a generated response" data-skel width="1024" height="768">
         </figure>
     </section>
 
@@ -199,19 +204,19 @@
         <p class="statement">Presenting our project at IMA/ITP Winter Show 2026</p>
         <p class="body-copy">The response was overwhelmingly positive. Many people appreciated how we made the audience feel like they were earning their energy in a fun way, which helped make a serious topic more accessible. We also received valuable suggestions for further improving the project.</p>
         <figure class="shot">
-            <img src="assets/clarusai/img-12.jpg" alt="The installation on show at the IMA/ITP Winter Show">
+            <img src="assets/clarusai/img-12.jpg" alt="The installation on show at the IMA/ITP Winter Show" data-skel width="1024" height="683">
         </figure>
         <figure class="shot">
-            <img src="assets/clarusai/img-13.jpg" alt="A visitor turning the crank to generate energy">
+            <img src="assets/clarusai/img-13.jpg" alt="A visitor turning the crank to generate energy" data-skel width="1024" height="683">
         </figure>
         <figure class="shot">
-            <img src="assets/clarusai/img-14.jpg" alt="Visitors gathered around the installation">
+            <img src="assets/clarusai/img-14.jpg" alt="Visitors gathered around the installation" data-skel width="1024" height="576">
         </figure>
         <figure class="shot">
-            <img src="assets/clarusai/img-15.jpg" alt="The installation lit up in the show space">
+            <img src="assets/clarusai/img-15.jpg" alt="The installation lit up in the show space" data-skel width="1024" height="576">
         </figure>
         <figure class="shot">
-            <img src="assets/clarusai/img-16.jpg" alt="A close view of the finished enclosure">
+            <img src="assets/clarusai/img-16.jpg" alt="A close view of the finished enclosure" data-skel width="1024" height="683">
         </figure>
     </section>
 

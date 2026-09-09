@@ -37,6 +37,11 @@
          With no such hand-off waiting it does nothing at all. -->
     <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="case.css">
     <link rel="stylesheet" href="techatnyu.css">
 </head>
@@ -92,7 +97,7 @@
              bytes land: the hero now opens the page, so its box settling late
              would shove the whole column, and the card transition measures it
              on arrival. -->
-        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/techatnyu/img-01.png" width="1024" height="666" alt="A grid of the rebranded tech@nyu social posts: Club Fest, Kick-Off, Hiring Event and Tech Treks"></a>
+        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/techatnyu/img-01.png" width="1024" height="666" alt="A grid of the rebranded tech@nyu social posts: Club Fest, Kick-Off, Hiring Event and Tech Treks" data-skel></a>
     </figure>
 
     <header class="case-head">
@@ -125,7 +130,7 @@
         <p class="statement">Previous website and social media</p>
         <p class="body-copy">When I first assumed the role of Marketing Director, I identified major inconsistencies across the organization’s social media and website. Previous posts lacked cohesion in color, typography, and messaging, while the website, though well built, was missing a strong visual identity and personality to set it apart.</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-02.png" alt="The old Instagram grid beside the old tech@nyu homepage">
+            <img src="assets/techatnyu/img-02.png" alt="The old Instagram grid beside the old tech@nyu homepage" data-skel width="1024" height="419">
         </figure>
     </section>
 
@@ -134,13 +139,13 @@
         <p class="statement">Redesign the Website (only)</p>
         <p class="body-copy">Over the summer, I was asked to help with the website redesign. We had a few ideas to start with, so I explored some additional directions on top of that. But without a clear vision, the process felt a bit aimless and unfocused.</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-03.png" alt="Early website explorations on a dark canvas">
+            <img src="assets/techatnyu/img-03.png" alt="Early website explorations on a dark canvas" data-skel width="1024" height="957">
         </figure>
 
         <p class="statement spaced">Branding Version #1</p>
         <p class="body-copy">I mostly followed my own instincts, leaning toward a more futuristic feel that I felt best represented Tech@NYU. I put together some layout and social media references and experimented with a few concepts.</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-04.png" alt="The first branding direction: a futuristic layout and social media concepts">
+            <img src="assets/techatnyu/img-04.png" alt="The first branding direction: a futuristic layout and social media concepts" data-skel width="1024" height="688">
         </figure>
 
         <!-- Centred on the original, as a beat between the two directions. -->
@@ -154,13 +159,13 @@
         <p class="body-copy faint">I dug into the club’s history and reviewed past social media and website content, but most importantly, I organized a strategy session with the president and vice president. I came in with a set of guiding questions: what the brand is, what it could become, and what it should be.</p>
 
         <div class="media-row" style="--n: 2">
-            <img src="assets/techatnyu/img-05.jpg" alt="The strategy session in progress">
-            <img src="assets/techatnyu/img-06.jpg" alt="Notes and sticky notes from the strategy session">
+            <img src="assets/techatnyu/img-05.jpg" alt="The strategy session in progress" data-skel width="1024" height="663">
+            <img src="assets/techatnyu/img-06.jpg" alt="Notes and sticky notes from the strategy session" data-skel width="1024" height="663">
         </div>
 
         <p class="statement spaced">After researching, I gathered a few key ideas that best summarized the club:</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-07.png" alt="The key brand ideas distilled from the research">
+            <img src="assets/techatnyu/img-07.png" alt="The key brand ideas distilled from the research" data-skel width="661" height="522">
         </figure>
     </section>
 
@@ -168,36 +173,36 @@
         <p class="eyebrow">Finalized branding</p>
         <p class="statement">After receiving confirmation from leadership, I hammered down the basics of the brand guideline</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-08.png" alt="The tech@nyu brand guideline: logo, colour and type">
+            <img src="assets/techatnyu/img-08.png" alt="The tech@nyu brand guideline: logo, colour and type" data-skel width="1024" height="670">
         </figure>
 
         <p class="statement spaced">Web design</p>
         <p class="body-copy">You can view the live website here: <a class="accent" href="https://techatnyu.org/" target="_blank" rel="noopener">techatnyu.rog</a></p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-09.png" alt="The redesigned tech@nyu homepage">
+            <img src="assets/techatnyu/img-09.png" alt="The redesigned tech@nyu homepage" data-skel width="1024" height="886">
         </figure>
         <figure class="shot">
-            <img src="assets/techatnyu/img-10.png" alt="Further pages from the redesigned website">
+            <img src="assets/techatnyu/img-10.png" alt="Further pages from the redesigned website" data-skel width="1024" height="756">
         </figure>
         <figure class="shot">
-            <img src="assets/techatnyu/img-11.png" alt="Website sections showing the new visual identity">
+            <img src="assets/techatnyu/img-11.png" alt="Website sections showing the new visual identity" data-skel width="1024" height="655">
         </figure>
         <figure class="shot">
-            <img src="assets/techatnyu/img-12.png" alt="More of the redesigned website">
+            <img src="assets/techatnyu/img-12.png" alt="More of the redesigned website" data-skel width="1024" height="768">
         </figure>
 
         <p class="eyebrow spaced">Social Media Posts</p>
         <p class="statement">Various layouts for instagram (@techatnyu)</p>
         <figure class="shot">
-            <img src="assets/techatnyu/img-13.png" alt="A set of Instagram post layouts in the new brand">
+            <img src="assets/techatnyu/img-13.png" alt="A set of Instagram post layouts in the new brand" data-skel width="1024" height="716">
         </figure>
 
         <p class="eyebrow spaced">Other Assets</p>
         <p class="statement">In addition to the website and social media, I also designed and created a new club fest board focused on reusability</p>
         <p class="body-copy">With support from fellow members during execution, I focused on building a sustainable design that could be reused year after year. Printed sheets were placed under protective covers, making them simple to replace with new information or images.</p>
         <div class="media-row" style="--n: 2">
-            <img src="assets/techatnyu/img-14.jpg" alt="The club fest board on the table at the fair">
-            <img src="assets/techatnyu/img-15.jpg" alt="A close-up of the reusable printed panels">
+            <img src="assets/techatnyu/img-14.jpg" alt="The club fest board on the table at the fair" data-skel width="1024" height="576">
+            <img src="assets/techatnyu/img-15.jpg" alt="A close-up of the reusable printed panels" data-skel width="1024" height="768">
         </div>
     </section>
 

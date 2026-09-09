@@ -1,0 +1,59 @@
+/* Loading skeletons for images.
+   ---------------------------------------------------------------------------
+   Every <img> on the site carries a `data-skel` attribute, and while it is
+   there the image paints a shimmer instead of empty space. skeleton.js takes
+   the attribute off the moment the image is decoded, which is what ends the
+   shimmer — the loaded image then paints over the background it was standing
+   in for.
+
+   The shimmer is the element's own background rather than an overlay or a
+   wrapper element: an <img> with nothing loaded yet is a transparent box, so
+   its background is exactly the surface that is otherwise blank, and it takes
+   the image's own border-radius and object-fit box for free. No extra markup,
+   and nothing to unwind afterwards.
+
+   The catch, and the reason this file is not enough on its own: an image with
+   no width/height and `height: auto` is zero pixels tall until it arrives, so
+   there would be nothing to shimmer and the page would jump when it landed.
+   The intrinsic dimensions are on the tags for that reason. */
+
+:root {
+  --skel-base: #ECECEC;
+  --skel-sheen: #F7F7F7;
+}
+:root[data-theme="dark"] {
+  --skel-base: #262626;
+  --skel-sheen: #333333;
+}
+
+img[data-skel] {
+  /* Doubled so there is somewhere off-screen to travel from and to. */
+  background-image: linear-gradient(
+    100deg,
+    var(--skel-base) 30%,
+    var(--skel-sheen) 50%,
+    var(--skel-base) 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skel-shimmer 1.5s ease-in-out infinite;
+  /* An image that fails, or one still holding its alt text, should not sit
+     over the sheen with its own broken-image glyph and letters. */
+  color: transparent;
+}
+
+@keyframes skel-shimmer {
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
+}
+
+/* The sheen sweeping past is decoration, and this is exactly the kind of
+   repeating motion that setting makes people uncomfortable. The base tone
+   stays: it is what says "something is coming", which is information. */
+@media (prefers-reduced-motion: reduce) {
+  img[data-skel] {
+    background-image: none;
+    background-color: var(--skel-base);
+    animation: none;
+  }
+}

@@ -32,6 +32,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
     <link rel="stylesheet" href="aboutme.css">
 </head>
 <body>
@@ -91,7 +96,7 @@
                 <p>It shaped the designer I want to become: <span class="accent">a strategist, thinker, creative, and out-of-the-box problem solver, but also a community builder</span> who brings talented people together and inspires them to create alongside one another.</p>
             </div>
             <figure class="why-figure">
-                <img src="assets/about/doudizhu.jpg" alt="Playing Dou Di Zhu around a table with friends">
+                <img src="assets/about/doudizhu.jpg" alt="Playing Dou Di Zhu around a table with friends" data-skel width="512" height="384">
                 <figcaption>Me playing Dou Di Zhu with my childhood friends</figcaption>
             </figure>
         </div>
@@ -103,7 +108,7 @@
             <ul class="exp-list">
                 <li class="exp-row">
                     <span class="exp-date">Summer 2026</span>
-                    <img class="exp-logo" src="assets/about/logo-bmw.png" alt="BMW Designworks">
+                    <img class="exp-logo" src="assets/about/logo-bmw.png" alt="BMW Designworks" data-skel width="500" height="500">
                     <span class="exp-body">
                         <span class="exp-org">BMW Designwork</span>
                         <span class="exp-role">Interactions Intern</span>
@@ -111,7 +116,7 @@
                 </li>
                 <li class="exp-row">
                     <span class="exp-date">Summer 2026</span>
-                    <img class="exp-logo exp-logo-wide" src="assets/about/logo-dfg.png" alt="Develop for Good">
+                    <img class="exp-logo exp-logo-wide" src="assets/about/logo-dfg.png" alt="Develop for Good" data-skel width="512" height="142">
                     <span class="exp-body">
                         <span class="exp-org">Develop for Good</span>
                         <span class="exp-role">Design Manager</span>
@@ -120,7 +125,7 @@
                 </li>
                 <li class="exp-row">
                     <span class="exp-date">2025-2026</span>
-                    <img class="exp-logo" src="assets/about/logo-mirror.jpg" alt="Mirror Physics">
+                    <img class="exp-logo" src="assets/about/logo-mirror.jpg" alt="Mirror Physics" data-skel width="100" height="100">
                     <span class="exp-body">
                         <span class="exp-org">Mirror Physics</span>
                         <span class="exp-role">Product Design Intern</span>
@@ -128,7 +133,7 @@
                 </li>
                 <li class="exp-row">
                     <span class="exp-date">2025-2026</span>
-                    <img class="exp-logo" src="assets/about/logo-nyuei.png" alt="NYU Entrepreneurial Institute">
+                    <img class="exp-logo" src="assets/about/logo-nyuei.png" alt="NYU Entrepreneurial Institute" data-skel width="149" height="149">
                     <span class="exp-body">
                         <span class="exp-org">NYU Entrepreneurial Institute</span>
                         <span class="exp-role">Design Intern</span>
@@ -136,7 +141,7 @@
                 </li>
                 <li class="exp-row">
                     <span class="exp-date">Summer 2025</span>
-                    <img class="exp-logo" src="assets/about/logo-lfnco.jpg" alt="LFNCO/FF">
+                    <img class="exp-logo" src="assets/about/logo-lfnco.jpg" alt="LFNCO/FF" data-skel width="200" height="200">
                     <span class="exp-body">
                         <span class="exp-org">LFNCO/FF</span>
                         <span class="exp-role">Experience Design Intern</span>
@@ -173,8 +178,8 @@
 
         <div class="people-grid">
             <div class="strips">
-                <img class="strip strip-a" src="assets/about/strip-astudio.webp" alt="A photobooth strip from AStudio events">
-                <img class="strip strip-b" src="assets/about/strip-technyu.webp" alt="A photobooth strip from tech@nyu events">
+                <img class="strip strip-a" src="assets/about/strip-astudio.webp" alt="A photobooth strip from AStudio events" data-skel width="345" height="1447">
+                <img class="strip strip-b" src="assets/about/strip-technyu.webp" alt="A photobooth strip from tech@nyu events" data-skel width="345" height="1447">
             </div>
 
             <div class="orgs">
@@ -198,10 +203,10 @@
                 <p class="body-copy">Got to meet some of the coolest people ever. Was so inspired everyday to keep making cool things :)</p>
             </div>
             <div class="sundays-photos">
-                <div class="polaroid sp1"><img src="assets/about/sundays-1.webp" alt=""></div>
-                <div class="polaroid sp2"><img src="assets/about/sundays-2.webp" alt=""></div>
-                <div class="polaroid sp3"><img src="assets/about/sundays-3.webp" alt=""></div>
-                <div class="polaroid sp4"><img src="assets/about/sundays-4.webp" alt=""></div>
+                <div class="polaroid sp1"><img src="assets/about/sundays-1.webp" alt="" data-skel width="992" height="1024"></div>
+                <div class="polaroid sp2"><img src="assets/about/sundays-2.webp" alt="" data-skel width="826" height="1024"></div>
+                <div class="polaroid sp3"><img src="assets/about/sundays-3.webp" alt="" data-skel width="989" height="1024"></div>
+                <div class="polaroid sp4"><img src="assets/about/sundays-4.webp" alt="" data-skel width="992" height="1024"></div>
             </div>
         </div>
     </section>

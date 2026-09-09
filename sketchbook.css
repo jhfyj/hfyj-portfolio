@@ -1,0 +1,288 @@
+/* The sketchbook: a table you deal cards onto, and the catalogue below it.
+   ---------------------------------------------------------------------------
+   Colour comes entirely from site.css's tokens, so both themes are already
+   handled and only the three surfaces this page invents — the grid paper, the
+   card stock and the card's edge — are defined here, once per palette.
+
+   One rule about the card: .card-face is the whole of a card's appearance, and
+   nothing outside it should need to change to restyle one. Position, rotation,
+   flipping and stacking live on .card and .card-inner above it; the face is
+   just a picture with a name on it. The fan, the table and the grid all use the
+   same face, which is why it is worth keeping that line clean. */
+
+:root {
+  --felt: #FAFAF8;
+  --felt-line: rgba(0, 0, 0, 0.055);
+  --stock: #ffffff;        /* the card itself */
+  --stock-edge: rgba(0, 0, 0, 0.12);
+  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), 0 12px 28px rgba(0, 0, 0, 0.10);
+  --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.12), 0 22px 48px rgba(0, 0, 0, 0.18);
+
+  /* A playing card is 2.5 by 3.5 inches. Every card on this page — in the fan,
+     on the table, in the grid — is that shape, so the works crop into it
+     rather than each tile taking its own proportions. */
+  --card-ar: 5 / 7;
+  --card-w: 172px;         /* the fan and the table; the grid sizes its own */
+  --card-r: 10px;
+}
+
+:root[data-theme="dark"] {
+  --felt: #171717;
+  --felt-line: rgba(255, 255, 255, 0.06);
+  --stock: #202020;
+  --stock-edge: rgba(255, 255, 255, 0.14);
+  /* Shadow does almost no work on a dark ground, so the card is separated by a
+     lighter stock and a visible edge instead; the shadow only stops it looking
+     pasted on. */
+  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.45);
+  --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.55), 0 22px 48px rgba(0, 0, 0, 0.6);
+}
+
+.sketchbook {
+  --col: 1180px;
+  max-width: var(--col);
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ---------- the table ---------- */
+
+#table { padding-top: 20px; }
+
+#felt {
+  position: relative;
+  /* Tall enough that a card can land well clear of the fan and still have the
+     grid below it visible on a laptop. The floor keeps that true when the
+     viewport is short — below it there is no room to play a card into. */
+  height: 64vh;
+  min-height: 460px;
+  border-radius: 16px;
+  background-color: var(--felt);
+  /* Grid paper. 28px squares, drawn as two hairline gradients rather than a
+     tiled image so it takes the theme with it and costs no request. */
+  background-image:
+    linear-gradient(to right, var(--felt-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--felt-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  box-shadow: inset 0 0 0 1px var(--rule);
+  overflow: hidden;
+  /* The cards inside are dragged with the pointer; without this a drag on a
+     touch screen scrolls the page out from under the card instead. */
+  touch-action: none;
+}
+
+#played { position: absolute; inset: 0; }
+
+/* The fan sits along the bottom edge, half off it: a hand you are holding up
+   to the table rather than five cards lying on it. */
+#fan {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  /* Its own height is the card's; the cards inside are absolutely placed
+     against its centre, which is what makes the arc easy to state. */
+  width: var(--card-w);
+  height: calc(var(--card-w) / (5 / 7));
+  /* Pushed down so only the top two thirds of the hand shows. */
+  margin-bottom: calc(var(--card-w) / (5 / 7) * -0.34);
+}
+
+#table-hint {
+  margin: 14px 2px 0;
+  font-size: 13px;
+  color: var(--faint);
+  letter-spacing: 0.01em;
+}
+
+/* ---------- a card ---------- */
+
+.card {
+  position: absolute;
+  width: var(--card-w);
+  aspect-ratio: var(--card-ar);
+  /* Every card's own position and tilt are set as custom properties by
+     sketchbook.js and composed here, so the script never writes a transform
+     string and the two cannot disagree about the order of operations. */
+  --x: 0px;
+  --y: 0px;
+  --rot: 0deg;
+  --lift: 0px;
+  left: 0;
+  top: 0;
+  transform: translate3d(var(--x), calc(var(--y) + var(--lift)), 0) rotate(var(--rot));
+  /* The card is a 3D box so the flip has a back to turn to. */
+  perspective: 1000px;
+  border: 0;
+  padding: 0;
+  /* A grid tile is a <figure>, which the UA sheet gives 1em 40px of margin —
+     enough to push every tile out of its column and the last one off the page. */
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  /* A card mid-drag must not select the page text under it. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.card.is-flipped .card-inner { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--card-r);
+  overflow: hidden;
+  background: var(--stock);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px var(--stock-edge);
+  /* The half turned away must not paint through the half facing you. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.card-face--back { transform: rotateY(180deg); }
+
+.card-face img {
+  width: 100%;
+  height: 100%;
+  /* The works run from 426x240 to 963x2400; the card is one shape, so they
+     crop into it rather than letterbox. */
+  object-fit: cover;
+}
+
+/* The name, on the face. Held at the foot of the card on a scrim so it stays
+   readable over a light work and a dark one alike. */
+.card-name {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 22px 10px 9px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0));
+  color: #fff;
+  text-align: left;
+  pointer-events: none;
+}
+.card-name .cat {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  /* The source's own casing is inconsistent — "installation" next to
+     "Installation" — and an eyebrow in caps hides that without editing what
+     the site actually says. The title below is left exactly as written. */
+  text-transform: uppercase;
+  opacity: 0.78;
+  margin-bottom: 1px;
+}
+.card-name .name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* ---------- cards in the fan ---------- */
+
+/* Only the top card of the fan responds; the rest are behind it. The lift is a
+   separate custom property from --y so hovering never disturbs the arc. */
+#fan .card { transition: transform 0.22s ease; }
+#fan .card:hover, #fan .card:focus-visible { --lift: -16px; }
+#fan .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* ---------- cards on the table ---------- */
+
+#played .card { box-shadow: none; }
+#played .card.is-dragging { cursor: grabbing; }
+#played .card.is-dragging .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
+
+/* The flight out of the fan. sketchbook.js puts the card at its landing spot
+   first and offsets it back to where it was in the hand, then takes the offset
+   away — so this transition runs on real coordinates and the card is already
+   where it belongs if it never gets to animate. */
+#played .card.is-dealing {
+  transition: transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+/* ---------- the catalogue ---------- */
+
+#upcoming { padding-top: 52px; }
+
+#upcoming h2 {
+  font-family: "DM Sans", "Figtree", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--head);
+  margin: 0 0 20px;
+}
+#upcoming h2 .count { color: var(--num); font-variant-numeric: tabular-nums; }
+
+#grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* A grid tile is the same card face at a different size, so it inherits the
+   shape and the stock and only overrides what a tile does differently: it fills
+   its column instead of being a fixed width, and it does not move. */
+#grid .card {
+  position: relative;
+  width: 100%;
+  transform: none;
+  cursor: default;
+}
+#grid .card-face { box-shadow: inset 0 0 0 1px var(--stock-edge); }
+#grid .card-face img { transition: transform 0.4s ease; }
+#grid .card:hover .card-face img { transform: scale(1.04); }
+
+/* The name is hidden until hover, the way the live sketchbook does it — but it
+   is in the document the whole time rather than mounted on hover, so a screen
+   reader and a keyboard get the name too. */
+#grid .card-name {
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+#grid .card:hover .card-name,
+#grid .card:focus-within .card-name { opacity: 1; }
+
+#grid-empty { color: var(--caption); font-size: 15px; }
+
+/* ---------- narrower ---------- */
+
+@media (max-width: 900px) {
+  #grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .sketchbook { padding: 0 16px 64px; }
+  :root { --card-w: 124px; }
+  #felt { height: 56vh; min-height: 380px; }
+  #grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  #upcoming h2 { font-size: 19px; }
+  /* Hover is not available here, so the name that would be revealed by it has
+     to be on already or it can never be read. */
+  #grid .card-name { opacity: 1; }
+}
+
+/* The deal, the flip and the tile's zoom are all decoration over a page that
+   works without them; the drag is not, and is untouched. */
+@media (prefers-reduced-motion: reduce) {
+  .card-inner,
+  #fan .card,
+  #played .card.is-dealing,
+  #grid .card-face img,
+  #grid .card-name { transition-duration: 0.001s; }
+}

@@ -19,6 +19,7 @@ const PAGES = {
     puregym: 'puregym.html',
     techatnyu: 'techatnyu.html',
     thedial: 'the-dial.html',
+    sketchbook: 'sketchbook.html',
 };
 
 // The case pages load their JavaScript as classic scripts — no type="module",
@@ -38,16 +39,19 @@ const CLASSIC_SCRIPTS = [
     'case.js',
     'footer-deck.js',
     'site.js',
+    'sketchbook.js',
     'skeleton.js',
 ];
 
 // Asset trees whose URLs are built at runtime rather than written in the HTML:
 // the card photos script.js walks through on hover, the fan of photos on the
-// About Me page, the carousel's mark, and both favicons — which the pre-paint
-// theme block in every <head> assigns by hand, overwriting whatever the build
-// put there. A bundler can only rewrite the references it can see, so none of
-// these survive on their own; they are copied through at their real paths so
-// the strings in the JavaScript keep meaning what they say.
+// About Me page, the carousel's mark, both favicons — which the pre-paint theme
+// block in every <head> assigns by hand, overwriting whatever the build put
+// there — and the sketchbook, which is a manifest fetched at runtime and a
+// directory of works whose paths only ever exist inside it. A bundler can only
+// rewrite the references it can see, so none of these survive on their own;
+// they are copied through at their real paths so the strings in the JavaScript
+// keep meaning what they say.
 const RUNTIME_ASSET_DIRS = ['assets', 'Cards'];
 
 function copyStaticFiles() {

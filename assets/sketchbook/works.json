@@ -1,0 +1,225 @@
+{
+  "_": "Generated, not hand-kept. See the note in sketchbook.js.",
+  "source": "https://hfyj-art.com/sketchbook",
+  "scraped": "2026-09-09",
+  "note": "Titles and categories are the two lines the live page reveals on hover; nothing here is invented.",
+  "excluded": [
+    {
+      "what": "https://i.ytimg.com/vi_webp/wLb9g_8r-mE/sddefault.webp",
+      "why": "YouTube's thumbnail for an embedded interview, not a work — hotlinked from a third party and outside the tile component."
+    },
+    {
+      "id": "nM9uFHouIexpQFEG45lC0bH2FU",
+      "why": "Page furniture. Sits outside the marquee tile component and reveals no title."
+    },
+    {
+      "id": "cAZ0NTmgSqKV06JeCniTIVN2y4M",
+      "why": "Page furniture. Sits outside the marquee tile component and reveals no title."
+    }
+  ],
+  "works": [
+    {
+      "id": "XzyQzewSV5CwMJ5Oy2mO1iknLQ",
+      "title": "Oil Painting",
+      "category": "installation",
+      "file": "installation-oil-painting.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/XzyQzewSV5CwMJ5Oy2mO1iknLQ.gif?width=426&height=240",
+      "animated": true,
+      "poster": "installation-oil-painting-poster.jpg"
+    },
+    {
+      "id": "dHM16qB4ATBKwW22ahQz6ktTvMw",
+      "title": "Poster",
+      "category": "Graphic Design",
+      "file": "graphic-design-poster.jpg",
+      "width": 3000,
+      "height": 4500,
+      "src": "https://framerusercontent.com/images/dHM16qB4ATBKwW22ahQz6ktTvMw.jpg?scale-down-to=1024&width=3000&height=4500"
+    },
+    {
+      "id": "lDNV1vzXEexp0Rmad7qjZ033U",
+      "title": "kusama",
+      "category": "installation",
+      "file": "installation-kusama.jpg",
+      "width": 2400,
+      "height": 1600,
+      "src": "https://framerusercontent.com/images/lDNV1vzXEexp0Rmad7qjZ033U.jpg?scale-down-to=1024&width=2400&height=1600"
+    },
+    {
+      "id": "RcoEpMDGcoBVIveiyqeOC7XEj6Q",
+      "title": "2024",
+      "category": "oil painting",
+      "file": "oil-painting-2024.jpg",
+      "width": 3424,
+      "height": 4360,
+      "src": "https://framerusercontent.com/images/RcoEpMDGcoBVIveiyqeOC7XEj6Q.jpg?scale-down-to=1024&width=3424&height=4360"
+    },
+    {
+      "id": "3fnPunUSsTRk1bnDiKHHXdDubPA",
+      "title": "2024",
+      "category": "Oil Painting",
+      "file": "oil-painting-2024-3fnPun.jpg",
+      "width": 3484,
+      "height": 4364,
+      "src": "https://framerusercontent.com/images/3fnPunUSsTRk1bnDiKHHXdDubPA.jpg?scale-down-to=1024&width=3484&height=4364"
+    },
+    {
+      "id": "GQHbaGUvUhTktSTob8fgQogHo0",
+      "title": "Sound",
+      "category": "Installation",
+      "file": "installation-sound.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/GQHbaGUvUhTktSTob8fgQogHo0.gif?width=426&height=240",
+      "animated": true,
+      "poster": "installation-sound-poster.jpg"
+    },
+    {
+      "id": "vlVweQSEjlM5QXWM3KpsMDOHch0",
+      "title": "2024",
+      "category": "Oil Painting",
+      "file": "oil-painting-2024-vlVweQ.jpg",
+      "width": 4500,
+      "height": 3014,
+      "src": "https://framerusercontent.com/images/vlVweQSEjlM5QXWM3KpsMDOHch0.jpg?scale-down-to=1024&width=4500&height=3014"
+    },
+    {
+      "id": "mj0nrMkMj8DD4uchDZkzUmyk",
+      "title": "Icon Library",
+      "category": "Product Design",
+      "file": "product-design-icon-library.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/mj0nrMkMj8DD4uchDZkzUmyk.gif?width=426&height=240",
+      "animated": true,
+      "poster": "product-design-icon-library-poster.jpg"
+    },
+    {
+      "id": "ljvyb0gBPR8e5DKiOKsaTROJzRo",
+      "title": "Creative Computing",
+      "category": "Installation",
+      "file": "installation-creative-computing.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/ljvyb0gBPR8e5DKiOKsaTROJzRo.gif?width=426&height=240",
+      "animated": true,
+      "poster": "installation-creative-computing-poster.jpg"
+    },
+    {
+      "id": "OJsD8nndTqZLKFq8o46rQPpap8",
+      "title": "figma resource",
+      "category": "design system",
+      "file": "design-system-figma-resource.png",
+      "width": 1506,
+      "height": 872,
+      "src": "https://framerusercontent.com/images/OJsD8nndTqZLKFq8o46rQPpap8.png?scale-down-to=1024&width=1506&height=872"
+    },
+    {
+      "id": "HPC9mUrlqGIUwg0EHnArg08A",
+      "title": "Poster",
+      "category": "Graphic Design",
+      "file": "graphic-design-poster-HPC9mU.jpg",
+      "width": 3000,
+      "height": 4500,
+      "src": "https://framerusercontent.com/images/HPC9mUrlqGIUwg0EHnArg08A.jpg?scale-down-to=1024&width=3000&height=4500"
+    },
+    {
+      "id": "t79R3zfe0zDpPTrNRfuESz3EPRQ",
+      "title": "Unity",
+      "category": "3D Modeling",
+      "file": "3d-modeling-unity.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/t79R3zfe0zDpPTrNRfuESz3EPRQ.gif?width=426&height=240",
+      "animated": true,
+      "poster": "3d-modeling-unity-poster.jpg"
+    },
+    {
+      "id": "t9oigYOfxNTz926iHPKaAtpUyDI",
+      "title": "Study",
+      "category": "Sketch",
+      "file": "sketch-study.jpg",
+      "width": 3024,
+      "height": 3763,
+      "src": "https://framerusercontent.com/images/t9oigYOfxNTz926iHPKaAtpUyDI.jpg?scale-down-to=1024&width=3024&height=3763"
+    },
+    {
+      "id": "6cQg6SJ4jhy8KSrR0myFWhtD5A",
+      "title": "Space Station",
+      "category": "3D Modeling",
+      "file": "3d-modeling-space-station.jpg",
+      "width": 960,
+      "height": 540,
+      "src": "https://framerusercontent.com/images/6cQg6SJ4jhy8KSrR0myFWhtD5A.jpg?scale-down-to=1024&width=960&height=540"
+    },
+    {
+      "id": "4yUU4wAV6jX8jrbd2BnUPm888",
+      "title": "Mondrian",
+      "category": "Installation",
+      "file": "installation-mondrian.jpg",
+      "width": 1600,
+      "height": 2400,
+      "src": "https://framerusercontent.com/images/4yUU4wAV6jX8jrbd2BnUPm888.jpg?scale-down-to=1024&width=1600&height=2400"
+    },
+    {
+      "id": "ROD7LgMXZluHApsco49gthDN3wI",
+      "title": "Motion Graphics",
+      "category": "Installation",
+      "file": "installation-motion-graphics.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/ROD7LgMXZluHApsco49gthDN3wI.gif?width=426&height=240",
+      "animated": true,
+      "poster": "installation-motion-graphics-poster.jpg"
+    },
+    {
+      "id": "lhV3vIivB4DvdYQdaXUKBbev0",
+      "title": "tech@nyu",
+      "category": "3D Modeling",
+      "file": "3d-modeling-tech-nyu.jpg",
+      "width": 1920,
+      "height": 1080,
+      "src": "https://framerusercontent.com/images/lhV3vIivB4DvdYQdaXUKBbev0.jpg?scale-down-to=1024&width=1920&height=1080"
+    },
+    {
+      "id": "kEA1j39YlTP4GiLOYszpbYtzs",
+      "title": "Clothing Design",
+      "category": "Graphic Design",
+      "file": "graphic-design-clothing-design.jpg",
+      "width": 10000,
+      "height": 10000,
+      "src": "https://framerusercontent.com/images/kEA1j39YlTP4GiLOYszpbYtzs.jpg?scale-down-to=1024&width=10000&height=10000"
+    },
+    {
+      "id": "2Mtn6pHhAUsuHETyaG9lloJgBTY",
+      "title": "Experimentation",
+      "category": "Installation",
+      "file": "installation-experimentation.gif",
+      "width": 426,
+      "height": 240,
+      "src": "https://framerusercontent.com/images/2Mtn6pHhAUsuHETyaG9lloJgBTY.gif?width=426&height=240",
+      "animated": true,
+      "poster": "installation-experimentation-poster.jpg"
+    },
+    {
+      "id": "EfGjLePoHdvBBBLjagmoVp4uYY",
+      "title": "Mixed media",
+      "category": "Artwork",
+      "file": "artwork-mixed-media.jpg",
+      "width": 963,
+      "height": 2400,
+      "src": "https://framerusercontent.com/images/EfGjLePoHdvBBBLjagmoVp4uYY.jpg?scale-down-to=1024&width=963&height=2400"
+    },
+    {
+      "id": "UziYsl8DnbR0ycnjDg2e3PWuQ6U",
+      "title": "Branding",
+      "category": "Graphic Design",
+      "file": "graphic-design-branding.png",
+      "width": 3498,
+      "height": 2275,
+      "src": "https://framerusercontent.com/images/UziYsl8DnbR0ycnjDg2e3PWuQ6U.png?scale-down-to=1024&width=3498&height=2275"
+    }
+  ]
+}

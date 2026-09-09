@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sketchbook — HFYJ</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // Settle the theme before anything paints. site.js runs at the end of
+        // <body>, so by the time it could set this the light page would already
+        // have flashed on screen; the attribute has to be on <html> before the
+        // stylesheets below are ever applied. That is what makes this block
+        // worth repeating verbatim in every page's <head>.
+        //
+        // The key, the two values and the shape of the read are index.html's,
+        // and that is the whole mechanism carrying a reader's choice between
+        // the home page and here. See the theme section at the top of site.js.
+        (function () {
+            var saved = null;
+            // storage throws outright in some privacy modes rather than returning null
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            // Only an explicit press is ever stored, so the OS preference gets
+            // consulted exactly when there is no choice to honour instead.
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. It
+         also watches for images added later, which is the whole grid here. -->
+    <script src="skeleton.js"></script>
+    <link rel="stylesheet" href="sketchbook.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <!-- #cards tells the home page the intro has already played -->
+        <a href="index.html#cards">Home</a>
+        <span class="sep">/</span>
+        <span class="here">Sketchbook</span>
+    </div>
+    <div class="topbar-right">
+        <span>Mobile</span>
+        <span class="sep-lg">/</span>
+        <span>Ideas</span>
+        <span class="sep-lg">/</span>
+        <span>Inspirations</span>
+    </div>
+    <!-- Written out here rather than injected by site.js: the theme is already
+         settled in <head>, so shipping the button in the markup puts it on
+         screen in the first paint with no reflow, and it holds the bar's right
+         edge even if site.js is slow or never arrives. site.js only wires it
+         up — the sun/moon swap is pure CSS off <html>'s data-theme. -->
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+    </button>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<main class="sketchbook">
+
+    <!-- The table. #felt is the play area proper: the grid paper, the cards
+         already played, and the fan waiting along its bottom edge. Everything
+         inside it is positioned against it, so the landing coordinates
+         sketchbook.js works out are simply its own box. -->
+    <section id="table" aria-labelledby="table-heading">
+        <h1 id="table-heading" class="visually-hidden">Sketchbook</h1>
+        <div id="felt">
+            <!-- Played cards are appended here, under the fan in the stacking
+                 order so a card in hand is never buried by one on the table. -->
+            <div id="played" aria-label="Cards on the table"></div>
+            <!-- Exactly five, always. sketchbook.js fills and refills it. -->
+            <div id="fan" role="group" aria-label="Your hand"></div>
+        </div>
+        <p id="table-hint">Click a card to play it · drag it around · click it again to turn it over</p>
+    </section>
+
+    <section id="upcoming" aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading">Upcoming Cards <span id="upcoming-count" class="count">(…)</span></h2>
+        <div id="grid"></div>
+        <p id="grid-empty" hidden>The sketchbook could not be loaded.</p>
+    </section>
+
+</main>
+
+<script src="analytics.js" defer></script>
+<script src="site.js"></script>
+<script src="sketchbook.js"></script>
+</body>
+</html>

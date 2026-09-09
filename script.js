@@ -831,10 +831,10 @@ const CARD_URLS = [
     "the-dial.html",                       // 5 — The Dial
     "#",                                    // 6 — BMW Designworks (Coming Soon)
     "#",                                    // 7 — Nenos Inc. (Coming Soon)
-    // 8 — Sketchbook. Deliberately external: there is no local sketchbook.html,
-    // so the live site is the right destination. Do not "fix" this to a local
-    // path. The nav links to it in index.html are external for the same reason.
-    "https://hfyj-art.com/sketchbook",
+    // 8 — Sketchbook. Local now: sketchbook.html is the built page, and it is
+    // the one this site should be sending people to. It used to point at the
+    // live Framer site because there was nothing here to point at.
+    "sketchbook.html",
     // 9 — Make your own. The only card with no destination at all: it
     // opens the kit over this same page, so there is nothing for it to
     // navigate to. openCard turns back before it ever reads this.

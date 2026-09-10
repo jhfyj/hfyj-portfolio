@@ -30,11 +30,15 @@
   --t3: #a8a8ac;   /* tertiary / disabled text */
   --accent: #5E81E2;
   --accent-tint: #C7D2FE;
-  /* What to write on top of --accent. Dark in both themes, which is not the
-     obvious answer for the blue — but white on #5E81E2 measures 3.68:1, and
-     the pill's label is 13px, well under the size that would let that pass.
-     This is 5.0:1 on the blue and 16.5:1 on the yellow. */
-  --accent-ink: #10131C;
+  /* What to write on top of --accent: white on the blue, dark on the yellow.
+     The blue half is a deliberate exception to the contrast rule the rest of
+     this file keeps. White on #5E81E2 measures 3.68:1, under the 4.5:1 a 13px
+     label wants, and no lighter ink can do better — white is the ceiling on
+     this blue. Clearing it would mean darkening the fill to about #5473C9,
+     and the pill would then no longer be the brand colour, which is the whole
+     point of filling it with the accent. Asked for and chosen knowingly; if
+     the pill ever grows past 18px the same white passes on its own. */
+  --accent-ink: #ffffff;
   /* The stock a card is printed on. Mirrors CARD_BG / THEME_COLORS.cardBg in
      script.js, which is what the carousel paints its own card backs with — the
      footer's cards and the ring's cards are the same deck and have to agree. */

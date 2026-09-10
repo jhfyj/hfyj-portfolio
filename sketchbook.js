@@ -273,6 +273,32 @@
             openModal(el.__work, b);
         });
 
+        // The same door, opened a second way. It is bound here rather than on
+        // the card so that only a card with an expanded view answers to it:
+        // the ones in the hand and the tiles in the rack have no button and no
+        // details behind them, and a double click on those goes on meaning
+        // what it meant.
+        //
+        // A double click is two ordinary clicks first, and a click on the
+        // table turns the card over — so the card turns, and turns back, on
+        // the way to the modal. Waiting out the double-click window before
+        // flipping would prevent that, at the price of putting a quarter of a
+        // second in front of every single flip, which is much the commoner
+        // gesture; a card that hesitates every time you turn it is a worse
+        // page than one that occasionally turns twice. So the flip stays
+        // instant and the second click reverses it: the transition
+        // interpolates from wherever the first one had got to, which reads as
+        // the card starting to turn and thinking better of it, and it leaves
+        // the card on the face it started on — the state the modal wants,
+        // since the modal builds its own copy from the work and not from this
+        // element.
+        el.addEventListener('dblclick', function (e) {
+            e.stopPropagation();
+            // Or the second click selects the card's title along with it.
+            e.preventDefault();
+            openModal(el.__work, b);
+        });
+
         el.appendChild(b);
         return b;
     }

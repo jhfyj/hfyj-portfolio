@@ -70,14 +70,16 @@
         '  float rough = texture2D(uRough, uv).r;',
         '  float ao = texture2D(uAO, uv).r;',
         '  vec3 V = vec3(0.0, 0.0, 1.0);',
-        '  vec3 L = mix(normalize(vec3(tracked, 0.55)),',
+        '  vec3 L = mix(normalize(vec3(tracked, 0.48)),',
         '               normalize(vec3(-0.22, 0.32, 0.92)), uEven);',
         '  vec3 H = normalize(L + V);',
         '  float ndl = max(dot(n, L), 0.0);',
-        '  float spec = pow(max(dot(n, H), 0.0), mix(8.0, 56.0, 1.0 - rough));',
-        '  spec *= (1.0 - rough) * 0.32;',
-        '  vec3 fill = vec3(0.20, 0.26, 0.15);',
-        '  vec3 col = albedo * (fill * ao + ndl * 0.88) + spec * vec3(0.82, 0.98, 0.52);',
+        '  float spec = pow(max(dot(n, H), 0.0), mix(8.0, 48.0, 1.0 - rough));',
+        '  spec *= (1.0 - rough) * 0.50;',
+        '  float pool = mix(exp(-dot(tracked, tracked) * 2.4), 0.0, uEven);',
+        '  vec3 fill = vec3(0.18, 0.24, 0.14);',
+        '  vec3 col = albedo * (fill * ao + ndl * (0.72 + 0.50 * pool))',
+        '           + spec * vec3(0.88, 1.0, 0.58) * (0.55 + 0.85 * pool);',
         '  vec2 edge = abs(vUv - 0.5) * 2.0;',
         '  col *= 1.0 - pow(max(edge.x, edge.y), 7.0) * 0.32;',
         '  gl_FragColor = vec4(pow(col, vec3(1.0 / 2.2)), 1.0);',
@@ -167,8 +169,7 @@
     var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
     function lampEven() {
         return (reduceMotion && reduceMotion.matches)
-            || !(finePointer && finePointer.matches)
-            || !document.body.classList.contains('has-dot');
+            || !(finePointer && finePointer.matches);
     }
     var even = lampEven();
     gl.uniform1f(loc.even, even ? 1 : 0);
@@ -247,19 +248,27 @@
         requestDraw();
     }
 
+    function listenLamp(on) {
+        var opts = { capture: true };
+        var addOpts = { passive: true, capture: true };
+        if (on) {
+            felt.addEventListener('pointermove', setLightFromEvent, addOpts);
+            window.addEventListener('pointermove', setLightFromEvent, addOpts);
+        } else {
+            felt.removeEventListener('pointermove', setLightFromEvent, opts);
+            window.removeEventListener('pointermove', setLightFromEvent, opts);
+        }
+    }
+
     function setEven(on) {
         even = on;
         gl.uniform1f(loc.even, even ? 1 : 0);
-        if (even) felt.removeEventListener('pointermove', setLightFromEvent, { capture: true });
-        else felt.addEventListener('pointermove', setLightFromEvent, { passive: true, capture: true });
+        listenLamp(!even);
         dirty = true;
         requestDraw();
     }
 
-    if (!even) felt.addEventListener('pointermove', setLightFromEvent, { passive: true, capture: true });
-    // Leave the key where it was when the pointer leaves, rather than snapping
-    // back: a light that jumped home every time you reached for the hand would
-    // be noisier than a lamp that simply stays put.
+    listenLamp(!even);
     function onLampMedia() { setEven(lampEven()); }
     if (finePointer) {
         if (finePointer.addEventListener) finePointer.addEventListener('change', onLampMedia);

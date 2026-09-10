@@ -703,6 +703,114 @@
         });
     }
 
+    /* ---------------- what else is on the table ---------------- */
+
+    /* Two chips, lying on the mat. They are scenery and nothing else: they sit
+       under the cards, take no pointer events and are not in the model, because
+       a chip you could pick up or move would be promising a game this page is
+       not playing. They go into #surface rather than onto #felt, so they pan
+       with the table and the paper instead of floating over a mat that slides
+       out from under them.
+
+       Drawn rather than exported. A chip is four concentric circles and a dashed
+       ring, which is less markup than an <img> would be request, and it takes
+       the theme with it: the body is the brand accent and everything cut out of
+       it is the mat's own colour, so the same two shapes read correctly on a
+       near-white table and on a dark one. */
+
+    var CHIP_W = 52;
+
+    function buildChip() {
+        var svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.style.position = 'absolute';
+        svg.style.width = CHIP_W + 'px';
+        svg.style.height = CHIP_W + 'px';
+        // Scenery does not answer the pointer. Without this a chip would take
+        // the press that is meant to start a pan of the table under it.
+        svg.style.pointerEvents = 'none';
+        svg.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.16))';
+
+        function circle(r, fill, stroke, width, dash, opacity) {
+            var c = document.createElementNS(SVG_NS, 'circle');
+            c.setAttribute('cx', '50');
+            c.setAttribute('cy', '50');
+            c.setAttribute('r', String(r));
+            c.setAttribute('fill', fill || 'none');
+            if (stroke) {
+                c.setAttribute('stroke', stroke);
+                c.setAttribute('stroke-width', String(width));
+            }
+            if (dash) c.setAttribute('stroke-dasharray', dash);
+            if (opacity) c.setAttribute('opacity', String(opacity));
+            svg.appendChild(c);
+            return c;
+        }
+
+        circle(49, 'var(--accent)');
+        // The two-tone edge, as a dashed stroke rather than six placed shapes:
+        // one circumference divided six ways. At r=43 that is 270.2 units, so
+        // each dash and its gap come to 45.03 — the numbers below are that
+        // split, and they are why the rim closes exactly instead of leaving a
+        // seam where the last dash meets the first.
+        circle(43, null, 'var(--felt)', 12, '19 26.03');
+        circle(33, null, 'var(--felt)', 2, null, 0.5);
+        circle(17, 'var(--felt)', null, null, null, 0.92);
+        return svg;
+    }
+
+    // Somewhere on the visible part of the table, clear of the hand and of the
+    // other chip. Surface coordinates, like everything else that is placed on
+    // the table, and read at the moment of placing because the surface is
+    // bigger than the window onto it and only part of it is worth using.
+    function chipSpot(taken) {
+        var f = felt.getBoundingClientRect();
+        var sr = surface.getBoundingClientRect();
+        var viewX = f.left - sr.left, viewY = f.top - sr.top;
+        var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+
+        var minX = viewX + CHIP_W;
+        var maxX = Math.max(minX, viewX + f.width - CHIP_W * 2);
+        var minY = viewY + CHIP_W;
+        var maxY = Math.max(minY, fanTop - CHIP_W - 24);
+
+        // Best of a handful of draws rather than the first one: two chips that
+        // happen to land on the same spot read as one chip, and a retry loop
+        // that can fail is worse than a choice that cannot.
+        var best = null, bestGap = -1;
+        for (var t = 0; t < 24; t++) {
+            var x = minX + Math.random() * (maxX - minX);
+            var y = minY + Math.random() * (maxY - minY);
+            var gap = Infinity;
+            for (var i = 0; i < taken.length; i++) {
+                var d = Math.abs(taken[i].x - x) + Math.abs(taken[i].y - y);
+                if (d < gap) gap = d;
+            }
+            if (gap > bestGap) { bestGap = gap; best = { x: x, y: y }; }
+            if (bestGap > CHIP_W * 3) break;
+        }
+        return best;
+    }
+
+    function scatterChips() {
+        var taken = [];
+        for (var i = 0; i < 2; i++) {
+            var spot = chipSpot(taken);
+            if (!spot) return;
+            var chip = buildChip();
+            chip.style.left = Math.round(spot.x) + 'px';
+            chip.style.top = Math.round(spot.y) + 'px';
+            // The rim's six dashes would otherwise line up between the two and
+            // give away that they are the same drawing twice.
+            chip.style.transform = 'rotate(' + Math.round(Math.random() * 360) + 'deg)';
+            // Ahead of #played, so a card put down always lies over a chip
+            // rather than under it.
+            surface.insertBefore(chip, surface.firstChild);
+            taken.push(spot);
+        }
+    }
+
     /* ---------------- the card, opened ---------------- */
 
     /* A card's expand control puts it in a modal, larger, over a blurred page.
@@ -1328,6 +1436,9 @@
             // the top of it.
             buildGrid();
             centrePan();
+            // After centrePan, which is what decides which part of the table is
+            // the visible part a chip has to land in.
+            scatterChips();
         })
         .catch(function (err) {
             // The catalogue is the page; without it there is nothing to show,

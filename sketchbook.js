@@ -269,7 +269,7 @@
         var cat = document.createElement('div');
         cat.className = 'detail-cat';
         cat.setAttribute('data-field', 'category');
-        cat.textContent = work.category || 'Sketchbook';
+        cat.textContent = work.category || 'Playground';
         d.appendChild(cat);
 
         var h = document.createElement('h3');
@@ -299,7 +299,7 @@
         note.className = 'detail-note';
         note.textContent = work.animated
             ? 'Animated \u2014 the card plays it in place.'
-            : 'One of the hundred cards this sketchbook is being built towards.';
+            : 'One of the hundred cards this playground is being built towards.';
         d.appendChild(note);
         return d;
     }

@@ -433,6 +433,33 @@
 }
 :root[data-theme="dark"] .slot:empty { background: rgba(255, 255, 255, 0.035); }
 
+/* The mark, watermarked into the gap, so the empty slot says whose card is
+   missing rather than just that one is. Painted as a mask over a colour for
+   the same reason .card-back-mark is: one file that takes whatever grey the
+   theme asks for, instead of a second export for dark.
+
+   Smaller than the deck's own 41.27% and much fainter than the accent it is
+   drawn in there. A real card face is sitting in the next slot along, and this
+   has to read as the absence of one — a placeholder — not as a second thing
+   competing for the eye. */
+.slot:empty::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  /* A step further from the page than the slot's own fill rather than a step
+     back toward it: darker in light, lighter in dark. Either way it stays
+     under --rule, so the hairline still reads as the edge of the slot and the
+     mark as something inside it. */
+  background-color: rgba(0, 0, 0, 0.07);
+  -webkit-mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+}
+:root[data-theme="dark"] .slot:empty::before { background-color: rgba(255, 255, 255, 0.09); }
+
 /* A grid tile is the same card face at a different size, so it inherits the
    shape and the stock and only overrides what a tile does differently: it fills
    its column instead of being a fixed width, and it does not move. */

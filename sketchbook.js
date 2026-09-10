@@ -157,10 +157,25 @@
 
     /* ---------------- the card face ---------------- */
 
-    // The whole of a card's appearance. `still` asks for the poster frame
-    // instead of the animation: the seven GIFs run to 18 MB each, which is fine
-    // for the five cards in a hand and not fine for a grid that paints every
-    // work at once.
+    // The whole of a card's appearance. `still` asks the face to start on the
+    // poster frame rather than on the animation, and to say what the animation
+    // was so something else can put it back.
+    //
+    // It used to mean the tile simply never animated, and that was not
+    // squeamishness. The seven animated works are 47 MB of GIF between them —
+    // one of them 17.7 MB — against 10 to 18 KB for a poster, and the rack
+    // paints sixteen tiles at once. Handing them all to the document cost 47 MB
+    // on the wire and left every one of them decoding and compositing for the
+    // life of the page, because a GIF cannot be paused: there is no API to stop
+    // one, and an <img> holding one advances frames whether or not it is on
+    // screen. The only lever is whether the file is in the document at all.
+    //
+    // So the tile now starts on the poster and watchTile() swaps the two as it
+    // comes and goes from the window. The trade that buys is worth naming: a
+    // rack you never scroll to still costs nothing, a rack you scroll all of
+    // costs what its animations weigh, and either way only the handful near the
+    // window are running at once — which is the part that would otherwise never
+    // stop costing.
     function buildFace(work, still) {
         var face = document.createElement('div');
         face.className = 'card-face card-face--front';
@@ -176,6 +191,15 @@
         var img = document.createElement('img');
         var file = (still && work.poster) ? work.poster : work.file;
         img.src = 'assets/sketchbook/' + file;
+        // Both halves of the swap, written down where the face is built. This
+        // is also the whole of what marks a tile as one the observer has any
+        // work to do on: fourteen of the twenty-one works have no poster, so
+        // they get no attributes, are never observed, and stay exactly the tile
+        // they always were.
+        if (still && work.poster) {
+            img.dataset.poster = img.src;
+            img.dataset.motion = 'assets/sketchbook/' + work.file;
+        }
         // The shimmer is on in the markup and skeleton.js takes it off when the
         // image decodes. It watches for images added at runtime, which is every
         // image on this page.
@@ -1065,6 +1089,118 @@
         updateCount();
     }
 
+    /* ---------------- a rack tile that is being looked at ---------------- */
+
+    /* A GIF cannot be paused. Once one is in the document it decodes and
+       composites for as long as it is there, on screen or not, and nothing can
+       stop it — so the only question is whether it is in the document, and this
+       is the whole of the answer: the tile you are looking at holds its
+       animation, and a tile well away from the window holds its poster again.
+
+       There is no rootMargin, and that is the interesting part. The obvious
+       thing to do here is to give the observer one so that a tile is already
+       moving by the time it reaches the window, and the first version of this
+       did: 300px, one tile row. It cost 37 MB on first paint. The rack's top
+       row sits right at the fold on a 900px window, so a 300px margin reaches
+       the row below it as well, and five animated tiles started downloading
+       before the reader had scrolled a single pixel — most of the 47 MB this
+       change exists to avoid, spent for nothing.
+
+       So a tile plays when it is genuinely being looked at and not before. For
+       the 17.7 MB work that means a wait while it arrives, and a margin would
+       not have saved it: 300px of lead is about half a second of scrolling
+       against a download measured in seconds. Better to spend nothing on the
+       tiles nobody has looked at yet.
+
+       Nothing here knows the rack's order. Tiles are moved between slots
+       constantly, by a card being played and by the rack being dragged into a
+       new order, and an IntersectionObserver follows the element rather than
+       the place it sits in, so none of that has to know this exists. */
+    var RACK_PLAY_AT = 0.4;      // of the tile on screen before it starts
+    var rackWatch = null;
+
+    /* Motion nobody asked for. The rest of this page answers the setting by
+       cutting its transitions to nothing, and a GIF is the one thing on it that
+       would ignore the setting completely: no controls, no way to pause it, and
+       sixteen tiles of it going at once. So under reduce the rack keeps its
+       posters and costs nothing at all. The hand and the table still play
+       theirs, and that is not an inconsistency — those are cards you picked up
+       and put down one at a time, which is a different thing from a wall of
+       them starting on their own as you scroll past.
+
+       Read when a tile is first watched rather than held in a variable, so
+       changing the setting takes effect on the next deal instead of on a
+       reload. */
+    function motionWanted() {
+        return !(window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* Puts the animation into the tile, but not until it has decoded. Assigning
+       a src that has not arrived leaves the <img> empty until it does, and a
+       tile that blanks as you scroll past it is worse than one that never
+       moved; a decoded image paints on the very next frame instead. The poster
+       and the GIF are the same 426x240, so nothing reflows either — though they
+       are not the same picture, and the swap does land on whatever frame the
+       animation is up to, which is what the animation starting looks like.
+
+       The guard inside swap() is the other half of it. A fast flick carries a
+       tile through the band and out again while the file is still on its way,
+       and the point of all this is that such a tile does not end up holding
+       it. */
+    function playTile(img) {
+        if (img.__live || img.__nomotion) return;
+        img.__live = true;
+        var pre = new Image();
+        pre.decoding = 'async';
+        pre.src = img.dataset.motion;
+        var swap = function () {
+            if (!img.__live || !img.parentNode) return;
+            img.src = img.dataset.motion;
+        };
+        var give = function () {
+            // The poster stays and this tile is never asked again: a file that
+            // would not decode will not decode the second time either, and a
+            // tile retrying it on every scroll is a worse fault than a still.
+            img.__live = false;
+            img.__nomotion = true;
+        };
+        if (pre.decode) pre.decode().then(swap, give);
+        else { pre.onload = swap; pre.onerror = give; }
+    }
+
+    // And out again. The poster is in the cache by definition — it is what the
+    // tile was showing a moment ago — so this is a repaint, not a load.
+    function restTile(img) {
+        if (!img.__live) return;
+        img.__live = false;
+        img.src = img.dataset.poster;
+    }
+
+    // The img rather than the card, because the img is the thing that holds the
+    // file and the thing that survives the card being moved from slot to slot.
+    function watchTile(card) {
+        if (!window.IntersectionObserver || !motionWanted()) return;
+        var img = card.querySelector('img[data-motion]');
+        if (!img) return;
+        if (!rackWatch) {
+            // The ratio is read rather than isIntersecting, because the two
+            // edges are deliberately not in the same place: a tile starts once
+            // it is properly on screen and stops only once it has gone
+            // completely. A tile parked halfway, which is where the rack's top
+            // row sits when the page loads, then holds whatever it already had
+            // instead of flicking between the two.
+            rackWatch = new IntersectionObserver(function (entries) {
+                for (var i = 0; i < entries.length; i++) {
+                    var e = entries[i];
+                    if (e.intersectionRatio >= RACK_PLAY_AT) playTile(e.target);
+                    else if (!e.isIntersecting) restTile(e.target);
+                }
+            }, { threshold: [0, RACK_PLAY_AT] });
+        }
+        rackWatch.observe(img);
+    }
+
     // Fills the rack from `rack`, one card per slot from the front. With `from`
     // - a point in client coordinates - every card starts there instead, face
     // down and the size it was on the table, and flies home turning over.
@@ -1073,6 +1209,11 @@
         // existing. It is pinned over #grid rather than sitting in a slot, so
         // emptying the slots below would leave it behind on the page.
         abandonCarry();
+        // Every tile is about to be replaced, so the observer's list is stale
+        // too. It holds its targets alive, and a rack rebuilt at the end of
+        // every round would otherwise leave a round's worth of dead tiles in it
+        // each time.
+        if (rackWatch) rackWatch.disconnect();
         for (var i = 0; i < slotEls.length; i++) {
             while (slotEls[i].firstChild) slotEls[i].removeChild(slotEls[i].firstChild);
         }
@@ -1090,6 +1231,7 @@
             // stopped inside addExpand, so reaching for it never starts the
             // drag that would reorder the rack.
             addExpand(card);
+            watchTile(card);
             list.push(card);
         }
         labelRack();
@@ -1159,6 +1301,11 @@
         // slot and pinned over the grid first, so the slot is already free for
         // the card advancing into it while this one is still on screen.
         if (leaving) {
+            // It is about to shrink away and be taken off the page. Dropped
+            // from the observer first, so nothing is left watching an element
+            // that no longer exists.
+            var gone = leaving.querySelector('img[data-motion]');
+            if (gone && rackWatch) rackWatch.unobserve(gone);
             var lr = leaving.getBoundingClientRect();
             var gr = gridEl.getBoundingClientRect();
             gridEl.appendChild(leaving);

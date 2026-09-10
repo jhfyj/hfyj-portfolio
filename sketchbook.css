@@ -426,6 +426,9 @@
               width 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
+/* A card being dragged leans four degrees the way it is being pulled, and tips
+   into it rather than snapping. */
+#played .card {
   /* The lean, tipping in and settling back out. Only `transform` is named here,
      which on a card is now only its rotation — the position is on `translate`
      and is deliberately left with no transition at all, because it is following
@@ -436,6 +439,8 @@
      short and front-loaded: the tilt is a reply to a gesture that has already
      started, and a slow one would arrive after the card had moved. */
   transition: transform 0.2s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
 /* The end of a round: every card comes together, three of them riffle, and the
    whole lot is dealt back into the rack. Like the flight above, both of these
    move a card and turn it at the same time, so both name the two properties

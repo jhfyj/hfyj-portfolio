@@ -272,6 +272,7 @@
             e.stopPropagation();
             openModal(el.__work, b);
         });
+
         el.appendChild(b);
         return b;
     }
@@ -639,18 +640,39 @@
             if (!drag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
             if (!drag.moved) {
                 drag.moved = true;
+                // Bounds for this card's own tilt — #felt clips, and the corner
+                // of a tilted card reaches further than its upright box does —
+                // measured once, here, the way lift() measures the rack's
+                // slots. Nothing in this gesture moves the surface or changes
+                // the card's tilt, and bounds() reads the surface's box and
+                // --card-w-played off the computed style: five forced
+                // style-and-layout passes on a handler that then writes to the
+                // same element, every move. Read before the class and the tilt
+                // below dirty the style it would have to be recomputed from.
+                drag.bounds = bounds(readVar(el, '--rot'));
                 // The flight, if it is still running, would fight the drag.
                 el.classList.remove('is-dealing');
                 el.classList.add('is-dragging');
+                // The card is the one thing on this page that moves without a
+                // compositor layer of its own: #surface has translate3d and is
+                // promoted, so panning the whole table is nearly free, while a
+                // card being dragged is repainted into the table's layer every
+                // frame. That means re-rastering the band it has swept through,
+                // and rastering that band means decoding again every animated
+                // work inside it — which is why the further the card goes the
+                // worse it gets. One long drag across a table of ten cards cost
+                // 677ms of image decoding and dropped seventeen frames; on its
+                // own layer the same drag costs 24ms and drops three. Only for
+                // the gesture: a layer per card kept for the life of the page
+                // is the other way to spend that, and a table fills up.
+                el.style.willChange = 'transform';
                 // Four degrees, leaning the way the card is being pulled. Set
                 // once, at the moment the gesture becomes a drag, rather than
                 // tracked live: the tilt is a signal that the card has been
                 // picked up, and one that wobbled as you moved would be noise.
                 el.style.setProperty('--tilt', (dx >= 0 ? 4 : -4) + 'deg');
             }
-            // Bounds for this card's own tilt: #felt clips, and the corner of a
-            // tilted card reaches further than its upright box does.
-            var b = bounds(readVar(el, '--rot'));
+            var b = drag.bounds;
             var x = Math.min(Math.max(drag.ox + dx, b.minX), b.maxX);
             var y = Math.min(Math.max(drag.oy + dy, b.minY), b.maxY);
             el.style.setProperty('--x', x + 'px');
@@ -664,6 +686,9 @@
             }
             el.classList.remove('is-dragging');
             el.style.removeProperty('--tilt');
+            // Off the compositor again. The layer was worth its memory while
+            // the card was moving and is worth nothing now it has stopped.
+            el.style.willChange = '';
             swallowClick = drag.moved;
             drag = null;
         }

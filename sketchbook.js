@@ -59,6 +59,7 @@
     var slotEls = [];    // the rack: one slot per work, made once and kept
     var rack = [];       // the works still to come, in the order they sit in it
     var tileOf = {};     // id -> the card currently in the rack
+    var pipOf = {};      // id -> which playing card that work is
     var resetting = false;
 
     /* A work is in exactly one place at a time: in your hand, in the rack, or
@@ -66,6 +67,93 @@
        rack IS the deck, and the hand draws off the front of it, which is what
        makes the running order you can drag it into mean something. The count
        is simply the two you can still do something with: hand plus rack. */
+
+    /* ---------------- which playing card a work is ---------------- */
+
+    /* Every work is also a card out of a poker deck, and which one it is comes
+       from where it sits in the manifest rather than from the shuffle. That is
+       the whole point of deriving it here: the pack is dealt out again at the
+       end of every round, and a work whose rank changed with each deal would be
+       a different card every time you met it — the ace of spades would mean
+       "whatever came out first this time" instead of naming one drawing.
+
+       Index 0 is the ace of spades and index 12 the king; 13 starts the hearts.
+       Twenty-one works reach the eight of hearts and stop, and a twenty-second
+       added to works.json is simply the nine — nothing already dealt moves. */
+    var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    var SUITS = ['spade', 'heart', 'diamond', 'club'];
+
+    // Drawn rather than typed. The Unicode pips are a font's opinion — outlined
+    // in one family, filled in another, absent from a third — and the deck's own
+    // back a few lines down is already an SVG built out of the theme's tokens,
+    // so this is that trick a second time. Each one is drawn in a 100x100 box
+    // and takes its colour from the index it sits in.
+    var SUIT_PATH = {
+        spade: 'M50 6C50 6 96 40 96 62 96 75.3 86.3 85 74 85 65.5 85 58.5 80.6 55 74'
+            + ' 55 74 55.5 85.5 64 94H36C44.5 85.5 45 74 45 74 41.5 80.6 34.5 85 26 85'
+            + ' 13.7 85 4 75.3 4 62 4 40 50 6 50 6Z',
+        heart: 'M50 92C50 92 4 62 4 34 4 17.5 16.5 6 30 6 39.5 6 46.5 11.5 50 18.5'
+            + ' 53.5 11.5 60.5 6 70 6 83.5 6 96 17.5 96 34 96 62 50 92 50 92Z',
+        diamond: 'M50 4 92 50 50 96 8 50Z',
+        club: 'M50 4C39 4 30 13 30 24c0 3.6 1 7 2.7 9.9C30.1 32.4 27.2 31.5 24 31.5'
+            + ' 13 31.5 4 40.5 4 51.5 4 62.5 13 71.5 24 71.5c8 0 15-4.7 18.1-11.5'
+            + ' .7 1.4 1.6 2.7 2.6 3.8 0 0-.2 16.2-8.7 30.2h28c-8.5-14-8.7-30.2-8.7-30.2'
+            + ' 1-1.1 1.9-2.4 2.6-3.8C61 66.8 68 71.5 76 71.5c11 0 20-9 20-20'
+            + ' 0-11-9-20-20-20-3.2 0-6.1.9-8.7 2.4C69 31 70 27.6 70 24 70 13 61 4 50 4Z',
+    };
+
+    // Worked out once, off the manifest's own order.
+    function assignCards() {
+        pipOf = {};
+        for (var i = 0; i < works.length; i++) {
+            pipOf[works[i].id] = {
+                rank: RANKS[i % RANKS.length],
+                suit: SUITS[Math.floor(i / RANKS.length) % SUITS.length],
+            };
+        }
+    }
+
+    // One corner index: the rank, then the house. `corner` is 'tl' or 'br', and
+    // the two are the same markup — the bottom one is turned the whole way round
+    // in CSS rather than built mirrored, because on a real card the two indices
+    // are one mark printed twice and the card reads either way up.
+    //
+    // Hidden from the reader. The card is already named by .card-name and by the
+    // control's own label; "ace of spades" on top of that is a second name for
+    // the same thing, and twenty-one of them is a lot of noise for a decoration.
+    function buildPip(work, corner) {
+        var pip = pipOf[work.id];
+        if (!pip) return null;
+        var el = document.createElement('span');
+        // Hearts and diamonds are red on a real card. Here they are the brand
+        // accent — blue on the light page, yellow on the dark one — because the
+        // rest of this page has no red in it at all and one would read as an
+        // error state rather than as a suit.
+        var red = pip.suit === 'heart' || pip.suit === 'diamond';
+        el.className = 'card-pip card-pip--' + corner + (red ? ' is-accent' : '');
+        el.setAttribute('aria-hidden', 'true');
+        // The house by name. The shape below says it to a reader looking at the
+        // card; this says it to anything reading the document, which is the only
+        // way a path of raw coordinates can be asked what it is a picture of.
+        el.dataset.suit = pip.suit;
+
+        var rank = document.createElement('span');
+        rank.className = 'pip-rank';
+        rank.textContent = pip.rank;
+        el.appendChild(rank);
+
+        var svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'pip-suit');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('d', SUIT_PATH[pip.suit]);
+        path.setAttribute('fill', 'currentColor');
+        svg.appendChild(path);
+        el.appendChild(svg);
+        return el;
+    }
 
     /* ---------------- the card face ---------------- */
 
@@ -76,6 +164,14 @@
     function buildFace(work, still) {
         var face = document.createElement('div');
         face.className = 'card-face card-face--front';
+
+        // The work does not reach the card's edge any more: it sits in a well
+        // inset from it, and the stock left showing round the well is the
+        // border. The inset, the well's folded top-left corner and the two
+        // indices are all in sketchbook.css — the fold in particular is a shape
+        // and not markup, so there is nothing here to keep in step with it.
+        var well = document.createElement('div');
+        well.className = 'card-well';
 
         var img = document.createElement('img');
         var file = (still && work.poster) ? work.poster : work.file;
@@ -96,7 +192,7 @@
         // events stop arriving and the card is left behind after about thirty
         // pixels. The card's drag is the only drag this page wants.
         img.draggable = false;
-        face.appendChild(img);
+        well.appendChild(img);
 
         var name = document.createElement('div');
         name.className = 'card-name';
@@ -111,7 +207,19 @@
         title.textContent = work.title;
         name.appendChild(cat);
         name.appendChild(title);
-        face.appendChild(name);
+        // Inside the well rather than on the face, so the well's own rounded
+        // corners and overflow crop the scrim for it. On the face it would run
+        // out over the stock and paint a dark bar across the bottom border.
+        well.appendChild(name);
+        face.appendChild(well);
+
+        // After the well, so the bottom-right index lies over the picture. It
+        // has no fold of its own to sit in: the shelf the about-me card carries
+        // in that corner is the one part of that layout this page leaves out.
+        var tl = buildPip(work, 'tl');
+        var br = buildPip(work, 'br');
+        if (tl) face.appendChild(tl);
+        if (br) face.appendChild(br);
         return face;
     }
 
@@ -1452,6 +1560,10 @@
         .then(function (data) {
             works = (data && data.works) || [];
             if (!works.length) throw new Error('works.json held no works');
+            // Before anything is built: every face wants to know which card it
+            // is, and that is a property of the manifest's order, not of the
+            // shuffle that is about to happen to it.
+            assignCards();
             // buildGrid deals the opening round: the rack, and the hand off
             // the top of it.
             buildGrid();

@@ -186,6 +186,36 @@
   position: absolute;
   width: var(--card-w);
   aspect-ratio: var(--card-ar);
+  /* Every measurement on the face below is taken off the card's own width, and
+     this is what makes that possible: 1cqw is one per cent of this element's
+     width, wherever the card happens to be and whatever size it happens to be
+     at. It has to be here rather than on the face because an element cannot
+     query itself, and a card is four different sizes on this page — 172 in the
+     hand, 118 on the table, whatever its column gives it in the rack, and in
+     the modal whatever shape its own work is.
+     Nothing else changes: .card is already positioned and already carries a
+     transform, so it was a containing block and a stacking context before the
+     containment inline-size implies made it one. */
+  container-type: inline-size;
+  /* The border the work is inset by, ported from the about-me card's photo
+     silhouette: 21px of a 1059px-wide design frame, which is 1.98% of the
+     card's width wherever it is drawn.
+
+     It scales rather than sitting at a fixed weight, because the index in the
+     corner and the fold it sits in are the same geometry and those cannot be
+     fixed — a border held at 3px on the modal's 280px card while the fold
+     shrank with the card would stop being the about-me layout. The floor is
+     there for one card only: at the table's 118px the ratio gives 2.3px, and on
+     a phone's 84px card 1.7px, which straddles a device pixel and reads as a
+     smudge along the edge rather than as a border. Two pixels is the least a
+     stock edge can be and still be one. */
+  --frame: max(2px, 1.98cqw);
+  /* Concentric with the card's own corner. A picture that kept the card's full
+     radius inside a border would look rounder than the stock around it, and one
+     given no radius at all would show four square corners inside a rounded
+     card, which is the tell that the border is a rectangle laid on top rather
+     than the paper the work is printed on. */
+  --well-r: max(2px, calc(var(--card-r) - var(--frame)));
   /* Every card's own position and tilt are set as custom properties by
      sketchbook.js and composed here, so the script never writes a transform
      string and the two cannot disagree about the order of operations. */
@@ -316,6 +346,119 @@
   mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
 }
 
+/* ---------- the front of a card, which is a playing card ---------- */
+
+/* Ported from the about-me card, which is drawn to a canvas in script.js in a
+   1059x1449 design frame — the same frame the card back above already uses, so
+   its numbers come across as they are, divided by 10.59 to read as a percentage
+   of the card's width. Three things came over: the stock border, the folded
+   corner cut out of the picture's top left, and the index that sits in the
+   fold. The fourth, the shelf in the bottom-right corner that the about-me
+   card's tag pills stand on, deliberately did not — without it that corner is
+   the picture, and the second index lies over it.
+
+   Everything here is measured in cqw and not in per cent, and that is the whole
+   trick. A per cent is relative to whichever axis the property happens to use —
+   the height for a `top`, the width for a `left` — and the card in the modal is
+   now whatever shape its work is, anywhere from 0.40 to 1.78. One unit taken
+   off the card's width instead puts the index the same distance in from the
+   corner of a landscape gif and of a tall painting alike, and leaves the pip
+   the shape it was drawn as rather than stretching it to the card. */
+
+.card-face--front {
+  /* Padding, so the work's own box is the content box and there is nothing to
+     keep in step: the border is whatever is left over. Equal on all four sides
+     for the same reason the back's frame is stretched rather than inset by a
+     percentage — the stock is meant to show the same distance in from every
+     edge, not a proportion of each one. */
+  padding: var(--frame);
+  /* The deck's paper. The front used to be --stock and it never showed, because
+     the picture covered the card corner to corner; now that there is a border it
+     is the surface you actually see, and the about-me card and the card back are
+     both drawn on this one. */
+  background: var(--back-stock);
+}
+
+.card-well {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--well-r);
+  /* Rounds the picture, and crops the name's scrim to the same corners. */
+  overflow: hidden;
+  /* The folded corner, off ABOUTME_PHOTO_MASK in script.js, in the design's own
+     coordinates less the 21px inset the padding above already carries. The two
+     curves in the original are sampled rather than replaced by their endpoints:
+     the long one sweeps a third of the fold's height, and a straight line drawn
+     across it cuts visibly into the very corner the index has to sit in.
+     The fold is not decoration — it is what puts the top-left index on paper
+     instead of on the photograph. */
+  clip-path: polygon(
+    19.83cqw 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 10.48cqw,
+    0.62cqw 7.77cqw,
+    2.30cqw 6.10cqw,
+    4.86cqw 5.52cqw,
+    11.14cqw 5.52cqw,
+    13.84cqw 4.24cqw,
+    15.80cqw 1.84cqw,
+    16.82cqw 0.92cqw);
+}
+
+/* The index: the rank and then the house, in the fold at the top left and again
+   upside down in the opposite corner, which is how a card tells you what it is
+   whichever way up you are holding it.
+
+   Sized off the card's width like the frame, and with no floor of its own. A pip
+   held at a legible size while the fold around it went on shrinking would climb
+   straight out of the fold and onto the picture, which is the one thing the fold
+   exists to prevent; the index and the notch are one piece of geometry and
+   either both scale or neither does. */
+.card-pip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  font-family: "DM Sans", "Figtree", system-ui, sans-serif;
+  font-size: 4.5cqw;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  /* It sits over the card's own controls; nothing about it is clickable. */
+  pointer-events: none;
+}
+/* Hearts and diamonds are red on a real card and the theme colour here. There
+   is no red anywhere else on this site, and one appearing on a card would read
+   as something having gone wrong rather than as a suit. */
+.card-pip.is-accent { color: var(--accent); }
+.pip-suit {
+  display: block;
+  flex: none;
+  width: 0.82em;
+  height: 0.82em;
+}
+
+.card-pip--tl { left: 4.15cqw; top: 1.9cqw; }
+
+/* Turned the whole way round rather than built mirrored: on a real card the two
+   indices are one mark printed twice, and the rotation is what lets you read the
+   card upside down. The halo is the card's own stock, so along the border it
+   disappears into what is already there and only shows where the mark has a
+   photograph behind it — which, with the about-me card's bottom shelf gone, is
+   this corner every time. */
+.card-pip--br {
+  right: 4.15cqw;
+  bottom: 1.9cqw;
+  transform: rotate(180deg);
+  filter: drop-shadow(0 0 0.55cqw var(--back-stock))
+          drop-shadow(0 0 0.25cqw var(--back-stock));
+}
+
 .card-face img {
   width: 100%;
   height: 100%;
@@ -324,12 +467,20 @@
   object-fit: cover;
 }
 
-/* The name, on the face. Held at the foot of the card on a scrim so it stays
-   readable over a light work and a dark one alike. */
+/* The name, on the work. It sits inside the well now rather than on the face,
+   so it reaches the picture's edges and not the card's and the well's corners
+   crop it — a scrim run out over the stock would draw a dark bar across the
+   bottom of the border.
+
+   The right-hand padding is what keeps it off the bottom-right index, which
+   lands in exactly the corner the title was running into. It is the index's own
+   footprint, in the index's own unit, so the two cannot drift apart; the floor
+   is the padding this side had before, for the card small enough that the pip is
+   narrower than that. */
 .card-name {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  padding: 22px 10px 9px;
+  padding: 22px max(10px, 13cqw) 9px 10px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0));
   color: #fff;
   text-align: left;
@@ -359,10 +510,16 @@
    display: none both take an element out of the tab order and make .focus() do
    nothing, which broke both tabbing to it and handing focus back to it when its
    modal closed. pointer-events does the part visibility was there for. */
+/* Moved in by the width of the border, so it lands on the picture rather than
+   straddling the stock edge — three pixels clear of the work, where it used to
+   be five clear of the card. The corner it sits in is a tilted one and the
+   further out it goes the further it swings in as the card turns, so the gap it
+   keeps from the corner is smaller now, not larger: the frame it steps over is
+   between two and six pixels wide and the five it used to keep is now three. */
 .card-expand {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: calc(var(--frame) + 3px);
+  right: calc(var(--frame) + 3px);
   z-index: 3;
   display: flex;
   align-items: center;

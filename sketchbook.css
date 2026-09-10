@@ -424,7 +424,14 @@
   aspect-ratio: var(--card-ar);
   border-radius: var(--card-r);
 }
-.slot:empty { box-shadow: inset 0 0 0 1px var(--rule); }
+/* An empty slot is a place a card is missing from, so it is drawn as one: a
+   faint fill as well as the hairline, or on a white page it reads as nothing
+   at all rather than as a gap in the rack. */
+.slot:empty {
+  box-shadow: inset 0 0 0 1px var(--rule);
+  background: rgba(0, 0, 0, 0.028);
+}
+:root[data-theme="dark"] .slot:empty { background: rgba(255, 255, 255, 0.035); }
 
 /* A grid tile is the same card face at a different size, so it inherits the
    shape and the stock and only overrides what a tile does differently: it fills

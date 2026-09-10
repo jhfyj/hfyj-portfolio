@@ -53,15 +53,19 @@
     var countEl = document.getElementById('upcoming-count');
     if (!felt || !surface || !fanEl || !playedEl || !gridEl) return;
 
-    var works = [];      // every work, in manifest order — this is the grid
-    var deck = [];       // what the fan draws from next
-    var hand = [];       // the five card elements currently in the fan, in order
+    var works = [];      // every work the sketchbook has
+    var hand = [];       // the card elements in the fan, in order
     var topZ = 1;        // last card touched sits above the rest
     var slotEls = [];    // the rack: one slot per work, made once and kept
     var rack = [];       // the works still to come, in the order they sit in it
     var tileOf = {};     // id -> the card currently in the rack
-    var dealt = {};      // ids that have left the rack this round
     var resetting = false;
+
+    /* A work is in exactly one place at a time: in your hand, in the rack, or
+       played onto the table. There is no separate deck behind the rack - the
+       rack IS the deck, and the hand draws off the front of it, which is what
+       makes the running order you can drag it into mean something. The count
+       is simply the two you can still do something with: hand plus rack. */
 
     /* ---------------- the card face ---------------- */
 
@@ -279,19 +283,24 @@
     // overlap the way a hand does — but never wider than the table: five cards
     // at the desktop spread come to 392px, which is more than the canvas is
     // wide on a phone, and the outer two hang off the edge and get clipped.
-    function fanSpread() {
+    function fanSpread(n) {
+        // The hand is five until the rack runs dry, and then it empties one
+        // card at a time; the spread has to be worked out from what is actually
+        // being held or the last two cards sit a whole hand apart.
+        var count = Math.max(2, n || hand.length || HAND);
         var loose = 0.54 * fanCardW();
         var room = felt.getBoundingClientRect().width - fanCardW() - 2 * FAN_EDGE;
-        return Math.max(0, Math.min(loose, room / (HAND - 1)));
+        return Math.max(0, Math.min(loose, room / (count - 1)));
     }
 
     // Where card `i` of five sits inside #fan, which is itself exactly one card
     // wide — so the middle card is at zero and the others step out from it.
-    function fanSlot(i) {
-        var mid = (HAND - 1) / 2;
+    function fanSlot(i, n) {
+        var count = n || hand.length || HAND;
+        var mid = (count - 1) / 2;
         var off = i - mid;
         return {
-            x: off * fanSpread(),
+            x: off * fanSpread(count),
             y: off * off * 5,                 // outer cards ride lower, arcing the hand
             rot: off * FAN_TILT,
         };
@@ -318,21 +327,25 @@
 
     function layOutFan() {
         for (var i = 0; i < hand.length; i++) {
-            var s = fanSlot(i);
+            var s = fanSlot(i, hand.length);
             place(hand[i], s.x, s.y, s.rot);
             hand[i].style.zIndex = String(i + 1);
         }
     }
 
-    // Draws one onto the end of the hand. The hand is a queue: playing a card
-    // takes it out and everything behind it closes up, so a new card always
-    // joins at the back rather than filling the hole the played one left.
-    // `rise` is false for the five the page starts with, which are simply
-    // there rather than arriving.
+    // Draws the front of the rack onto the end of the hand. The hand is a
+    // queue: playing a card takes it out and everything behind it closes up, so
+    // a new card always joins at the back rather than filling the hole the
+    // played one left. Returns null once the rack is empty - the hand then
+    // simply gets shorter, because there is nothing left to refill it from.
     function draw(rise) {
-        if (!deck.length) refillDeck();
-        var work = deck.shift();
-        if (!work) return null;
+        var work = takeFromRack(0);
+        return work ? addToHand(work, rise) : null;
+    }
+
+    // `rise` is false for the cards a round opens with, which are simply there
+    // rather than arriving.
+    function addToHand(work, rise) {
         var el = buildCard(work, { interactive: true });
         el.setAttribute('data-cursor', 'play this card');
         // An arrow ahead of the words, because playing one sends it up onto
@@ -347,16 +360,6 @@
         fanEl.appendChild(el);
         hand.push(el);
         return el;
-    }
-
-    // The hand outlives the manifest: with twenty-one works and five in hand
-    // the deck runs out after sixteen plays, and "always five" has to keep
-    // being true after that. Anything already in the hand is held back so the
-    // same work is never in it twice.
-    function refillDeck() {
-        var held = {};
-        for (var i = 0; i < hand.length; i++) if (hand[i]) held[hand[i].dataset.id] = true;
-        deck = shuffle(works.filter(function (w) { return !held[w.id]; }));
     }
 
     function shuffle(list) {
@@ -585,9 +588,9 @@
         makePlayable(el);
         addExpand(el);
 
-        retire(el.__work);
-
-        // The hand is five wide at all times, so the gap closes immediately.
+        // The gap closes immediately, from the front of the rack. Once the rack
+        // is empty there is nothing to close it with and the hand simply gets
+        // shorter - which is what eventually ends the round.
         var added = draw(true);
         layOutFan();
         if (added) {
@@ -597,6 +600,10 @@
             void added.offsetWidth;
             requestAnimationFrame(function () { added.classList.remove('is-entering'); });
         }
+
+        updateCount();
+        // Nothing in hand and nothing to come: the round is over.
+        if (!hand.length && !rack.length) setTimeout(runReset, 620);
     }
 
     /* ---------------- a card on the table ---------------- */
@@ -766,8 +773,22 @@
             frag.appendChild(slot);
         }
         gridEl.appendChild(frag);
-        rack = works.slice();
-        fillRack(null);
+        deal(null);
+    }
+
+    // Opens a round: the rack is the whole pack, shuffled, and the hand is
+    // taken off the top of it before the rack is drawn - so the rack renders
+    // holding exactly what is still to come, with the slots the hand is
+    // holding already standing empty at the end. `from` deals the rack in from
+    // a point instead of simply putting it there.
+    function deal(from) {
+        while (fanEl.firstChild) fanEl.removeChild(fanEl.firstChild);
+        hand = [];
+        rack = shuffle(works);
+        var opening = rack.splice(0, HAND);
+        for (var i = 0; i < opening.length; i++) addToHand(opening[i], false);
+        layOutFan();
+        fillRack(from);
         updateCount();
     }
 
@@ -822,26 +843,26 @@
         });
     }
 
-    // What is still to come, out of what the sketchbook started with.
+    // Everything you can still do something with - the cards in your hand and
+    // the cards still to come - out of what the sketchbook has. A card played
+    // onto the table has left both, so the number only ever falls until the
+    // round is reshuffled.
     function updateCount() {
-        if (countEl) countEl.textContent = '(' + rack.length + '/' + works.length + ')';
+        if (countEl) countEl.textContent = '(' + (hand.length + rack.length) + '/' + works.length + ')';
     }
 
-    // A work leaves the rack the first time it is played. Once per work: the
-    // deck reshuffles after sixteen plays, and a work dealt twice has not
-    // become two fewer cards to come.
-    function retire(work) {
+    // Takes the work at `idx` out of the rack and hands it back, closing the
+    // rack up behind it. This is the one way a card leaves the rack, whether it
+    // is being drawn into your hand or the round is ending, so there is a
+    // single place where `rack`, `tileOf` and the slots are kept in step.
+    function takeFromRack(idx) {
         // A card in the air is put down before anything is spliced out from
         // under it. The rack can be dragged with one finger while the other
         // plays a card off the hand, and the splice below indexes `rack`
         // against the slots — which only agree once the carried card has landed.
         dropCarry(false);
-        if (!work || dealt[work.id]) return;
-        dealt[work.id] = true;
-
-        var idx = -1;
-        for (var i = 0; i < rack.length; i++) if (rack[i].id === work.id) { idx = i; break; }
-        if (idx === -1) return;
+        if (idx < 0 || idx >= rack.length) return null;
+        var work = rack[idx];
 
         // First: where every card that is staying sits right now.
         var stay = [];
@@ -891,21 +912,18 @@
 
         updateCount();
         labelRack();
-        if (!rack.length) setTimeout(runReset, 620);
+        return work;
     }
 
     /* ---------------- reordering the rack ---------------- */
 
     /* The upcoming cards are a running order, not a fixed list, so one can be
        picked up and dropped into another slot. The slots themselves still never
-       move — only which card is in which — so this is retire()'s FLIP again,
-       driven by a pointer instead of by a play.
+       move — only which card is in which — so this is takeFromRack()'s FLIP
+       again, driven by a pointer instead of by a draw.
 
-       What is deliberately NOT wired up here: the rack's order does not decide
-       what the hand draws next. `deck` is its own shuffled array, and feeding
-       it from the rack would turn "the cards still to come" into "the order
-       they arrive in", which is a bigger promise than the page currently makes
-       and a decision that is not this change's to take. */
+       The order is not decoration: the hand draws off the front of the rack, so
+       dragging a card forward is how you choose what you get next. */
 
     // The card being carried, or null. Kept at this scope rather than inside
     // makeSortable() so that anything rebuilding the rack underneath a drag —
@@ -966,8 +984,8 @@
         // Last. Every card comes out of its slot before any goes back in: a
         // card here can move either way along the rack, so appending into a
         // slot that has not been emptied yet leaves two cards stacked in it and
-        // one slot showing the :empty hairline. retire() gets away without the
-        // first pass because everything there only ever moves towards the
+        // one slot showing the :empty hairline. takeFromRack() gets away without
+        // the first pass because everything there only ever moves towards the
         // front, into a slot vacated a moment earlier.
         for (var i = 0; i < movers.length; i++) {
             if (movers[i].el.parentNode) movers[i].el.parentNode.removeChild(movers[i].el);
@@ -1104,7 +1122,7 @@
         });
 
         // Out of its slot and pinned over #grid, which is already positioned
-        // for the card retire() flies out. Lifting frees the slot, so the card
+        // for the card takeFromRack() flies out. Lifting frees the slot, so the card
         // shifting into it has somewhere to go while this one is still in hand.
         function lift() {
             carry.lifted = true;
@@ -1240,10 +1258,7 @@
 
         function redeal() {
             while (playedEl.firstChild) playedEl.removeChild(playedEl.firstChild);
-            dealt = {};
-            rack = works.slice();
-            fillRack(from);
-            updateCount();
+            deal(from);
             resetting = false;
         }
 
@@ -1260,10 +1275,9 @@
         .then(function (data) {
             works = (data && data.works) || [];
             if (!works.length) throw new Error('works.json held no works');
+            // buildGrid deals the opening round: the rack, and the hand off
+            // the top of it.
             buildGrid();
-            deck = shuffle(works);
-            for (var i = 0; i < HAND; i++) draw(false);
-            layOutFan();
             centrePan();
         })
         .catch(function (err) {

@@ -695,16 +695,6 @@ canvas.threejs {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* The customize card is the only label with a glyph in it. Flex rather than an
-   inline SVG so the pen sits on the text baseline at any font size, and the
-   gap collapses to nothing on the labels that are still plain text. */
-#card-cursor {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-#card-cursor svg { flex: none; }
-
 /* The words themselves cannot be transitioned — textContent changes in one
    frame or not at all — so they are swapped behind a fade instead. The label
    lives in its own element for exactly this reason: fading #card-cursor would
@@ -726,37 +716,6 @@ canvas.threejs {
    once. The pill's own fill is handled in the injected block in script.js. */
 @media (prefers-reduced-motion: reduce) {
   .cc-label, .cc-label.is-swapping { transition: none; opacity: 1; }
-}
-
-/* — While the make-your-own kit is open — 
-   The kit is the whole screen: the nav, the scrubber, the social links and the
-   spin hint all step out so the card and the tools are the only things left.
-   Faded rather than removed, so closing brings them back without reflowing. */
-body.customizing #top-nav,
-body.customizing #social-links,
-body.customizing #spin-hint,
-body.customizing #scrubber {
-  /* !important because the intro reveals these with .ui-intro-visible, which
-     is itself !important — see above. Same weapon, or they never leave. */
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-body.customizing #top-nav,
-body.customizing #social-links,
-body.customizing #spin-hint,
-body.customizing #scrubber,
-body.customizing canvas.threejs {
-  transition: opacity 300ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.customizing #top-nav,
-  body.customizing #social-links,
-  body.customizing #spin-hint,
-  body.customizing #scrubber,
-  body.customizing canvas.threejs {
-    transition: none;
-  }
 }
 
 /* ── Loading screen ── */

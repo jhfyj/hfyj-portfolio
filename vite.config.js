@@ -8,9 +8,6 @@ import { copyFileSync, cpSync } from 'node:fs';
 // invisible in dev — the dev server serves whatever is asked for — and silently
 // wrong in a build: the six case pages would simply not be emitted, and every
 // project on the deployed site would 404.
-//
-// card-builder-dev.html is deliberately absent. It is the harness the kit is
-// developed and tested against, not a page of the site.
 const PAGES = {
     index: 'index.html',
     aboutme: 'aboutme.html',

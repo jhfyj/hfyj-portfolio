@@ -745,6 +745,7 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .card-inner,
   #fan .card,
+  #played .card,
   #grid .card.is-moving,
   #grid .card.is-leaving,
   #played .card.is-gathering,
@@ -758,4 +759,3 @@ body.modal-open { overflow: hidden; }
   #modal-card > .card,
   .modal-scrim { animation-duration: 0.001s; }
 }
-  #played .card,

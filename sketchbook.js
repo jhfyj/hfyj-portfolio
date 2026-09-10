@@ -775,6 +775,10 @@
     // - a point in client coordinates - every card starts there instead, face
     // down and the size it was on the table, and flies home turning over.
     function fillRack(from) {
+        // A card being carried belongs to a rack that is about to stop
+        // existing. It is pinned over #grid rather than sitting in a slot, so
+        // emptying the slots below would leave it behind on the page.
+        abandonCarry();
         for (var i = 0; i < slotEls.length; i++) {
             while (slotEls[i].firstChild) slotEls[i].removeChild(slotEls[i].firstChild);
         }
@@ -784,8 +788,10 @@
             var card = buildCard(rack[i], { still: true, back: true });
             slotEls[i].appendChild(card);
             tileOf[rack[i].id] = card;
+            makeSortable(card, rack[i]);
             list.push(card);
         }
+        labelRack();
         if (!from) return;
 
         // Every rect read before any transform is written. One card's transform
@@ -825,6 +831,11 @@
     // deck reshuffles after sixteen plays, and a work dealt twice has not
     // become two fewer cards to come.
     function retire(work) {
+        // A card in the air is put down before anything is spliced out from
+        // under it. The rack can be dragged with one finger while the other
+        // plays a card off the hand, and the splice below indexes `rack`
+        // against the slots — which only agree once the carried card has landed.
+        dropCarry(false);
         if (!work || dealt[work.id]) return;
         dealt[work.id] = true;
 
@@ -879,7 +890,298 @@
         }
 
         updateCount();
+        labelRack();
         if (!rack.length) setTimeout(runReset, 620);
+    }
+
+    /* ---------------- reordering the rack ---------------- */
+
+    /* The upcoming cards are a running order, not a fixed list, so one can be
+       picked up and dropped into another slot. The slots themselves still never
+       move — only which card is in which — so this is retire()'s FLIP again,
+       driven by a pointer instead of by a play.
+
+       What is deliberately NOT wired up here: the rack's order does not decide
+       what the hand draws next. `deck` is its own shuffled array, and feeding
+       it from the rack would turn "the cards still to come" into "the order
+       they arrive in", which is a bigger promise than the page currently makes
+       and a decision that is not this change's to take. */
+
+    // The card being carried, or null. Kept at this scope rather than inside
+    // makeSortable() so that anything rebuilding the rack underneath a drag —
+    // a play, a reshuffle — can put it down first.
+    var carry = null;
+
+    var rackStatus = document.getElementById('rack-status');
+
+    function rackIndex(work) {
+        for (var i = 0; i < rack.length; i++) if (rack[i].id === work.id) return i;
+        return -1;
+    }
+
+    // `rack` with the card at `from` taken out and put back in at `to`. A
+    // splice and not a swap: the cards in between shift by one, which is what
+    // keeps the rack packed from the front rather than leaving a hole in the
+    // middle with cards behind it.
+    function orderWith(from, to) {
+        var next = rack.slice();
+        next.splice(to, 0, next.splice(from, 1)[0]);
+        return next;
+    }
+
+    // Position is part of a tile's name. A reorder is otherwise invisible to a
+    // reader who is not looking at the grid, and the keyboard path below is
+    // nothing but a run of them.
+    function labelRack() {
+        for (var i = 0; i < rack.length; i++) {
+            var c = tileOf[rack[i].id];
+            if (!c) continue;
+            c.setAttribute('aria-label',
+                rack[i].title + ', ' + (i + 1) + ' of ' + rack.length + ' upcoming');
+        }
+    }
+
+    function announce(msg) { if (rackStatus) rackStatus.textContent = msg; }
+
+    // How many cards a row of the rack holds. Read off the grid rather than
+    // written down: the column count steps from five to three to two on the way
+    // to a phone, and this would be the fourth place that number lived.
+    function columns() {
+        var t = getComputedStyle(gridEl).gridTemplateColumns;
+        return Math.max(1, t ? t.trim().split(/\s+/).length : 1);
+    }
+
+    // Puts `list` into the slots from the front and animates everything that
+    // had to move. `held` is a work whose card is in the air: its slot is left
+    // empty for it, and that gap is the preview of where the drop lands.
+    function layOutRack(list, held) {
+        var movers = [];
+        // First: every rect read before a single card is touched.
+        for (var i = 0; i < list.length; i++) {
+            var c = tileOf[list[i].id];
+            if (!c || (held && list[i].id === held.id)) continue;
+            movers.push({ el: c, at: i, r: c.getBoundingClientRect() });
+        }
+
+        // Last. Every card comes out of its slot before any goes back in: a
+        // card here can move either way along the rack, so appending into a
+        // slot that has not been emptied yet leaves two cards stacked in it and
+        // one slot showing the :empty hairline. retire() gets away without the
+        // first pass because everything there only ever moves towards the
+        // front, into a slot vacated a moment earlier.
+        for (var i = 0; i < movers.length; i++) {
+            if (movers[i].el.parentNode) movers[i].el.parentNode.removeChild(movers[i].el);
+        }
+        for (var i = 0; i < movers.length; i++) slotEls[movers[i].at].appendChild(movers[i].el);
+
+        // Invert.
+        for (var i = 0; i < movers.length; i++) {
+            var now = movers[i].el.getBoundingClientRect();
+            var dx = movers[i].r.left - now.left, dy = movers[i].r.top - now.top;
+            if (!dx && !dy) continue;
+            // The transition comes off first. A card caught mid-slide was
+            // measured where it is on screen, and the offset has to be taken up
+            // in one step rather than animated to.
+            movers[i].el.classList.remove('is-moving');
+            movers[i].el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        }
+        void gridEl.offsetWidth;
+        // Play.
+        for (var i = 0; i < movers.length; i++) {
+            movers[i].el.classList.add('is-moving');
+            movers[i].el.style.transform = '';
+        }
+    }
+
+    // One move, committed: the model, the slots and the labels in step.
+    function moveCard(work, to) {
+        var from = rackIndex(work);
+        if (from === -1) return false;
+        to = Math.min(Math.max(to, 0), rack.length - 1);
+        if (to === from) return false;
+        rack = orderWith(from, to);
+        layOutRack(rack, null);
+        labelRack();
+        announce(work.title + ' moved to position ' + (to + 1) + ' of ' + rack.length);
+        return true;
+    }
+
+    // Which slot the card in the air is over. The nearest slot centre rather
+    // than whatever is under the pointer: the gutters between slots are dead
+    // space, and a drop that did nothing because a finger was in one would read
+    // as the page having missed the gesture.
+    function slotUnder(cx, cy) {
+        var best = 0, bestD = Infinity;
+        for (var i = 0; i < carry.boxes.length; i++) {
+            var dx = carry.boxes[i].cx - cx, dy = carry.boxes[i].cy - cy;
+            var d = dx * dx + dy * dy;
+            if (d < bestD) { bestD = d; best = i; }
+        }
+        return best;
+    }
+
+    // Puts the carried card down where the gap is. `animate` is false when
+    // something else needs the rack this instant; either way the model and the
+    // DOM come back into step before this returns.
+    function dropCarry(animate) {
+        if (!carry) return;
+        var c = carry;
+        carry = null;
+        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
+            c.el.releasePointerCapture(c.id);
+        }
+        // A press that never cleared the slop never left its slot, so there is
+        // nothing to put back.
+        if (!c.lifted) return;
+
+        var was = c.el.getBoundingClientRect();
+        rack = orderWith(c.from, c.to);
+        c.el.classList.remove('is-lifted');
+        c.el.style.left = '';
+        c.el.style.top = '';
+        c.el.style.width = '';
+        c.el.style.height = '';
+        c.el.style.transform = '';
+        slotEls[c.to].appendChild(c.el);
+
+        // The same FLIP the other cards get, so the card settles into the slot
+        // from wherever it was let go of instead of snapping into it.
+        if (animate) {
+            var now = c.el.getBoundingClientRect();
+            var dx = was.left - now.left, dy = was.top - now.top;
+            if (dx || dy) {
+                c.el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+                void gridEl.offsetWidth;
+                c.el.classList.add('is-moving');
+                c.el.style.transform = '';
+            }
+        }
+        labelRack();
+        if (c.to !== c.from) {
+            announce(c.work.title + ' moved to position ' + (c.to + 1) + ' of ' + rack.length);
+        }
+    }
+
+    // The rack is being rebuilt from scratch, so there is no order left to
+    // commit the carried card into — it is simply taken off the page.
+    function abandonCarry() {
+        if (!carry) return;
+        var c = carry;
+        carry = null;
+        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
+            c.el.releasePointerCapture(c.id);
+        }
+        if (c.el.parentNode === gridEl) gridEl.removeChild(c.el);
+    }
+
+    function makeSortable(el, work) {
+        // A tile was a picture in a box; it is now something you can move, so
+        // it has to be reachable without a pointer as well as with one.
+        el.tabIndex = 0;
+        el.setAttribute('aria-describedby', 'rack-help');
+        el.setAttribute('data-cursor', 'drag to reorder');
+
+        // Belt to the images' braces, the same as a card on the table: pressing
+        // on a picture and moving hands the gesture to the browser's own
+        // drag-and-drop, and the pointer events simply stop arriving.
+        el.addEventListener('dragstart', function (e) { e.preventDefault(); });
+
+        el.addEventListener('pointerdown', function (e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            // Not while the pack is coming together and going back out: every
+            // card in the rack is about to be replaced.
+            if (resetting || carry) return;
+            if (rackIndex(work) === -1) return;
+            carry = {
+                el: el, work: work, id: e.pointerId,
+                px: e.clientX, py: e.clientY,
+                from: rackIndex(work), to: rackIndex(work),
+                lifted: false, boxes: null, pin: null,
+            };
+            // Capture, so a drag that outruns the pointer keeps sending moves
+            // here rather than to whichever tile is now underneath it.
+            if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+        });
+
+        // Out of its slot and pinned over #grid, which is already positioned
+        // for the card retire() flies out. Lifting frees the slot, so the card
+        // shifting into it has somewhere to go while this one is still in hand.
+        function lift() {
+            carry.lifted = true;
+            var r = el.getBoundingClientRect();
+            var gr = gridEl.getBoundingClientRect();
+            // Every slot measured once, here. Slots are fixed for the life of
+            // the page and nothing in this gesture moves them, which keeps the
+            // move handler off the layout entirely.
+            carry.boxes = [];
+            for (var i = 0; i < rack.length; i++) {
+                var s = slotEls[i].getBoundingClientRect();
+                carry.boxes.push({
+                    cx: s.left - gr.left + s.width / 2,
+                    cy: s.top - gr.top + s.height / 2,
+                });
+            }
+            carry.pin = {
+                cx: r.left - gr.left + r.width / 2,
+                cy: r.top - gr.top + r.height / 2,
+            };
+            // Any transition still running would fight the pointer.
+            el.classList.remove('is-moving');
+            el.style.transform = '';
+            gridEl.appendChild(el);
+            el.classList.add('is-lifted');
+            el.style.left = (r.left - gr.left) + 'px';
+            el.style.top = (r.top - gr.top) + 'px';
+            el.style.width = r.width + 'px';
+            el.style.height = r.height + 'px';
+        }
+
+        el.addEventListener('pointermove', function (e) {
+            if (!carry || carry.el !== el || e.pointerId !== carry.id) return;
+            if (resetting) { abandonCarry(); return; }
+            var dx = e.clientX - carry.px, dy = e.clientY - carry.py;
+            // The same few pixels makePlayable() allows. A rack that threw a
+            // tile out of its slot every time the page was touched would be
+            // unusable on a phone, and unreadable with a mouse.
+            if (!carry.lifted && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+            if (!carry.lifted) lift();
+            el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+
+            var to = slotUnder(carry.pin.cx + dx, carry.pin.cy + dy);
+            if (to === carry.to) return;
+            carry.to = to;
+            // The preview is the drop. What opens up under the card is exactly
+            // where it lands if it is let go of here.
+            layOutRack(orderWith(carry.from, to), carry.work);
+        });
+
+        function endDrag(e) {
+            if (!carry || carry.el !== el || e.pointerId !== carry.id) return;
+            dropCarry(true);
+        }
+        el.addEventListener('pointerup', endDrag);
+        el.addEventListener('pointercancel', endDrag);
+
+        // The same reorder without a pointer. Left and right step one slot; up
+        // and down step a row, whatever a row is at this width.
+        el.addEventListener('keydown', function (e) {
+            if (resetting || carry) return;
+            var step = 0;
+            if (e.key === 'ArrowRight') step = 1;
+            else if (e.key === 'ArrowLeft') step = -1;
+            else if (e.key === 'ArrowDown') step = columns();
+            else if (e.key === 'ArrowUp') step = -columns();
+            else return;
+            e.preventDefault();
+            var from = rackIndex(work);
+            if (from === -1) return;
+            if (!moveCard(work, from + step)) return;
+            // layOutRack() takes the tile out of the document to put it in its
+            // new slot, and focus does not survive that — so it is put back,
+            // and without the scroll that focus() would otherwise do on a page
+            // whose scrolling is smooth site-wide.
+            el.focus({ preventScroll: true });
+        });
     }
 
     /* ---------------- the end of a round ---------------- */

@@ -189,7 +189,26 @@
   --tilt: 0deg;
   left: 0;
   top: 0;
-  transform: translate3d(var(--x), calc(var(--y) + var(--lift) + var(--enter)), 0) rotate(calc(var(--rot) + var(--tilt)));
+  /* Where the card is and which way it is leaning are put on two different
+     properties, and that is the whole reason the lean can be animated. You
+     cannot transition half of a transform, and these two halves want opposite
+     things: the position is rewritten on every pointermove and must never be
+     eased, because anything between the pointer and the card reads as the card
+     lagging behind the hand holding it, while the tilt changes exactly twice in
+     a gesture and wants easing badly.
+
+     The individual translate/rotate/scale properties are applied BEFORE the
+     transform shorthand, so `translate: x y` followed by `transform: rotate(a)`
+     multiplies out to precisely the translate3d(...) rotate(...) this was
+     written as, with the same transform-origin — the card is where it always
+     was, and only the rotation is now transitionable on its own.
+
+     The order is not a free choice and cannot be swapped round. Putting the
+     rotation on the `rotate` property and the position in `transform` would
+     rotate the offset vector before applying it, which does not lean the card:
+     it carries it off across the table. */
+  translate: var(--x) calc(var(--y) + var(--lift) + var(--enter)) 0px;
+  transform: rotate(calc(var(--rot) + var(--tilt)));
   /* The card is a 3D box so the flip has a back to turn to. */
   perspective: 1000px;
   border: 0;
@@ -359,8 +378,11 @@
 /* ---------- cards in the fan ---------- */
 
 /* Only the top card of the fan responds; the rest are behind it. The lift is a
-   separate custom property from --y so hovering never disturbs the arc. */
-#fan .card { transition: transform 0.22s ease, opacity 0.22s ease; }
+   separate custom property from --y so hovering never disturbs the arc. Two
+   transitions where there was one, for the same reason .card now has two
+   properties: a hand closing up slides its cards and turns them at the same
+   time, and those are `translate` and `transform` now. */
+#fan .card { transition: translate 0.22s ease, transform 0.22s ease, opacity 0.22s ease; }
 /* A card played leaves the hand and the rest close up; the new one comes in at
    the end, rising into the gap rather than appearing in it. */
 #fan .card.is-entering { --enter: 54px; opacity: 0; }
@@ -384,14 +406,32 @@
   /* Width too: the card leaves the hand at the hand's size and arrives at the
      table's, so the shrink is part of the throw rather than a snap at the
      moment it is let go of. */
-  transition: transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1),
+  transition: translate 0.52s cubic-bezier(0.2, 0.75, 0.3, 1),
+              transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1),
               width 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
+  /* The lean, tipping in and settling back out. Only `transform` is named here,
+     which on a card is now only its rotation — the position is on `translate`
+     and is deliberately left with no transition at all, because it is following
+     a finger. That split is what makes this line safe: a card being dragged has
+     its position rewritten every pointermove and its tilt written twice in the
+     whole gesture, on the frame the drag begins and on the frame it is dropped,
+     so easing everything the card does would have eased the wrong one. Kept
+     short and front-loaded: the tilt is a reply to a gesture that has already
+     started, and a slow one would arrive after the card had moved. */
+  transition: transform 0.2s cubic-bezier(0.2, 0.75, 0.3, 1);
 /* The end of a round: every card comes together, three of them riffle, and the
-   whole lot is dealt back into the rack. */
-#played .card.is-gathering { transition: transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1); }
-#played .card.is-riffling { transition: transform 0.22s ease; }
+   whole lot is dealt back into the rack. Like the flight above, both of these
+   move a card and turn it at the same time, so both name the two properties
+   that now share that work. */
+#played .card.is-gathering {
+  transition: translate 0.5s cubic-bezier(0.3, 0.8, 0.3, 1),
+              transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+#played .card.is-riffling {
+  transition: translate 0.22s ease, transform 0.22s ease;
+}
 
 /* Every card in the pack drops its shadow while the round is being reshuffled.
    Stacked on one spot, each card's shadow falls on the card below rather than
@@ -488,6 +528,12 @@
   transform: scale(0.14);
   opacity: 0;
   pointer-events: none;
+  /* Both halves of .card's placement, cleared. A tile is placed by its slot and
+     the script drives its FLIP with an inline transform, so the custom
+     properties above have nothing to say here — and leaving `translate` at a
+     resolved zero rather than at none would make every tile a containing block
+     and a stacking context it was not before. */
+  translate: none;
 }
 
 /* A rack card can be picked up and dropped into another slot: what is upcoming
@@ -692,7 +738,10 @@ body.modal-open { overflow: hidden; }
 }
 
 /* The deal, the flip and the tile's zoom are all decoration over a page that
-   works without them; the drag is not, and is untouched. */
+   works without them; the drag is not, and is untouched — the card still goes
+   exactly where the pointer takes it, at the moment the pointer takes it there.
+   Only the lean it tips into is shortened, which leaves the signal that a card
+   has been picked up and takes away the movement in it. */
 @media (prefers-reduced-motion: reduce) {
   .card-inner,
   #fan .card,
@@ -709,3 +758,4 @@ body.modal-open { overflow: hidden; }
   #modal-card > .card,
   .modal-scrim { animation-duration: 0.001s; }
 }
+  #played .card,

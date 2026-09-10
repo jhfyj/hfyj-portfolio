@@ -34,6 +34,7 @@ const CLASSIC_SCRIPTS = [
     'analytics.js',
     'card-transition.js',
     'case.js',
+    'dice.js',
     'footer-deck.js',
     'site.js',
     'sketchbook.js',

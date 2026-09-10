@@ -1,0 +1,135 @@
+/* Dice on the sketchbook's mat.
+   ---------------------------------------------------------------------------
+   A die here is a real cube: six faces on a preserve-3d box, and showing a
+   number means turning the box until that face points at the viewer. That is
+   worth saying out loud because the obvious cheap alternative — one square that
+   swaps its pips — cannot tumble, and a tumble is the whole ask. Six absolutely
+   positioned divs and a rotation is not expensive: everything that moves here
+   is transform and opacity, which the compositor does without touching layout
+   or paint, and three dice cost the same as one.
+
+   Colour comes from the page's own tokens rather than from white and black.
+   --back-stock is the card back's stock and --ink is its writing, so a die is
+   made of the same material as the cards it is lying among and takes both
+   themes for free. On the light table that is a near-white die with dark pips,
+   which is the die anyone pictures; on the dark one it inverts along with the
+   card backs, which is right — a white block on a near-black felt would be the
+   brightest thing on the page, and a die is not the point of it.
+
+   Nothing in here is scoped to a theme. Every colour is a token, and the two
+   palettes are already settled at the top of sketchbook.css. */
+
+.die {
+  position: absolute;
+  display: block;
+  /* dice.js writes --die-w onto each die. The size cannot live here: the same
+     number decides how far each face is pushed out from the centre of the cube
+     and how much room a die needs on the mat, and both of those are worked out
+     in script. One number, set where it is used for arithmetic, read here. */
+  width: var(--die-w, 46px);
+  height: var(--die-w, 46px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* A button's own font would otherwise leak into the faces' grid metrics. */
+  font: inherit;
+  color: inherit;
+  overflow: visible;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Exactly one, and it has to be exactly one. #played is a box stretched over
+     the whole surface with nothing in it, and being merely earlier in the
+     document is not enough to be in front of it — a die left at auto is buried
+     under that box and cannot be pressed at all, and the press goes to the mat
+     and drags the table instead. #played takes no z-index of its own and no
+     transform, so it is not a stacking context: its cards stack against this
+     one directly, and sketchbook.js hands every card it lays down a z-index
+     counted up from two. So one is above the empty box and below every card
+     that will ever sit on it, which is precisely where a die belongs. */
+  z-index: 1;
+  /* The camera. Shallow enough that a face turning away foreshortens visibly —
+     without it the cube is six squares sliding over each other and reads as
+     flat — and not so shallow that the near corner distorts on the way past.
+     It is on the button rather than on the cube because a perspective on the
+     same element as the rotation is applied after it, which is not a camera. */
+  perspective: 520px;
+}
+
+/* No hand here. Over a die the page's own dot is the cursor, exactly as it is
+   over a card: a die is a thing you handle, and the grab hand belongs to the
+   mat underneath. Scoped to body.has-dot for the same reason the card rule is —
+   a coarse pointer has no dot to fall back to. */
+body.has-dot .die,
+body.has-dot .die-face,
+body.has-dot .die-pip { cursor: none; }
+
+.die:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* The cube. Its transform is written entirely by dice.js, one string, so that a
+   resting pose and a frame of a tumble are built by the same code and can never
+   disagree about the order the rotations compose in. */
+.die-cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.die-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 22%;
+  /* The faces pointing away are not drawn and do not answer the pointer, which
+     is what makes asking the document what is under the middle of a die a
+     truthful question: the answer is the face you can actually see. */
+  backface-visibility: hidden;
+  background-color: var(--back-stock);
+  /* Light, faked the way it is on every CSS cube: a fixed wash per face rather
+     than a real normal. It tumbles with the die instead of staying put like a
+     lamp would, and at tumbling speed nobody has ever noticed. */
+  --shade: 0;
+  background-image: linear-gradient(rgba(0, 0, 0, var(--shade)), rgba(0, 0, 0, var(--shade)));
+  box-shadow: inset 0 0 0 1px var(--stock-edge);
+  /* Nine cells; the pips name the ones they sit in. Padding rather than a
+     margin on the pips so a face reads the same at any size. */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 15%;
+  gap: 5%;
+}
+
+/* Lit from above and slightly to the left, which is where every other shadow on
+   this page comes from. The front is left almost clean because it is the one
+   carrying the number. */
+.die-face[data-at="top"]    { --shade: 0; }
+.die-face[data-at="front"]  { --shade: 0.03; }
+.die-face[data-at="left"]   { --shade: 0.09; }
+.die-face[data-at="right"]  { --shade: 0.14; }
+.die-face[data-at="back"]   { --shade: 0.18; }
+.die-face[data-at="bottom"] { --shade: 0.22; }
+
+.die-pip {
+  align-self: center;
+  justify-self: center;
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* What the die casts on the paper. Outside the cube, so it stays flat on the
+   table while the die turns above it, and it is what actually sells the hop:
+   the cube coming toward the camera reads as growing, and only a shadow
+   spreading and going soft underneath it reads as leaving the table. */
+.die-cast {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -5px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.26);
+  filter: blur(4px);
+  pointer-events: none;
+}

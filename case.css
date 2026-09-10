@@ -129,6 +129,32 @@ main { padding-bottom: 0; }
 
 /* ---------- media ---------- */
 
+/* Photo corners — the standard for every case-study page.
+   ---------------------------------------------------------------------------
+   Every content photograph and clip gets a slight rounding via --photo-radius.
+   New pages should not invent a second value: set --photo-radius here if the
+   site ever moves, and every shot, row and reel picks it up.
+
+   Already rounded elsewhere and left alone:
+     · the hero well (.case > :first-child) — card-well radius, not this token
+     · .frame and .embed — 12px wells with overflow:hidden
+     · .card, .split — 10px caption wells with overflow:hidden
+
+   Exceptions (handled outside this block):
+     · Clarus AI's .strip — photos butted edge to edge; only the outer corners
+       of the stack are rounded, in clarusai.css
+     · About Me polaroids, photobooth strips and the hero fan — aboutme.css
+
+   Polaroids are never rounded with this token. Do not add .strip img here. */
+.case { --photo-radius: 6px; }
+
+.shot img,
+.shot video,
+.media-row img,
+.media-row video,
+.reel img,
+.reel video { border-radius: var(--photo-radius); }
+
 /* Every visual runs the full width of the column; the artwork carries its own
    background, so no panel styling is needed around it. */
 .shot { margin: 28px 0 0; }

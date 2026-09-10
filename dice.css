@@ -1,12 +1,14 @@
 /* Dice on the sketchbook's mat.
    ---------------------------------------------------------------------------
    A die here is a real cube: six faces on a preserve-3d box, and showing a
-   number means turning the box until that face points at the viewer. That is
-   worth saying out loud because the obvious cheap alternative — one square that
-   swaps its pips — cannot tumble, and a tumble is the whole ask. Six absolutely
-   positioned divs and a rotation is not expensive: everything that moves here
-   is transform and opacity, which the compositor does without touching layout
-   or paint, and three dice cost the same as one.
+   number means turning the box until that face points at the viewer. At rest
+   that face is square-on — one face, no lean to show the sides — and a second
+   cube laid down on the paper as a drop shadow is what gives it volume. The
+   obvious cheap alternative — one square that swaps its pips — cannot tumble,
+   and a tumble is the whole ask. Six absolutely positioned divs and a rotation
+   is not expensive: everything that moves here is transform and opacity, which
+   the compositor does without touching layout or paint, and three dice cost
+   the same as one.
 
    Colour comes from the page's own tokens rather than from white and black.
    --back-stock is the card back's stock and --ink is its writing, so a die is
@@ -16,8 +18,9 @@
    card backs, which is right — a white block on a near-black felt would be the
    brightest thing on the page, and a die is not the point of it.
 
-   Nothing in here is scoped to a theme. Every colour is a token, and the two
-   palettes are already settled at the top of sketchbook.css. */
+   The one exception is the shadow. It is black on the felt, and the felt is so
+   different in the two palettes that a single rgba would vanish on one of them,
+   so those faces are the only rules here that name a theme. */
 
 .die {
   position: absolute;
@@ -38,16 +41,19 @@
   overflow: visible;
   -webkit-user-select: none;
   user-select: none;
-  /* Exactly one, and it has to be exactly one. #played is a box stretched over
-     the whole surface with nothing in it, and being merely earlier in the
-     document is not enough to be in front of it — a die left at auto is buried
-     under that box and cannot be pressed at all, and the press goes to the mat
-     and drags the table instead. #played takes no z-index of its own and no
-     transform, so it is not a stacking context: its cards stack against this
-     one directly, and sketchbook.js hands every card it lays down a z-index
-     counted up from two. So one is above the empty box and below every card
-     that will ever sit on it, which is precisely where a die belongs. */
-  z-index: 1;
+  /* Above every card on the table, including one being dragged. #played
+     takes no z-index of its own and no transform, so it is not a stacking
+     context: its cards stack against this one directly. sketchbook.js
+     counts those cards up from two, and the shuffle briefly parks them in
+     the 1000s, so a small number would eventually be climbed over. --die-z
+     lives on #surface, the stacking context they all share, and chips use
+     the same band. The shadow is a child of this element, so it travels
+     with the die and cannot slip under a card the die itself is sitting
+     on. */
+  z-index: var(--die-z, 40000);
+  /* The cards use this so a drag on a touch screen does not scroll the page
+     out from under them. A die is the same kind of press. */
+  touch-action: none;
   /* The camera. Shallow enough that a face turning away foreshortens visibly —
      without it the cube is six squares sliding over each other and reads as
      flat — and not so shallow that the near corner distorts on the way past.
@@ -62,9 +68,14 @@
    a coarse pointer has no dot to fall back to. */
 body.has-dot .die,
 body.has-dot .die-face,
+body.has-dot .die-cast-face,
 body.has-dot .die-pip { cursor: none; }
 
 .die:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* Above its neighbours while it is the one in the hand. The cube-shadow is
+   a child, so it comes with it. */
+.die.is-dragging { z-index: calc(var(--die-z, 40000) + 2); }
 
 /* The cube. Its transform is written entirely by dice.js, one string, so that a
    resting pose and a frame of a tumble are built by the same code and can never
@@ -83,12 +94,10 @@ body.has-dot .die-pip { cursor: none; }
      is what makes asking the document what is under the middle of a die a
      truthful question: the answer is the face you can actually see. */
   backface-visibility: hidden;
+  /* One stock, every face. A wash per side would make a tumble look like six
+     different materials catching the light, and the number that lands would
+     not be the same colour as the number that left. */
   background-color: var(--back-stock);
-  /* Light, faked the way it is on every CSS cube: a fixed wash per face rather
-     than a real normal. It tumbles with the die instead of staying put like a
-     lamp would, and at tumbling speed nobody has ever noticed. */
-  --shade: 0;
-  background-image: linear-gradient(rgba(0, 0, 0, var(--shade)), rgba(0, 0, 0, var(--shade)));
   box-shadow: inset 0 0 0 1px var(--stock-edge);
   /* Nine cells; the pips name the ones they sit in. Padding rather than a
      margin on the pips so a face reads the same at any size. */
@@ -99,16 +108,6 @@ body.has-dot .die-pip { cursor: none; }
   gap: 5%;
 }
 
-/* Lit from above and slightly to the left, which is where every other shadow on
-   this page comes from. The front is left almost clean because it is the one
-   carrying the number. */
-.die-face[data-at="top"]    { --shade: 0; }
-.die-face[data-at="front"]  { --shade: 0.03; }
-.die-face[data-at="left"]   { --shade: 0.09; }
-.die-face[data-at="right"]  { --shade: 0.14; }
-.die-face[data-at="back"]   { --shade: 0.18; }
-.die-face[data-at="bottom"] { --shade: 0.22; }
-
 .die-pip {
   align-self: center;
   justify-self: center;
@@ -118,18 +117,34 @@ body.has-dot .die-pip { cursor: none; }
   background: var(--ink);
 }
 
-/* What the die casts on the paper. Outside the cube, so it stays flat on the
-   table while the die turns above it, and it is what actually sells the hop:
-   the cube coming toward the camera reads as growing, and only a shadow
-   spreading and going soft underneath it reads as leaving the table. */
+/* What the die casts on the paper. A second cube, the same size, laid down
+   on the table rather than an oval smudge: that is what sells a square-on
+   die as a thing with volume, without showing a second face of the die
+   itself. dice.js writes its transform — the lie-down, the light's offset,
+   and the same tumble the die is doing — so a hop spreads it and a turn
+   turns it, and a keyframe cannot disagree with the pose it lands on.
+
+   Softness is on the faces, not on this cube. A filter here would flatten
+   the preserve-3d tree into a bitmap and the shadow would stop being a cube;
+   box-shadow on each face feathers that square without touching the tree. */
 .die-cast {
   position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: -5px;
-  height: 9px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.26);
-  filter: blur(4px);
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.die-cast-face {
+  position: absolute;
+  inset: 0;
+  /* Less than the die's own 22%: at this angle six independently-rounded
+     squares do not meet as a rounded cube, they meet as a crease. A tighter
+     corner plus the glow is what a contact shadow's edge looks like. */
+  border-radius: 10%;
+  backface-visibility: hidden;
+  /* One tone. The cube-on-the-table reading comes from the lie-down, not from
+     painting some sides darker than others. Shared with the chips. */
+  background: var(--cast, rgba(0, 0, 0, 0.22));
+  box-shadow: var(--cast-glow, 0 0 10px 4px rgba(0, 0, 0, 0.18));
   pointer-events: none;
 }

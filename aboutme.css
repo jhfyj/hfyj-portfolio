@@ -81,6 +81,8 @@
 }
 
 .why-figure { margin: 0; }
+/* Same 6px as case.css's --photo-radius; polaroids and photobooth strips below
+   are excluded — they carry their own frame geometry. */
 .why-figure img { width: 100%; border-radius: 6px; }
 
 /* ---------- experience + education ---------- */

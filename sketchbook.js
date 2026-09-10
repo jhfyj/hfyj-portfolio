@@ -56,6 +56,7 @@
     var works = [];      // every work the sketchbook has
     var hand = [];       // the card elements in the fan, in order
     var topZ = 1;        // last card touched sits above the rest
+    var chipZ = 40000;   // last chip picked up sits above the other, still over every card
     var slotEls = [];    // the rack: one slot per work, made once and kept
     var rack = [];       // the works still to come, in the order they sit in it
     var tileOf = {};     // id -> the card currently in the rack
@@ -78,8 +79,8 @@
        "whatever came out first this time" instead of naming one drawing.
 
        Index 0 is the ace of spades and index 12 the king; 13 starts the hearts.
-       Twenty-one works reach the eight of hearts and stop, and a twenty-second
-       added to works.json is simply the nine — nothing already dealt moves. */
+       Twenty-two works reach the nine of hearts and stop, and a twenty-third
+       added to works.json is simply the ten — nothing already dealt moves. */
     var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     var SUITS = ['spade', 'heart', 'diamond', 'club'];
 
@@ -176,17 +177,44 @@
     // costs what its animations weigh, and either way only the handful near the
     // window are running at once — which is the part that would otherwise never
     // stop costing.
-    function buildFace(work, still) {
+    function buildFace(work, still, opts) {
+        opts = opts || {};
         var face = document.createElement('div');
         face.className = 'card-face card-face--front';
 
         // The work does not reach the card's edge any more: it sits in a well
         // inset from it, and the stock left showing round the well is the
-        // border. The inset, the well's folded top-left corner and the two
-        // indices are all in sketchbook.css — the fold in particular is a shape
-        // and not markup, so there is nothing here to keep in step with it.
+        // border. The inset, the well's two folded corners and the two indices
+        // are all in sketchbook.css — the folds in particular are a shape and
+        // not markup, so there is nothing here to keep in step with them.
         var well = document.createElement('div');
         well.className = 'card-well';
+
+        // The live sketchbook plays some works as a YouTube embed rather than
+        // as the GIF that stands in for them on the tile. That swap is only
+        // for the opened card: the hand, the table and the rack keep the
+        // poster, because twenty-one iframes on the mat would be a different
+        // page. `embed` is what openModal() asks for.
+        if (opts.embed && work.youtube) {
+            well.classList.add('is-embed');
+            var embed = document.createElement('div');
+            embed.className = 'card-embed';
+            var frame = document.createElement('iframe');
+            frame.src = 'https://www.youtube.com/embed/' + work.youtube
+                + '?iv_load_policy=3&rel=0&modestbranding=1&playsinline=1';
+            frame.title = work.title;
+            frame.setAttribute('allow',
+                'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+            frame.setAttribute('allowfullscreen', '');
+            frame.setAttribute('loading', 'lazy');
+            // The card around this is a flip control. A click meant for the
+            // player must not also turn the card over, and a press must not
+            // start a drag if this face is ever reused on the table.
+            embed.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+            embed.addEventListener('click', function (e) { e.stopPropagation(); });
+            embed.appendChild(frame);
+            well.appendChild(embed);
+        }
 
         var img = document.createElement('img');
         var file = (still && work.poster) ? work.poster : work.file;
@@ -216,6 +244,10 @@
         // events stop arriving and the card is left behind after about thirty
         // pixels. The card's drag is the only drag this page wants.
         img.draggable = false;
+        // Behind the player when one is in the well, so the poster is what
+        // shows if the iframe is slow or refused, and so the well still has
+        // an intrinsic picture for object-fit to measure.
+        if (opts.embed && work.youtube) img.className = 'card-embed-poster';
         well.appendChild(img);
 
         var name = document.createElement('div');
@@ -237,9 +269,8 @@
         well.appendChild(name);
         face.appendChild(well);
 
-        // After the well, so the bottom-right index lies over the picture. It
-        // has no fold of its own to sit in: the shelf the about-me card carries
-        // in that corner is the one part of that layout this page leaves out.
+        // After the well, so both indices paint on the stock the folds leave
+        // showing rather than on the photograph.
         var tl = buildPip(work, 'tl');
         var br = buildPip(work, 'br');
         if (tl) face.appendChild(tl);
@@ -302,9 +333,20 @@
         h.textContent = work.title;
         d.appendChild(h);
 
+        if (work.description) {
+            var copy = document.createElement('p');
+            copy.className = 'detail-copy';
+            copy.setAttribute('data-field', 'description');
+            copy.textContent = work.description;
+            d.appendChild(copy);
+        }
+
+        var format = work.youtube ? 'YouTube'
+            : String(work.file || '').split('.').pop().toUpperCase();
         var rows = [
-            ['format', 'Format', String(work.file || '').split('.').pop().toUpperCase()],
-            ['size', 'Size', work.width && work.height ? work.width + ' \u00d7 ' + work.height : ''],
+            ['format', 'Format', format],
+            ['size', 'Size', (!work.youtube && work.width && work.height)
+                ? work.width + ' \u00d7 ' + work.height : ''],
         ];
         var dl = document.createElement('dl');
         for (var i = 0; i < rows.length; i++) {
@@ -317,14 +359,33 @@
             dl.appendChild(dt);
             dl.appendChild(dd);
         }
-        d.appendChild(dl);
+        if (work.link) {
+            var ldt = document.createElement('dt');
+            ldt.textContent = 'Link';
+            var ldd = document.createElement('dd');
+            ldd.setAttribute('data-field', 'link');
+            var la = document.createElement('a');
+            la.href = work.link;
+            la.target = '_blank';
+            la.rel = 'noopener noreferrer';
+            la.textContent = work.link.replace(/^https?:\/\//, '').split('/')[0];
+            // A link inside the flip control would otherwise turn the card
+            // over on the same click that should leave the page.
+            la.addEventListener('click', function (e) { e.stopPropagation(); });
+            ldd.appendChild(la);
+            dl.appendChild(ldt);
+            dl.appendChild(ldd);
+        }
+        if (dl.childNodes.length) d.appendChild(dl);
 
-        var note = document.createElement('p');
-        note.className = 'detail-note';
-        note.textContent = work.animated
-            ? 'Animated \u2014 the card plays it in place.'
-            : 'One of the hundred cards this playground is being built towards.';
-        d.appendChild(note);
+        if (!work.description) {
+            var note = document.createElement('p');
+            note.className = 'detail-note';
+            note.textContent = work.animated
+                ? 'Animated \u2014 the card plays it in place.'
+                : 'One of the hundred cards this playground is being built towards.';
+            d.appendChild(note);
+        }
         return d;
     }
 
@@ -352,7 +413,7 @@
 
         var inner = document.createElement('div');
         inner.className = 'card-inner';
-        inner.appendChild(buildFace(work, opts.still));
+        inner.appendChild(buildFace(work, opts.still, { embed: opts.embed }));
 
         // A rack tile is dealt in face down at the end of a round, so it needs a
         // back as much as a card on the table does; only its behaviour differs.
@@ -382,6 +443,21 @@
         el.classList.toggle('is-flipped');
         var on = el.classList.contains('is-flipped');
         if (el.flipBtn) el.flipBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        // A card in the air has to sit above its neighbours or the scale reads
+        // as it growing underneath them. Keyboard turns never went through
+        // pointerdown, which is the other place this is raised.
+        el.style.zIndex = String(++topZ);
+        // Restart even if a previous turn is still in the air: removing and
+        // adding in one frame is a no-op without the read in between.
+        el.classList.remove('is-flipping');
+        void el.offsetWidth;
+        el.classList.add('is-flipping');
+        if (!el.__liftBound) {
+            el.__liftBound = true;
+            el.addEventListener('animationend', function (e) {
+                if (e.animationName === 'card-lift') el.classList.remove('is-flipping');
+            });
+        }
     }
 
     // Two corners pulling apart: the same idea the live sketchbook's card uses.
@@ -510,9 +586,32 @@
 
     /* The surface is larger than the window onto it, so there is somewhere to
        push cards to. Dragging anywhere on the table that is not a card slides
-       it; the hand is outside the surface and stays where it is. */
+       it; the hand is outside the surface and stays where it is.
+
+       The cloth itself is not a percentage of the window. A phone's opening is
+       smaller than a laptop's, and sizing the table off that opening used to
+       throw away everything that did not fit — a card you had pushed aside
+       vanished when the window shrank. The table is at least a laptop-sized
+       cloth (TABLE_MIN, the same floors as min-width/min-height on #surface)
+       and at least half again the current window, and it only ever grows, so
+       every window looks onto the same amount of felt. */
 
     var pan = { x: 0, y: 0 };
+    var TABLE_MIN_W = 1920;
+    var TABLE_MIN_H = 720;
+    var tableW = 0;
+    var tableH = 0;
+
+    function sizeSurface() {
+        var w = Math.max(Math.round(felt.clientWidth * 1.5), TABLE_MIN_W);
+        var h = Math.max(Math.round(felt.clientHeight * 1.5), TABLE_MIN_H);
+        // Never shrink: pieces already on the table keep the coordinates they
+        // were given, and a smaller opening just means more cloth to pan.
+        tableW = Math.max(tableW, w);
+        tableH = Math.max(tableH, h);
+        surface.style.width = tableW + 'px';
+        surface.style.height = tableH + 'px';
+    }
 
     function panLimits() {
         var f = felt.getBoundingClientRect();
@@ -543,8 +642,8 @@
 
     felt.addEventListener('pointerdown', function (e) {
         if (e.button !== undefined && e.button !== 0) return;
-        // A press that lands on a card belongs to that card.
-        if (e.target.closest && e.target.closest('.card')) return;
+        // A press that lands on a card, a chip or a die belongs to that piece.
+        if (e.target.closest && e.target.closest('.card, .chip, .die')) return;
         panDrag = {
             id: e.pointerId,
             px: e.clientX, py: e.clientY,
@@ -837,32 +936,37 @@
 
     /* ---------------- what else is on the table ---------------- */
 
-    /* Two chips, lying on the mat. They are scenery and nothing else: they sit
-       under the cards, take no pointer events and are not in the model, because
-       a chip you could pick up or move would be promising a game this page is
-       not playing. They go into #surface rather than onto #felt, so they pan
-       with the table and the paper instead of floating over a mat that slides
-       out from under them.
+    /* Two chips, lying on the mat. They pan with the table — they go into
+       #surface rather than onto #felt, so they do not float over a cloth that
+       slides out from under them — and they drag the same way a played card
+       does: press, move, drop, kept on the cloth. They are not in the model
+       and they are not a game; they are just things on the table you can
+       rearrange.
 
        Drawn rather than exported. A chip is four concentric circles and a dashed
        ring, which is less markup than an <img> would be request, and it takes
        the theme with it: the body is the brand accent and everything cut out of
-       it is the mat's own colour, so the same two shapes read correctly on a
-       near-white table and on a dark one. */
+       it is the mat's own colour, so the punched centres stay holes in the
+       grass rather than a second green. */
 
     var CHIP_W = 52;
 
     function buildChip() {
+        var wrap = document.createElement('div');
+        wrap.className = 'chip';
+        wrap.setAttribute('aria-hidden', 'true');
+        wrap.style.setProperty('--chip-w', CHIP_W + 'px');
+
+        var cast = document.createElement('div');
+        cast.className = 'chip-cast';
+        var disc = document.createElement('div');
+        disc.className = 'chip-cast-disc';
+        cast.appendChild(disc);
+        wrap.appendChild(cast);
+
         var svg = document.createElementNS(SVG_NS, 'svg');
         svg.setAttribute('viewBox', '0 0 100 100');
-        svg.setAttribute('aria-hidden', 'true');
-        svg.style.position = 'absolute';
-        svg.style.width = CHIP_W + 'px';
-        svg.style.height = CHIP_W + 'px';
-        // Scenery does not answer the pointer. Without this a chip would take
-        // the press that is meant to start a pan of the table under it.
         svg.style.pointerEvents = 'none';
-        svg.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.16))';
 
         function circle(r, fill, stroke, width, dash, opacity) {
             var c = document.createElementNS(SVG_NS, 'circle');
@@ -889,7 +993,8 @@
         circle(43, null, 'var(--felt)', 12, '19 26.03');
         circle(33, null, 'var(--felt)', 2, null, 0.5);
         circle(17, 'var(--felt)', null, null, null, 0.92);
-        return svg;
+        wrap.appendChild(svg);
+        return wrap;
     }
 
     // Somewhere on the visible part of the table, clear of the hand and of the
@@ -925,6 +1030,70 @@
         return best;
     }
 
+    // The rectangle a chip may sit in and stay whole, in the surface's own
+    // coordinates. The whole surface, not the visible part: same reason a card
+    // dragged off the edge of the window is still on the table.
+    function chipBounds() {
+        var s = surface.getBoundingClientRect();
+        var pad = 8;
+        return {
+            minX: pad,
+            maxX: Math.max(pad, s.width - CHIP_W - pad),
+            minY: pad,
+            maxY: Math.max(pad, s.height - CHIP_W - pad),
+        };
+    }
+
+    function makeDraggableChip(el) {
+        var drag = null;
+
+        el.addEventListener('pointerdown', function (e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            // The mat's pan handler is on #felt and would otherwise take this
+            // press. Same stop a die uses, and for the same reason: the gesture
+            // belongs to the thing under the pointer.
+            e.stopPropagation();
+            el.style.zIndex = String(++chipZ);
+            drag = {
+                id: e.pointerId,
+                px: e.clientX, py: e.clientY,
+                ox: parseFloat(el.style.left) || 0,
+                oy: parseFloat(el.style.top) || 0,
+                moved: false,
+            };
+            if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+        });
+
+        el.addEventListener('pointermove', function (e) {
+            if (!drag || e.pointerId !== drag.id) return;
+            var dx = e.clientX - drag.px, dy = e.clientY - drag.py;
+            if (!drag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+            if (!drag.moved) {
+                drag.moved = true;
+                drag.bounds = chipBounds();
+                el.classList.add('is-dragging');
+                el.style.willChange = 'transform';
+            }
+            var b = drag.bounds;
+            var x = Math.min(Math.max(drag.ox + dx, b.minX), b.maxX);
+            var y = Math.min(Math.max(drag.oy + dy, b.minY), b.maxY);
+            el.style.left = Math.round(x) + 'px';
+            el.style.top = Math.round(y) + 'px';
+        });
+
+        function end(e) {
+            if (!drag || e.pointerId !== drag.id) return;
+            if (el.releasePointerCapture && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
+                el.releasePointerCapture(e.pointerId);
+            }
+            el.classList.remove('is-dragging');
+            el.style.willChange = '';
+            drag = null;
+        }
+        el.addEventListener('pointerup', end);
+        el.addEventListener('pointercancel', end);
+    }
+
     function scatterChips() {
         var taken = [];
         for (var i = 0; i < 2; i++) {
@@ -933,12 +1102,15 @@
             var chip = buildChip();
             chip.style.left = Math.round(spot.x) + 'px';
             chip.style.top = Math.round(spot.y) + 'px';
-            // The rim's six dashes would otherwise line up between the two and
-            // give away that they are the same drawing twice.
-            chip.style.transform = 'rotate(' + Math.round(Math.random() * 360) + 'deg)';
-            // Ahead of #played, so a card put down always lies over a chip
-            // rather than under it.
-            surface.insertBefore(chip, surface.firstChild);
+            // The print turns; the crescent does not. The lamp is on the
+            // table, not on the chip, so the sliver always falls down-right.
+            chip.style.setProperty('--chip-rot', Math.round(Math.random() * 360) + 'deg');
+            // Ahead of #played. What puts a chip above a card is z-index, not
+            // this order: see --die-z on #surface. Behind the grass canvas it
+            // would be eaten: that canvas is opaque and the first child, so
+            // this insert is what keeps a chip on the cloth.
+            surface.insertBefore(chip, playedEl);
+            makeDraggableChip(chip);
             taken.push(spot);
         }
     }
@@ -956,7 +1128,7 @@
     var modalOpener = null;
 
     function modalFocusable() {
-        var all = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        var all = modalEl.querySelectorAll('button, [href], input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])');
         return Array.prototype.filter.call(all, function (el) {
             return !el.disabled && el.getClientRects().length > 0;
         });
@@ -967,7 +1139,7 @@
         modalOpener = opener || null;
         modalCardEl.innerHTML = '';
 
-        var card = buildCard(work, { interactive: true, detail: true });
+        var card = buildCard(work, { interactive: true, detail: true, embed: !!work.youtube });
 
         // In here, and only in here, the card is cut to the shape of the work it
         // is showing: a landscape gif opens as a landscape card, a square one as
@@ -980,12 +1152,22 @@
         // anything here changing. A side effect worth having is that the face's
         // object-fit: cover then has nothing left to crop.
         //
+        // A YouTube work is 16:9 regardless of its poster. The live page plays
+        // those as an embed, and a 5:7 well would letterbox the player into a
+        // sliver. The box itself is also opened up on .is-embed, because the
+        // 280px card the stills fit in is too small to watch.
+        //
         // A work missing either number keeps the stylesheet's 5:7. The fit in
         // sketchbook.css divides by this ratio, and a card told to be 0 wide by
         // 0 high is a card with no size at all.
-        var arW = Number(work.width), arH = Number(work.height);
-        if (isFinite(arW) && isFinite(arH) && arW > 0 && arH > 0) {
-            card.style.setProperty('--card-ar', arW + ' / ' + arH);
+        if (work.youtube) {
+            card.classList.add('is-embed');
+            card.style.setProperty('--card-ar', '16 / 9');
+        } else {
+            var arW = Number(work.width), arH = Number(work.height);
+            if (isFinite(arW) && isFinite(arH) && arW > 0 && arH > 0) {
+                card.style.setProperty('--card-ar', arW + ' / ' + arH);
+            }
         }
 
         card.flipBtn.setAttribute('aria-label', work.title + ' — turn over to read about it');
@@ -1472,12 +1654,14 @@
         if (!carry) return;
         var c = carry;
         carry = null;
-        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
-            c.el.releasePointerCapture(c.id);
-        }
         // A press that never cleared the slop never left its slot, so there is
         // nothing to put back.
-        if (!c.lifted) return;
+        if (!c.lifted) {
+            if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
+                c.el.releasePointerCapture(c.id);
+            }
+            return;
+        }
 
         var was = c.el.getBoundingClientRect();
         rack = orderWith(c.from, c.to);
@@ -1488,6 +1672,13 @@
         c.el.style.height = '';
         c.el.style.transform = '';
         slotEls[c.to].appendChild(c.el);
+
+        // Capture is released after the card is in its slot: doing it first
+        // can fire pointercancel on this turn, and the handler would see a
+        // carry that had already been dropped.
+        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
+            c.el.releasePointerCapture(c.id);
+        }
 
         // The same FLIP the other cards get, so the card settles into the slot
         // from wherever it was let go of instead of snapping into it.
@@ -1505,6 +1696,22 @@
         if (c.to !== c.from) {
             announce(c.work.title + ' moved to position ' + (c.to + 1) + ' of ' + rack.length);
         }
+    }
+
+    // A drag that left the grid is an abandoned move: the other tiles walk
+    // back, and the card itself flies home to the slot it was picked up from.
+    // Nearest-slot used to keep winning even off the rack, which is how a
+    // card dragged onto the table or off the page could stall and sometimes
+    // land in the wrong place.
+    function returnCarry() {
+        if (!carry) return;
+        if (carry.lifted && carry.to !== carry.from) {
+            carry.to = carry.from;
+            layOutRack(rack, carry.work);
+        } else {
+            carry.to = carry.from;
+        }
+        dropCarry(true);
     }
 
     // The rack is being rebuilt from scratch, so there is no order left to
@@ -1589,6 +1796,15 @@
             // unusable on a phone, and unreadable with a mouse.
             if (!carry.lifted && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
             if (!carry.lifted) lift();
+            var area = gridEl.getBoundingClientRect();
+            // Out of the rack: do not keep painting the card across the table
+            // (or off the page), and do not drop it in the nearest slot as if
+            // that were still a reorder. Send it home.
+            if (e.clientX < area.left || e.clientX > area.right ||
+                e.clientY < area.top || e.clientY > area.bottom) {
+                returnCarry();
+                return;
+            }
             el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
 
             var to = slotUnder(carry.pin.cx + dx, carry.pin.cy + dy);
@@ -1601,6 +1817,13 @@
 
         function endDrag(e) {
             if (!carry || carry.el !== el || e.pointerId !== carry.id) return;
+            var area = gridEl.getBoundingClientRect();
+            if (carry.lifted &&
+                (e.clientX < area.left || e.clientX > area.right ||
+                 e.clientY < area.top || e.clientY > area.bottom)) {
+                returnCarry();
+                return;
+            }
             dropCarry(true);
         }
         el.addEventListener('pointerup', endDrag);
@@ -1699,6 +1922,8 @@
 
     /* ---------------- start ---------------- */
 
+    sizeSurface();
+
     fetch(MANIFEST)
         .then(function (r) {
             if (!r.ok) throw new Error('works.json: HTTP ' + r.status);
@@ -1714,6 +1939,7 @@
             // buildGrid deals the opening round: the rack, and the hand off
             // the top of it.
             buildGrid();
+            sizeSurface();
             centrePan();
             // After centrePan, which is what decides which part of the table is
             // the visible part a chip has to land in.
@@ -1735,8 +1961,9 @@
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () {
             layOutFan();
-            // The surface is sized in percentages, so its limits move with the
-            // window and a pan that was legal a moment ago may not be.
+            // The cloth may need to grow with the window; it will not shrink.
+            // applyPan then keeps the current view inside the new limits.
+            sizeSurface();
             applyPan();
         }, 120);
     });

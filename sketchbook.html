@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Playground — HFYJ</title>
+    <title>playground — HFYJ</title>
     <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
     <script>
         // Settle the theme before anything paints. site.js runs at the end of
@@ -48,7 +48,7 @@
         <!-- #cards tells the home page the intro has already played -->
         <a href="index.html#cards">Home</a>
         <span class="sep">/</span>
-        <span class="here">Playground</span>
+        <span class="here">playground</span>
     </div>
     <div class="topbar-right">
         <span>Brainstorm</span>
@@ -78,12 +78,12 @@
 
 <main class="sketchbook">
 
-    <!-- The table. #felt is the play area proper: the grid paper, the cards
+    <!-- The table. #felt is the play area proper: the grass mat, the cards
          already played, and the fan waiting along its bottom edge. Everything
          inside it is positioned against it, so the landing coordinates
          sketchbook.js works out are simply its own box. -->
     <section id="table" aria-labelledby="table-heading">
-        <h1 id="table-heading" class="visually-hidden">Playground</h1>
+        <h1 id="table-heading" class="visually-hidden">playground</h1>
         <!-- data-cursor-none is on #felt as well as the two layers inside it
              because a pan takes pointer capture: while it runs, the hover
              events retarget to the capturing element, so a mark only on
@@ -91,7 +91,7 @@
              for the whole drag. -->
         <div id="felt" data-cursor-none>
             <!-- The table is bigger than the window onto it. #surface is the
-                 table proper - the paper, and every card laid on it - and it
+                 table proper - the mat, and every card laid on it - and it
                  slides under #felt when you drag it, so there is more room to
                  push cards into than the screen shows. The hand is deliberately
                  outside it: a hand is held, not lying on the table, so it stays
@@ -101,13 +101,16 @@
                  inherited by its subtree, so a card lying on the mat keeps the
                  dot; both layers are marked because #played covers #surface. -->
             <div id="surface" data-cursor-none>
+                <!-- The mat. felt.js paints the grass onto this; without WebGL
+                     the albedo tiled in sketchbook.css is what shows through. -->
+                <canvas id="mat" aria-hidden="true"></canvas>
                 <!-- Played cards are appended here. -->
                 <div id="played" aria-label="Cards on the table" data-cursor-none></div>
             </div>
             <!-- Exactly five, always. sketchbook.js fills and refills it. -->
             <div id="fan" role="group" aria-label="Your hand"></div>
         </div>
-        <p id="table-hint">Click a card to play it · drag the table to see more of it · drag a card around · click it to turn it over · expand it for the details</p>
+        <p id="table-hint">Click a card to play it · drag the table to see more of it · drag a card or a chip around · click a card to turn it over · expand it for the details<span class="hint-light"> · move the pointer to catch the light on the mat</span></p>
     </section>
 
     <section id="upcoming" aria-labelledby="upcoming-heading">
@@ -143,6 +146,7 @@
 <script src="analytics.js" defer></script>
 <script src="site.js"></script>
 <script src="sketchbook.js"></script>
+<script src="felt.js"></script>
 <script src="dice.js"></script>
 </body>
 </html>

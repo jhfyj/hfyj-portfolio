@@ -1,7 +1,7 @@
 /* The sketchbook: a table you deal cards onto, and the catalogue below it.
    ---------------------------------------------------------------------------
    Colour comes entirely from site.css's tokens, so both themes are already
-   handled and only the three surfaces this page invents — the grid paper, the
+   handled and only the three surfaces this page invents — the grass mat, the
    card stock and the card's edge — are defined here, once per palette.
 
    One rule about the card: .card-face is the whole of a card's appearance, and
@@ -11,8 +11,11 @@
    same face, which is why it is worth keeping that line clean. */
 
 :root {
-  --felt: #FAFAF8;
-  --felt-line: rgba(0, 0, 0, 0.055);
+  /* Casino green, sampled off the grass albedo so the chips' punched centres
+     still read as holes in the mat rather than as a second colour. The mat
+     itself is the same in both themes: a playing mat does not go grey at night. */
+  --felt: #2a4528;
+  --felt-line: rgba(0, 0, 0, 0.18);
   --stock: #ffffff;        /* the card itself */
   /* The back is its own surface. Light keeps a near-white stock so the brand
      blue reads as ink on paper; dark uses the deck's grey, which is lighter
@@ -21,6 +24,10 @@
   --stock-edge: rgba(0, 0, 0, 0.12);
   --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), 0 12px 28px rgba(0, 0, 0, 0.10);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.12), 0 22px 48px rgba(0, 0, 0, 0.18);
+  /* What dice and chips cast on the felt. One tone, both themes: the die's
+     cube and the chip's disc are the same shadow, just different shapes. */
+  --cast: rgba(0, 0, 0, 0.26);
+  --cast-glow: 0 0 10px 4px rgba(0, 0, 0, 0.18);
 
   /* A playing card is 2.5 by 3.5 inches. Every card on this page — in the fan,
      on the table, in the grid — is that shape, so the works crop into it
@@ -47,7 +54,7 @@
      window twice: a card sized to the whole window is a card that overflows it
      by exactly this, twice. */
   --modal-pad: 24px;
-  --card-r: 10px;
+  --card-r: 8px;
   /* The corner control's box. Smaller than the live site's 36px because the
      card it sits on is smaller, and because it has to stay in the corner of a
      card that is tilted: the further it is from the corner the further it
@@ -61,8 +68,6 @@
 
 :root[data-theme="dark"] {
   --accent-ink: #16160A;   /* the yellow wants its own, warmer */
-  --felt: #171717;
-  --felt-line: rgba(255, 255, 255, 0.06);
   --stock: #202020;
   --back-stock: #373737;
   --stock-edge: rgba(255, 255, 255, 0.14);
@@ -71,6 +76,8 @@
      pasted on. */
   --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.4);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.55), 0 22px 48px rgba(0, 0, 0, 0.6);
+  --cast: rgba(0, 0, 0, 0.52);
+  --cast-glow: 0 0 10px 4px rgba(0, 0, 0, 0.32);
 }
 
 .sketchbook {
@@ -103,7 +110,10 @@
 
 /* ---------- the table ---------- */
 
-#table { padding-top: 20px; }
+/* No padding-top on #table. The bar is already 63px (site.css), and that is
+   the whole gap from the top of the window to the canvas — the 20px that used
+   to sit here made the canvas start 83px down instead of 63. The bar itself
+   is left alone. */
 
 #felt {
   position: relative;
@@ -132,26 +142,113 @@
   top: 0;
   left: 0;
   z-index: 1;
-  /* Half again as big as the window onto it, in both directions: enough that
-     there is somewhere to push a card to and somewhere to pan, and not so much
-     that a card can be lost on a table you cannot see the edges of. */
+  /* Chips and dice sit above every card on the table, picked up or not.
+     Counted in the tens of thousands so a long session's topZ, and the
+     shuffle's 1000-band, cannot climb over them. */
+  --die-z: 40000;
+  /* Half again as big as the window onto it — or a laptop-sized cloth,
+     whichever is larger. A phone's window is small; the table behind it is
+     not, so there is the same room to push a card into. sketchbook.js will
+     grow this to match a wider window and will not shrink it, so a resize
+     cannot drop a card off the edge of the table. The floors match TABLE_MIN
+     in that file. */
   width: 150%;
   height: 150%;
+  min-width: 1920px;
+  min-height: 720px;
   --px: 0px;
   --py: 0px;
   transform: translate3d(var(--px), var(--py), 0);
-  /* Grid paper. 28px squares, drawn as two hairline gradients rather than a
-     tiled image so it takes the theme with it and costs no request. It is on
-     the surface rather than on #felt so the paper moves with the cards when the
-     table is dragged; a fixed background would read as the cards sliding over a
-     table that is standing still. */
-  background-image:
-    linear-gradient(to right, var(--felt-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--felt-line) 1px, transparent 1px);
-  background-size: 28px 28px;
+  /* The grass, tiled, which is what you see if WebGL never arrives. felt.js
+     paints the same maps with lighting over the top; both live on the surface
+     so the nap moves with the cards when the table is dragged. */
+  background-color: var(--felt);
+  background-image: url(assets/sketchbook/felt/albedo.jpg);
+  background-size: 520px 520px;
   cursor: grab;
 }
 #felt.is-panning #surface { cursor: grabbing; }
+
+/* The WebGL mat. It fills the surface and sits under the chips, the dice and
+   the cards. pointer-events are off: a pan belongs to #felt, a drag belongs
+   to the card or the chip, and a canvas that ate either would be a hole in
+   the table. */
+#mat {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+#mat.is-lit { opacity: 1; }
+
+/* A chip on the table. The shadow is the same disc as the chip, a hair
+   down and to the right — light from above-left — so the chip itself
+   covers all of it but a sliver, and that sliver is a crescent on the
+   far rim. Size is --chip-w, so the crescent scales with the chip; the
+   offset is a fraction of that width, so it stays a thin rim at any
+   size. It is not a cube, not a thick puck, and not a second full disc
+   sitting beside the chip.
+
+   Draggable, the same way a card on the table is: the press is the chip's,
+   not the mat's, and left/top follow the pointer with no easing. The
+   scale is the pickup — it changes twice in a gesture and wants easing,
+   which is why it is on transform and the position is not. */
+.chip {
+  position: absolute;
+  width: var(--chip-w, 52px);
+  height: var(--chip-w, 52px);
+  border-radius: 50%;
+  overflow: visible;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Same band as the dice: a card on the table, even one being dragged,
+     always slides under a chip. A chip being dragged climbs above its
+     neighbour in script, still in this band, so it cannot bury a card. */
+  z-index: var(--die-z, 40000);
+  transition: transform 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+.chip.is-dragging { transform: scale(1.08); }
+.chip svg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: rotate(var(--chip-rot, 0deg));
+}
+.chip-cast {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate3d(
+      calc(var(--chip-w, 52px) * 0.07),
+      calc(var(--chip-w, 52px) * 0.09),
+      0
+    );
+  transition: transform 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+.chip.is-dragging .chip-cast {
+  transform: translate3d(
+      calc(var(--chip-w, 52px) * 0.12),
+      calc(var(--chip-w, 52px) * 0.16),
+      0
+    );
+}
+.chip-cast-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--cast);
+  filter: blur(1.2px);
+}
 
 #played { position: absolute; inset: 0; }
 
@@ -178,6 +275,11 @@
   font-size: 13px;
   color: var(--faint);
   letter-spacing: 0.01em;
+}
+/* The light on the mat follows a mouse. A phone has none, so the clause
+   that tells you to move one is not shown there. Same test as the cursor. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .hint-light { display: none; }
 }
 
 /* ---------- a card ---------- */
@@ -302,6 +404,27 @@
 }
 .card.is-flipped .card-inner { transform: rotateY(180deg); }
 
+/* The turn is a lift, not a spin on the table. Scale and a little Z live on
+   their own properties so they can peak in the middle of a rotation whose
+   start and end are the same size — a transform transition cannot do that,
+   and putting them on `transform` would fight the rotateY. The hold through
+   the middle is the card in the air; the settle at either end is it landing. */
+.card.is-flipping .card-inner {
+  animation: card-lift 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes card-lift {
+  0%, 100% { scale: 1;    translate: 0 0 0; }
+  32%, 58% { scale: 1.1;  translate: 0 0 28px; }
+}
+/* The expand sits on the wrapper, not on the turning inner, so it would hang
+   in the original corner while the card left it. Hidden for the lift — it
+   cannot be used mid-turn anyway. */
+.card.is-flipping > .card-expand,
+.card.is-flipping:hover > .card-expand {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .card-face {
   position: absolute;
   inset: 0;
@@ -351,11 +474,10 @@
 /* Ported from the about-me card, which is drawn to a canvas in script.js in a
    1059x1449 design frame — the same frame the card back above already uses, so
    its numbers come across as they are, divided by 10.59 to read as a percentage
-   of the card's width. Three things came over: the stock border, the folded
-   corner cut out of the picture's top left, and the index that sits in the
-   fold. The fourth, the shelf in the bottom-right corner that the about-me
-   card's tag pills stand on, deliberately did not — without it that corner is
-   the picture, and the second index lies over it.
+   of the card's width. The stock border came over, and so did the folded
+   corner cut out of the picture — once at the top left, and again mirrored at
+   the bottom right, which is how a playing card gives both indices a patch of
+   paper to sit on. The shelf the about-me card's tag pills stand on did not.
 
    Everything here is measured in cqw and not in per cent, and that is the whole
    trick. A per cent is relative to whichever axis the property happens to use —
@@ -386,17 +508,26 @@
   border-radius: var(--well-r);
   /* Rounds the picture, and crops the name's scrim to the same corners. */
   overflow: hidden;
-  /* The folded corner, off ABOUTME_PHOTO_MASK in script.js, in the design's own
+  /* The folded corners, off ABOUTME_PHOTO_MASK in script.js, in the design's own
      coordinates less the 21px inset the padding above already carries. The two
      curves in the original are sampled rather than replaced by their endpoints:
      the long one sweeps a third of the fold's height, and a straight line drawn
      across it cuts visibly into the very corner the index has to sit in.
-     The fold is not decoration — it is what puts the top-left index on paper
-     instead of on the photograph. */
+     The fold is not decoration — it is what puts each index on paper instead of
+     on the photograph. The bottom-right points are the top-left ones turned
+     around the well's centre, so both notches stay one piece of geometry. */
   clip-path: polygon(
     19.83cqw 0,
     100% 0,
-    100% 100%,
+    100% calc(100% - 10.48cqw),
+    calc(100% - 0.62cqw) calc(100% - 7.77cqw),
+    calc(100% - 2.30cqw) calc(100% - 6.10cqw),
+    calc(100% - 4.86cqw) calc(100% - 5.52cqw),
+    calc(100% - 11.14cqw) calc(100% - 5.52cqw),
+    calc(100% - 13.84cqw) calc(100% - 4.24cqw),
+    calc(100% - 15.80cqw) calc(100% - 1.84cqw),
+    calc(100% - 16.82cqw) calc(100% - 0.92cqw),
+    calc(100% - 19.83cqw) 100%,
     0 100%,
     0 10.48cqw,
     0.62cqw 7.77cqw,
@@ -447,16 +578,12 @@
 
 /* Turned the whole way round rather than built mirrored: on a real card the two
    indices are one mark printed twice, and the rotation is what lets you read the
-   card upside down. The halo is the card's own stock, so along the border it
-   disappears into what is already there and only shows where the mark has a
-   photograph behind it — which, with the about-me card's bottom shelf gone, is
-   this corner every time. */
+   card upside down. It sits in the same fold the top-left one does, just the
+   other way up. */
 .card-pip--br {
   right: 4.15cqw;
   bottom: 1.9cqw;
   transform: rotate(180deg);
-  filter: drop-shadow(0 0 0.55cqw var(--back-stock))
-          drop-shadow(0 0 0.25cqw var(--back-stock));
 }
 
 .card-face img {
@@ -467,20 +594,38 @@
   object-fit: cover;
 }
 
+/* The opened YouTube work. The player fills the well; the poster sits
+   behind it in case the iframe is slow or blocked, and the name is off —
+   YouTube already writes a title across that edge and a second one would
+   cover the controls. */
+.card-embed {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+}
+.card-embed iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.card-well.is-embed .card-name { display: none; }
+
 /* The name, on the work. It sits inside the well now rather than on the face,
    so it reaches the picture's edges and not the card's and the well's corners
    crop it — a scrim run out over the stock would draw a dark bar across the
    bottom of the border.
 
-   The right-hand padding is what keeps it off the bottom-right index, which
-   lands in exactly the corner the title was running into. It is the index's own
-   footprint, in the index's own unit, so the two cannot drift apart; the floor
-   is the padding this side had before, for the card small enough that the pip is
-   narrower than that. */
+   The right-hand padding is what keeps it out of the bottom-right fold, which
+   is the same notch the index sits in. It is the fold's own reach, in the
+   fold's own unit, so the two cannot drift apart; the floor is the padding this
+   side had before, for the card small enough that the notch is narrower than
+   that. */
 .card-name {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  padding: 22px max(10px, 13cqw) 9px 10px;
+  padding: 22px max(10px, 21cqw) 9px 10px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0));
   color: #fff;
   text-align: left;
@@ -725,7 +870,8 @@
 body.has-dot .card,
 body.has-dot #grid .card,
 body.has-dot .card-flip,
-body.has-dot .card-expand { cursor: none; }
+body.has-dot .card-expand,
+body.has-dot .chip { cursor: none; }
 
 /* No grab hand on a card, here or on the table. The hand belongs to the mat,
    which is the thing you pan; over a card the dot is the cursor, picked up or
@@ -834,6 +980,15 @@ body.modal-open { overflow: hidden; }
    the height is stopped by the window rather than by the box. Fitting to width
    alone is the version of this that looks right on a desk and pushes the card
    through the floor on a laptop turned sideways. */
+/* A YouTube work needs a bigger box than the stills. 280px is a playing
+   card; a player that size is a postage stamp. The square is still a square
+   — the 16:9 ratio is written on the card as --card-ar — so this only
+   raises the ceiling the fit reads. */
+#modal-card > .card.is-embed {
+  --card-box: min(860px, calc(100vw - var(--modal-pad) * 2),
+                  calc((100svh - var(--modal-pad) * 2) * 16 / 9));
+}
+
 #modal-card > .card {
   position: relative;
   --fit-w: min(var(--card-box), calc(100vw - var(--modal-pad) * 2));
@@ -907,6 +1062,17 @@ body.modal-open { overflow: hidden; }
   margin: 0 0 16px;
   color: var(--head);
 }
+.card-detail .detail-copy {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.card-detail dd a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.card-detail dd a:hover { text-decoration: underline; }
 .card-detail dl {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -977,8 +1143,10 @@ body.modal-open { overflow: hidden; }
   #grid .card-face img,
   .card-expand,
   #grid .card-name { transition-duration: 0.001s; }
+  .card.is-flipping .card-inner { animation-duration: 0.001s; }
   /* The rise and the scrim's fade are decoration over a modal that is just as
      usable arriving all at once. */
   #modal-card > .card,
   .modal-scrim { animation-duration: 0.001s; }
+  #mat { transition-duration: 0.001s; }
 }

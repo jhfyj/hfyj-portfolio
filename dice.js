@@ -5,9 +5,9 @@
    has already put down.
 
    Two or three of them, scattered across the part of the table you can see.
-   Unlike the chips they answer the pointer: press one and it hops, tumbles and
-   settles on a different number, the way a die does when a hand knocks it
-   rather than throws it.
+   Press one and it hops, tumbles and settles on a different number; drag it
+   and it slides, the same slop a card uses so a wobble is not a throw. The
+   chips slide; the dice roll, or they move.
 
    The one thing worth being careful about is that the number a die shows and
    the number it says it is holding are the same number. Those are two different
@@ -38,6 +38,10 @@
     var DIE_REACH = DIE_W * 0.71;
     var DICE = 3;
     var ROLL_MS = 620;
+    // Same four pixels the cards and chips use. Below it a press is a click
+    // and the die rolls; above it the press was a drag and the click that
+    // follows is swallowed.
+    var DRAG_SLOP = 4;
 
     /* ---------------- the cube ---------------- */
 
@@ -93,14 +97,77 @@
             + ' rotateY(' + ry + 'deg)';
     }
 
-    // The angles that put face v in front of the viewer, plus this die's own
-    // lean. The lean is added to the angles rather than multiplied in as a
-    // separate rotation because rotations about one axis simply add — so this
-    // is still the exact inverse of the face's placement with a few degrees of
-    // slop on top, and a few degrees never unseats the front face.
-    function showAngles(v, tilt) {
+    // The angles that put face v square-on to the viewer. No extra lean: at
+    // rest the die shows exactly one face, and the cube-on-the-table shadow is
+    // what tells you it has volume. A few degrees of rotateZ still sit on top
+    // of this, but that is a turn in the picture plane — the same face stays
+    // in front.
+    function showAngles(v) {
         var s = SIDES[v];
-        return { x: -s.rx + tilt.x, y: -s.ry + tilt.y };
+        return { x: -s.rx, y: -s.ry };
+    }
+
+    // The shadow's own transform. It is a second cube, the same size as the
+    // die, laid down on the paper so it reads as the shadow a cube casts on a
+    // table rather than as an oval smudge. CAST_LIE tips it onto the felt;
+    // CAST_YAW turns it enough that a second face shows, so at rest it is
+    // always a cube sitting on the table and never a dark square that happens
+    // to match whichever number the die is showing. The hop never lifts it —
+    // a shadow stays on the table — and only slides it further from the die,
+    // spreads it and lets it go, which is what height looks like when the
+    // light is coming from above and slightly to the left.
+    var CAST_LIE = 50;
+    var CAST_YAW = 34;
+    var CAST_OX = 9;
+    var CAST_OY = 13;
+
+    function castFrame(hopY, hopZ, rz, tumbleX, tumbleY, opacity) {
+        var lift = Math.max(0, -hopY) + hopZ * 0.18;
+        var spread = 1 + lift / 40;
+        var ox = CAST_OX + lift * 0.22;
+        var oy = CAST_OY + lift * 0.36;
+        return {
+            transform: 'translate3d(' + ox + 'px, ' + oy + 'px, 0px)'
+                + ' rotateX(' + CAST_LIE + 'deg)'
+                + ' rotateY(' + CAST_YAW + 'deg)'
+                + ' scale(' + spread + ')'
+                + ' rotateZ(' + rz + 'deg)'
+                + ' rotateX(' + tumbleX + 'deg)'
+                + ' rotateY(' + tumbleY + 'deg)',
+            opacity: opacity == null ? Math.max(0.3, 1 - lift / 52) : opacity
+        };
+    }
+
+    function applyCast(el, hopY, hopZ, rz, rx, ry, opacity) {
+        var c = castFrame(hopY, hopZ, rz, rx, ry, opacity);
+        el.__cast.style.transform = c.transform;
+        el.__cast.style.opacity = String(c.opacity);
+    }
+
+    function paintFaces(parent, withPips) {
+        for (var v = 1; v <= 6; v++) {
+            var s = SIDES[v];
+            var face = document.createElement('div');
+            face.className = withPips ? 'die-face' : 'die-cast-face';
+            face.setAttribute('data-at', s.at);
+            face.style.transform = 'rotateY(' + s.ry + 'deg) rotateX(' + s.rx + 'deg)'
+                + ' translateZ(' + DIE_HALF + 'px)';
+            if (withPips) {
+                // Named so the stylesheet can light it, and so a check can ask
+                // the document which face it is looking at without reading this
+                // script.
+                face.setAttribute('data-value', String(v));
+                var pips = PIPS[v];
+                for (var i = 0; i < pips.length; i++) {
+                    var pip = document.createElement('div');
+                    pip.className = 'die-pip';
+                    pip.style.gridColumn = String(pips[i][0] + 1);
+                    pip.style.gridRow = String(pips[i][1] + 1);
+                    face.appendChild(pip);
+                }
+            }
+            parent.appendChild(face);
+        }
     }
 
     function buildDie() {
@@ -111,30 +178,12 @@
 
         var cast = document.createElement('div');
         cast.className = 'die-cast';
+        paintFaces(cast, false);
         el.appendChild(cast);
 
         var cube = document.createElement('div');
         cube.className = 'die-cube';
-        for (var v = 1; v <= 6; v++) {
-            var s = SIDES[v];
-            var face = document.createElement('div');
-            face.className = 'die-face';
-            // Named so the stylesheet can light it, and so a check can ask the
-            // document which face it is looking at without reading this script.
-            face.setAttribute('data-at', s.at);
-            face.setAttribute('data-value', String(v));
-            face.style.transform = 'rotateY(' + s.ry + 'deg) rotateX(' + s.rx + 'deg)'
-                + ' translateZ(' + DIE_HALF + 'px)';
-            var pips = PIPS[v];
-            for (var i = 0; i < pips.length; i++) {
-                var pip = document.createElement('div');
-                pip.className = 'die-pip';
-                pip.style.gridColumn = String(pips[i][0] + 1);
-                pip.style.gridRow = String(pips[i][1] + 1);
-                face.appendChild(pip);
-            }
-            cube.appendChild(face);
-        }
+        paintFaces(cube, true);
         el.appendChild(cube);
         el.__cube = cube;
         el.__cast = cast;
@@ -156,7 +205,7 @@
     function setValue(el, v) {
         el.__value = v;
         el.setAttribute('data-value', String(v));
-        el.setAttribute('aria-label', 'Die showing ' + v + '. Roll it.');
+        el.setAttribute('aria-label', 'Die showing ' + v + '. Roll it, or drag it.');
     }
 
     // Never the number it is already on. The ask was that a die flips to a
@@ -184,10 +233,11 @@
     // between rolls, and the whole of a roll when the reader has asked for less
     // motion.
     function settle(el, v, rz) {
-        var a = showAngles(v, el.__tilt);
+        var a = showAngles(v);
         a.z = rz;
         el.__angles = a;
         el.__cube.style.transform = frame(0, 0, a.z, a.x, a.y);
+        applyCast(el, 0, 0, a.z, 0, 0, 1);
         setValue(el, v);
     }
 
@@ -215,7 +265,7 @@
         // A die that has been knocked does not come to rest exactly as it
         // started; a few degrees of roll each time is what keeps three of them
         // from looking like one drawing repeated.
-        var to = showAngles(next, el.__tilt);
+        var to = showAngles(next);
         to.z = rand(-6, 6);
 
         if (reduce && reduce.matches) {
@@ -236,18 +286,32 @@
         // reads as a spinning top, which is the one thing it must not look like.
         var spinZ = wrap(to.z - from.z);
 
+        // The shadow cube lands on the same cube-on-the-table pose every time,
+        // so its extra turns are whole revolutions — the die's face-change is
+        // not its problem. Same direction as the die, so the two stay a pair
+        // on the way round rather than winding against each other.
+        var castSpinX = 360 * (spinX < 0 ? -1 : 1);
+        var castSpinY = 360 * (spinY < 0 ? -1 : 1);
+
         var keys = [];
+        var castKeys = [];
         for (var i = 0; i < ARC.length; i++) {
             var k = ARC[i];
+            var rz = from.z + spinZ * k.turned;
+            var rx = from.x + spinX * k.turned;
+            var ry = from.y + spinY * k.turned;
             var kf = {
                 offset: k.at,
-                transform: frame(k.y, k.z,
-                    from.z + spinZ * k.turned,
-                    from.x + spinX * k.turned,
-                    from.y + spinY * k.turned)
+                transform: frame(k.y, k.z, rz, rx, ry)
             };
-            if (k.ease) kf.easing = k.ease;
+            var ck = castFrame(k.y, k.z, rz, castSpinX * k.turned, castSpinY * k.turned);
+            ck.offset = k.at;
+            if (k.ease) {
+                kf.easing = k.ease;
+                ck.easing = k.ease;
+            }
             keys.push(kf);
+            castKeys.push(ck);
         }
 
         el.__rolling = true;
@@ -255,6 +319,7 @@
         // way a dragged card does it: a layer that is kept for a die sitting
         // still is a layer being paid for and not used.
         el.__cube.style.willChange = 'transform';
+        el.__cast.style.willChange = 'transform, opacity';
 
         // Settled before it is animated, not after. The animation is left to
         // fill nothing, so when it lets go the die is already holding the pose
@@ -264,35 +329,95 @@
         announce(next);
 
         var anim = el.__cube.animate(keys, { duration: ROLL_MS, easing: 'linear' });
-        // The shadow stays flat on the table and only spreads and softens: it is
-        // the die's height above the paper, drawn.
-        el.__cast.animate([
-            { offset: 0.00, opacity: 1, transform: 'scale(1)' },
-            { offset: 0.30, opacity: 0.35, transform: 'scale(1.5)' },
-            { offset: 0.62, opacity: 1, transform: 'scale(1)' },
-            { offset: 0.80, opacity: 0.6, transform: 'scale(1.2)' },
-            { offset: 1.00, opacity: 1, transform: 'scale(1)' }
-        ], { duration: ROLL_MS, easing: 'linear' });
+        // The shadow cube turns with the die — a whole extra revolution, the
+        // same way round — so a tumble on the table is a tumbling silhouette
+        // rather than a smudge that merely grows. It does not hop: lift only
+        // pushes it further from the die, spreads it and lets more light in.
+        el.__cast.animate(castKeys, { duration: ROLL_MS, easing: 'linear' });
 
         anim.onfinish = function () {
             el.__cube.style.willChange = '';
+            el.__cast.style.willChange = '';
             el.__rolling = false;
         };
     }
 
+    // The rectangle a die may sit in and stay whole, in the surface's own
+    // coordinates. The whole surface, not the visible part: same reason a card
+    // dragged off the edge of the window is still on the table.
+    function dieBounds() {
+        var s = surface.getBoundingClientRect();
+        var pad = 8;
+        return {
+            minX: pad,
+            maxX: Math.max(pad, s.width - DIE_W - pad),
+            minY: pad,
+            maxY: Math.max(pad, s.height - DIE_W - pad)
+        };
+    }
+
     function wire(el) {
+        var drag = null;
+        // Set when a gesture turned out to be a drag, so the click that follows
+        // it does not also roll the die. Same flag makePlayable keeps on a card.
+        var swallowClick = false;
+
         // The mat's pan handler is on #felt and takes pointer capture the moment
-        // it sees a press. It steps aside for a card by name, but it has never
-        // heard of a die, so the press is stopped here instead — the same thing
-        // a card's expand control does, and for the same reason: the gesture
-        // belongs to the thing under the pointer, and the mat should not have to
-        // know what that is.
-        el.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+        // it sees a press. It steps aside for a card or a chip by name; a die
+        // still has to stop the press here, because the gesture belongs to the
+        // thing under the pointer and the mat should not have to know what that
+        // is.
+        el.addEventListener('pointerdown', function (e) {
+            if (e.button !== undefined && e.button !== 0) return;
+            e.stopPropagation();
+            drag = {
+                id: e.pointerId,
+                px: e.clientX, py: e.clientY,
+                ox: parseFloat(el.style.left) || 0,
+                oy: parseFloat(el.style.top) || 0,
+                moved: false
+            };
+            if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+        });
+
+        el.addEventListener('dragstart', function (e) { e.preventDefault(); });
+
+        el.addEventListener('pointermove', function (e) {
+            if (!drag || e.pointerId !== drag.id) return;
+            var dx = e.clientX - drag.px, dy = e.clientY - drag.py;
+            if (!drag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+            if (!drag.moved) {
+                drag.moved = true;
+                drag.bounds = dieBounds();
+                el.classList.add('is-dragging');
+                el.style.willChange = 'left, top';
+            }
+            var b = drag.bounds;
+            var x = Math.min(Math.max(drag.ox + dx, b.minX), b.maxX);
+            var y = Math.min(Math.max(drag.oy + dy, b.minY), b.maxY);
+            el.style.left = Math.round(x) + 'px';
+            el.style.top = Math.round(y) + 'px';
+        });
+
+        function end(e) {
+            if (!drag || e.pointerId !== drag.id) return;
+            if (el.releasePointerCapture && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
+                el.releasePointerCapture(e.pointerId);
+            }
+            el.classList.remove('is-dragging');
+            el.style.willChange = '';
+            swallowClick = drag.moved;
+            drag = null;
+        }
+        el.addEventListener('pointerup', end);
+        el.addEventListener('pointercancel', end);
+
         // click and not pointerup, so Enter and Space on a focused die throw it
         // too. A die you can press is a control, and a control you cannot reach
         // from the keyboard is a control only half the readers have.
         el.addEventListener('click', function (e) {
             e.stopPropagation();
+            if (swallowClick) { swallowClick = false; return; }
             roll(el);
         });
     }
@@ -306,10 +431,10 @@
     // need to go.
     function chipSpots() {
         var out = [];
-        var svgs = surface.querySelectorAll(':scope > svg');
-        for (var i = 0; i < svgs.length; i++) {
-            var s = svgs[i];
-            var w = parseFloat(s.style.width) || 52;
+        var chips = surface.querySelectorAll(':scope > .chip');
+        for (var i = 0; i < chips.length; i++) {
+            var s = chips[i];
+            var w = parseFloat(s.style.getPropertyValue('--chip-w')) || 52;
             var x = parseFloat(s.style.left) || 0;
             var y = parseFloat(s.style.top) || 0;
             out.push({ x: x + w / 2, y: y + w / 2, r: w / 2 });
@@ -386,18 +511,15 @@
             var die = buildDie();
             die.style.left = Math.round(s.x) + 'px';
             die.style.top = Math.round(s.y) + 'px';
-            // How this one is sitting. A lean toward the camera and a turn to
-            // one side is what shows two of its other faces and stops it reading
-            // as a flat square with pips on; the side it turns toward is drawn,
-            // so three dice on a table are not the same picture three times.
-            die.__tilt = {
-                x: -rand(9, 15),
-                y: rand(10, 17) * (Math.random() < 0.5 ? -1 : 1)
-            };
+            // Square-on, with only a few degrees of roll in the picture plane.
+            // The cube-shaped shadow is what stops it reading as a pip card,
+            // and the roll is what stops three of them looking like one drawing
+            // repeated.
             settle(die, 1 + Math.floor(Math.random() * 6), rand(-6, 6));
             wire(die);
-            // Ahead of #played and behind the chips' own place in the order, so
-            // a card put down lies over a die rather than under it.
+            // Ahead of #played in the document, same as the chips. What puts a
+            // die above a card — dragged or not — is z-index, not this order:
+            // see --die-z on #surface.
             surface.insertBefore(die, playedEl);
             taken.push({ x: s.x + DIE_HALF, y: s.y + DIE_HALF, r: DIE_REACH });
         }
@@ -414,7 +536,7 @@
     // a frame loop running for the life of the page.
     var frames = 0;
     function whenMatIsSet() {
-        var ready = surface.querySelectorAll(':scope > svg').length >= 2
+        var ready = surface.querySelectorAll(':scope > .chip').length >= 2
             && surface.style.getPropertyValue('--px') !== '';
         if (ready || frames > 240) { scatterDice(); return; }
         frames++;

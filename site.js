@@ -136,6 +136,13 @@ window.Site = (function () {
         const label = document.getElementById('cursor-label');
         let hot = null;
         document.addEventListener('mouseover', function (e) {
+            // Where a surface draws a cursor of its own - the sketchbook's
+            // mat has a grab hand - two cursors is one too many, so the dot
+            // stands down. The element opts out, not its subtree: a card lying
+            // on the mat still gets the dot back.
+            dot.classList.toggle('is-hidden',
+                !!(e.target.matches && e.target.matches('[data-cursor-none]')));
+
             const t = e.target.closest ? e.target.closest('[data-cursor]') : null;
             if (t === hot) return;
             hot = t;

@@ -90,9 +90,13 @@
                  push cards into than the screen shows. The hand is deliberately
                  outside it: a hand is held, not lying on the table, so it stays
                  put while the table moves under it. -->
-            <div id="surface">
+            <!-- data-cursor-none: the mat draws a grab hand of its own, so the
+                 dot stands down over it. It is on the element rather than
+                 inherited by its subtree, so a card lying on the mat keeps the
+                 dot; both layers are marked because #played covers #surface. -->
+            <div id="surface" data-cursor-none>
                 <!-- Played cards are appended here. -->
-                <div id="played" aria-label="Cards on the table"></div>
+                <div id="played" aria-label="Cards on the table" data-cursor-none></div>
             </div>
             <!-- Exactly five, always. sketchbook.js fills and refills it. -->
             <div id="fan" role="group" aria-label="Your hand"></div>

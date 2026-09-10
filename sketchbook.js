@@ -202,6 +202,12 @@
     // cannot contain a button, and because turning a card over and opening it
     // are different things that must not share a gesture. A grid tile is
     // neither - it is a <figure> holding the same face and no behaviour.
+    // Nothing here carries data-cursor. The rest of the site labels a link
+    // with a pill because there is one thing that link does; a card is
+    // something you handle, and a caption that changed every time the pointer
+    // crossed a card was a running commentary on a table you are meant to be
+    // playing on. The plain dot is enough, and on the mat even that gives way
+    // to the grab hand.
     function buildCard(work, opts) {
         opts = opts || {};
         var el = document.createElement(opts.interactive ? 'div' : 'figure');
@@ -347,10 +353,6 @@
     // rather than arriving.
     function addToHand(work, rise) {
         var el = buildCard(work, { interactive: true });
-        el.setAttribute('data-cursor', 'play this card');
-        // An arrow ahead of the words, because playing one sends it up onto
-        // the table. site.css draws it; this only names it.
-        el.setAttribute('data-cursor-icon', 'play');
         el.flipBtn.setAttribute('aria-label', 'Play ' + work.title);
         // Held on the element so play() can take it off again: the card keeps
         // living once it reaches the table, where a click means something else.
@@ -552,8 +554,6 @@
 
         el.className = 'card';
         el.style.zIndex = String(++topZ);
-        el.setAttribute('data-cursor', 'flip · drag');
-        el.removeAttribute('data-cursor-icon');
         el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
         el.flipBtn.setAttribute('aria-pressed', 'false');
         // It leaves the hand at the hand's size and arrives at the table's, so
@@ -703,7 +703,6 @@
         modalCardEl.innerHTML = '';
 
         var card = buildCard(work, { interactive: true, detail: true });
-        card.setAttribute('data-cursor', 'turn it over');
         card.flipBtn.setAttribute('aria-label', work.title + ' — turn over to read about it');
         card.flipBtn.setAttribute('aria-pressed', 'false');
         card.addEventListener('click', function () { toggleFlip(card); });
@@ -1097,7 +1096,6 @@
         // it has to be reachable without a pointer as well as with one.
         el.tabIndex = 0;
         el.setAttribute('aria-describedby', 'rack-help');
-        el.setAttribute('data-cursor', 'drag to reorder');
 
         // Belt to the images' braces, the same as a card on the table: pressing
         // on a picture and moving hands the gesture to the browser's own

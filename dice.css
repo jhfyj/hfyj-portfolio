@@ -169,7 +169,7 @@ body.has-dot .die-pip { cursor: none; }
   backface-visibility: hidden;
   /* One tone. The cube-on-the-table reading comes from the lie-down, not from
      painting some sides darker than others. Shared with the chips. */
-  background: var(--cast, rgba(0, 0, 0, 0.22));
-  box-shadow: var(--cast-glow, 0 0 10px 4px rgba(0, 0, 0, 0.18));
+  background: var(--cast, rgba(0, 0, 0, 0.55));
+  box-shadow: var(--cast-glow, 0 0 7px 2px rgba(0, 0, 0, 0.34));
   pointer-events: none;
 }

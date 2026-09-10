@@ -116,10 +116,10 @@
     // a shadow stays on the table — and only slides it further from the die,
     // spreads it and lets it go, which is what height looks like when the
     // light is coming from above and slightly to the left.
-    var CAST_LIE = 50;
-    var CAST_YAW = 34;
-    var CAST_OX = 9;
-    var CAST_OY = 13;
+    var CAST_LIE = 52;
+    var CAST_YAW = 36;
+    var CAST_OX = 12;
+    var CAST_OY = 17;
 
     function castFrame(hopY, hopZ, rz, tumbleX, tumbleY, opacity) {
         var lift = Math.max(0, -hopY) + hopZ * 0.18;
@@ -593,31 +593,33 @@
         return least;
     }
 
-    // Somewhere on the part of the table you can actually see, clear of the hand
-    // and of everything already lying on it. Surface coordinates, and measured
-    // at the moment of placing, because the surface is half again as big as the
-    // window onto it and only the band showing through is worth using — a die
-    // outside it is a die the reader has to go looking for.
-    //
-    // Best of a run of draws rather than the first one that fits, and the run
-    // stops the moment something fits: a retry loop that can fail is worse than
-    // a choice that cannot, and this one always returns its best attempt along
-    // with whether that attempt was good enough.
-    function spot(taken) {
+    // The band of the surface you can actually see, above the hand. Dice
+    // planted outside it are dice the reader has to go looking for, which is
+    // how a table with three of them can photograph as one.
+    function visibleBand() {
         var f = felt.getBoundingClientRect();
         var sr = surface.getBoundingClientRect();
         var viewX = f.left - sr.left, viewY = f.top - sr.top;
         var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+        var pad = DIE_W;
+        return {
+            x: viewX + pad,
+            y: viewY + pad,
+            w: Math.max(DIE_W, f.width - pad * 2),
+            h: Math.max(DIE_W * 2, fanTop - viewY - pad - 24)
+        };
+    }
 
-        var minX = viewX + DIE_W;
-        var maxX = Math.max(minX, viewX + f.width - DIE_W * 2);
-        var minY = viewY + DIE_W;
-        var maxY = Math.max(minY, fanTop - DIE_W - 24);
-
+    // Three wells across the cloth, not on a line, so two or three dice
+    // read as a scatter rather than as one pile or as a row. Each well
+    // jitters, and still keeps clear of the chips.
+    function placeInWell(band, well, taken) {
         var best = null, bestGap = -Infinity;
-        for (var t = 0; t < 200; t++) {
-            var x = minX + Math.random() * (maxX - minX);
-            var y = minY + Math.random() * (maxY - minY);
+        for (var t = 0; t < 40; t++) {
+            var x = band.x + band.w * well.fx - DIE_HALF + rand(-26, 26);
+            var y = band.y + band.h * well.fy - DIE_HALF + rand(-22, 22);
+            x = Math.max(band.x, Math.min(x, band.x + band.w - DIE_W));
+            y = Math.max(band.y, Math.min(y, band.y + band.h - DIE_W));
             var gap = clearance(x, y, taken);
             if (gap > bestGap) { bestGap = gap; best = { x: x, y: y }; }
             if (bestGap >= 0) break;
@@ -635,13 +637,17 @@
         (tableEl || document.body).appendChild(status);
 
         var taken = chipSpots();
+        var band = visibleBand();
+        var wells = [
+            { fx: 0.24, fy: 0.34 },
+            { fx: 0.52, fy: 0.52 },
+            { fx: 0.78, fy: 0.30 }
+        ];
         for (var i = 0; i < DICE; i++) {
-            var s = spot(taken);
+            var s = placeInWell(band, wells[i], taken);
             // Two is the fewest that reads as dice rather than as one stray
-            // object, so the first two go down wherever the roomiest spot is
-            // even on a window with little room to give. The third only goes
-            // down if it can have room of its own; crowding a chip to make up
-            // the number is worse than there being two.
+            // object, so the first two go down even on a crowded window. The
+            // third only goes down if it can have room of its own.
             if (!s.clear && i >= 2) break;
 
             var die = buildDie();

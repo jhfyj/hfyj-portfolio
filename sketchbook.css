@@ -24,10 +24,11 @@
   --stock-edge: rgba(0, 0, 0, 0.12);
   --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), 0 12px 28px rgba(0, 0, 0, 0.10);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.12), 0 22px 48px rgba(0, 0, 0, 0.18);
-  /* What dice and chips cast on the felt. One tone, both themes: the die's
-     cube and the chip's disc are the same shadow, just different shapes. */
-  --cast: rgba(0, 0, 0, 0.26);
-  --cast-glow: 0 0 10px 4px rgba(0, 0, 0, 0.18);
+  /* What dice and chips cast on the felt. The mat is the same dark grass
+     in both themes, so the shadow has to read on green, not on a light
+     page: 0.26 vanishes into the nap. */
+  --cast: rgba(0, 0, 0, 0.55);
+  --cast-glow: 0 0 7px 2px rgba(0, 0, 0, 0.34);
 
   /* A playing card is 2.5 by 3.5 inches. Every card on this page — in the fan,
      on the table, in the grid — is that shape, so the works crop into it
@@ -76,8 +77,8 @@
      pasted on. */
   --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.4);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.55), 0 22px 48px rgba(0, 0, 0, 0.6);
-  --cast: rgba(0, 0, 0, 0.52);
-  --cast-glow: 0 0 10px 4px rgba(0, 0, 0, 0.32);
+  --cast: rgba(0, 0, 0, 0.62);
+  --cast-glow: 0 0 7px 2px rgba(0, 0, 0, 0.4);
 }
 
 .sketchbook {
@@ -229,16 +230,16 @@
   inset: 0;
   pointer-events: none;
   transform: translate3d(
-      calc(var(--chip-w, 52px) * 0.07),
-      calc(var(--chip-w, 52px) * 0.09),
+      calc(var(--chip-w, 52px) * 0.12),
+      calc(var(--chip-w, 52px) * 0.16),
       0
     );
   transition: transform 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 .chip.is-dragging .chip-cast {
   transform: translate3d(
-      calc(var(--chip-w, 52px) * 0.12),
-      calc(var(--chip-w, 52px) * 0.16),
+      calc(var(--chip-w, 52px) * 0.18),
+      calc(var(--chip-w, 52px) * 0.24),
       0
     );
 }
@@ -247,7 +248,7 @@
   inset: 0;
   border-radius: 50%;
   background: var(--cast);
-  filter: blur(1.2px);
+  filter: blur(0.7px);
 }
 
 #played { position: absolute; inset: 0; }

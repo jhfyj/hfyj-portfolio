@@ -7,9 +7,14 @@
 
    Maps are Grass 003 from ambientCG (CC0): albedo, OpenGL normal, roughness,
    ambient occlusion, displacement. Lighting is a fill from above plus a key
-   that follows the pointer — on a mouse. A finger is not a lamp, so on a
-   coarse pointer the key stands still overhead-left (the same side the chips'
-   shadows already fall from) and the tracking is not wired up at all.
+   that follows the pointer — a wash, not a spotlight, so the nap moves without
+   bleaching a disc out of the cloth. A phone has no mouse, so there the key stands
+   still overhead-left (the same side the chips' shadows already fall from)
+   and the tracking is not wired up at all. Safari on iPhone has been known
+   to report hover:hover and to synthesise a mouse pointerType after a tap,
+   which would leave the pool sitting on the cloth; the UA is what actually
+   decides a phone. A desktop that has asked for less motion still gets the
+   lamp — that request is not a phone.
 
    WebGL 1, no three, no bundler. If the context never arrives the CSS
    fallback on #surface (the albedo, tiled) is what you see. */
@@ -63,23 +68,23 @@
         '  vec2 aspect = vec2(1.0, uRes.y / max(uRes.x, 1.0));',
         '  vec2 tracked = (uLight - vUv) * aspect;',
         '  vec2 view = mix(tracked, vec2(0.0), uEven);',
-        '  uv += view * (h - 0.5) * 0.10;',
+        '  uv += view * (h - 0.5) * 0.06;',
         '  vec3 albedo = pow(texture2D(uAlbedo, uv).rgb, vec3(2.2));',
         '  albedo = mix(albedo, vec3(0.07, 0.28, 0.12), 0.16);',
         '  vec3 n = normalize(texture2D(uNormal, uv).rgb * 2.0 - 1.0);',
         '  float rough = texture2D(uRough, uv).r;',
         '  float ao = texture2D(uAO, uv).r;',
         '  vec3 V = vec3(0.0, 0.0, 1.0);',
-        '  vec3 L = mix(normalize(vec3(tracked, 0.48)),',
+        '  vec3 L = mix(normalize(vec3(tracked, 0.70)),',
         '               normalize(vec3(-0.22, 0.32, 0.92)), uEven);',
         '  vec3 H = normalize(L + V);',
         '  float ndl = max(dot(n, L), 0.0);',
         '  float spec = pow(max(dot(n, H), 0.0), mix(8.0, 48.0, 1.0 - rough));',
-        '  spec *= (1.0 - rough) * 0.50;',
-        '  float pool = mix(exp(-dot(tracked, tracked) * 2.4), 0.0, uEven);',
-        '  vec3 fill = vec3(0.18, 0.24, 0.14);',
-        '  vec3 col = albedo * (fill * ao + ndl * (0.72 + 0.50 * pool))',
-        '           + spec * vec3(0.88, 1.0, 0.58) * (0.55 + 0.85 * pool);',
+        '  spec *= (1.0 - rough) * 0.32;',
+        '  float pool = mix(exp(-dot(tracked, tracked) * 1.45), 0.0, uEven);',
+        '  vec3 fill = vec3(0.20, 0.26, 0.16);',
+        '  vec3 col = albedo * (fill * ao + ndl * (0.68 + 0.20 * pool))',
+        '           + spec * vec3(0.88, 1.0, 0.58) * (0.40 + 0.28 * pool);',
         '  vec2 edge = abs(vUv - 0.5) * 2.0;',
         '  col *= 1.0 - pow(max(edge.x, edge.y), 7.0) * 0.32;',
         '  gl_FragColor = vec4(pow(col, vec3(1.0 / 2.2)), 1.0);',
@@ -163,15 +168,21 @@
     gl.uniform1f(loc.tile, TILE);
 
     var light = [0.5, 0.72];
-    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-    // Same test the custom cursor uses. A phone has no mouse to follow; the
-    // key then sits still rather than chasing a finger across the cloth.
-    var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
+    var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)');
+    var noHover = window.matchMedia && window.matchMedia('(hover: none)');
+    // A phone, and only a phone. Media queries are not enough: iOS will
+    // report a mouse after a tap, which is how the pool was surviving there.
     function lampEven() {
-        return (reduceMotion && reduceMotion.matches)
-            || !(finePointer && finePointer.matches);
+        var ua = navigator.userAgent || '';
+        if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
+        if (/iPhone|iPod/i.test(ua)) return true;
+        if (/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
+        if (coarsePointer && coarsePointer.matches) return true;
+        if (noHover && noHover.matches) return true;
+        return false;
     }
     var even = lampEven();
+    document.documentElement.classList.toggle('no-mat-lamp', even);
     gl.uniform1f(loc.even, even ? 1 : 0);
     var dirty = true;
 
@@ -238,8 +249,8 @@
     }
 
     function setLightFromEvent(e) {
-        if (even || !cssW || !cssH) return;
-        if (e.pointerType === 'touch') return;
+        if (even || lampEven() || !cssW || !cssH) return;
+        if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
         var r = canvas.getBoundingClientRect();
         if (!r.width || !r.height) return;
         light[0] = (e.clientX - r.left) / r.width;
@@ -262,6 +273,7 @@
 
     function setEven(on) {
         even = on;
+        document.documentElement.classList.toggle('no-mat-lamp', even);
         gl.uniform1f(loc.even, even ? 1 : 0);
         listenLamp(!even);
         dirty = true;
@@ -270,14 +282,13 @@
 
     listenLamp(!even);
     function onLampMedia() { setEven(lampEven()); }
-    if (finePointer) {
-        if (finePointer.addEventListener) finePointer.addEventListener('change', onLampMedia);
-        else if (finePointer.addListener) finePointer.addListener(onLampMedia);
+    function watchMedia(mq) {
+        if (!mq) return;
+        if (mq.addEventListener) mq.addEventListener('change', onLampMedia);
+        else if (mq.addListener) mq.addListener(onLampMedia);
     }
-    if (reduceMotion) {
-        if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onLampMedia);
-        else if (reduceMotion.addListener) reduceMotion.addListener(onLampMedia);
-    }
+    watchMedia(coarsePointer);
+    watchMedia(noHover);
 
     if (typeof ResizeObserver === 'function') {
         new ResizeObserver(function () { resize(); requestDraw(); }).observe(surface);

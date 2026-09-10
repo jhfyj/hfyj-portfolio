@@ -123,11 +123,13 @@ body.has-dot .die-pip { cursor: none; }
   gap: 5%;
 }
 
-/* The highlight is a mouse lamp. A coarse pointer, a finger, or a request
-   for less motion gets the even stock the variables already default to —
-   and this rule drops the wash entirely so a stray inline --lit cannot
-   paint one. Same test as body.has-dot. */
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+/* The highlight is a mouse lamp. A phone has none, so this drops the wash
+   there — and only there — so a stray inline --lit cannot paint one. */
+html.no-mat-lamp .die-face {
+  background-image: none;
+}
+
+@media (hover: none), (pointer: coarse) {
   .die-face {
     background-image: none;
   }
@@ -155,8 +157,18 @@ body.has-dot .die-pip { cursor: none; }
 .die-cast {
   position: absolute;
   inset: 0;
+  transform: translate3d(var(--cast-dx, 12px), var(--cast-dy, 17px), 0);
   transform-style: preserve-3d;
   pointer-events: none;
+  /* The lamp only slides the contact a few pixels; a short ease keeps it
+     from ticking. The cube inside still turns on its own, with no ease. */
+  transition: transform 0.12s ease-out;
+}
+
+.die-cast-cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
 }
 
 .die-cast-face {

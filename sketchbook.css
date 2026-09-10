@@ -187,6 +187,61 @@
 }
 #mat.is-lit { opacity: 1; }
 
+/* The desk's printed name. It lives on #surface so it pans with the cloth.
+   The fill is the mat's own nap, clipped to the glyphs and slightly
+   darkened so the blades stay visible — dyed into the felt, the way a
+   poker desk wears its logo. The clip has to live on the spans that hold the
+   letters: clipping the heading itself clips nothing, because the heading
+   has no text of its own. pointer-events are off: a pan through the name is
+   still a pan. Hidden until sketchbook.js has sat it in the opening. */
+#table-heading {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  text-align: center;
+  visibility: hidden;
+  font-weight: 400;
+  line-height: 1;
+  color: transparent;
+}
+#table-heading.is-placed { visibility: visible; }
+#table-heading .mat-title,
+#table-heading .mat-tag {
+  background-image:
+    linear-gradient(#b4b4b4, #b4b4b4),
+    url(assets/sketchbook/felt/albedo.jpg);
+  background-size: 520px 520px;
+  background-repeat: repeat;
+  background-blend-mode: multiply;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+#table-heading .mat-title {
+  display: block;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 400;
+  font-size: clamp(42px, 10.5vw, 104px);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+#table-heading .mat-tag {
+  display: block;
+  margin-top: 0.18em;
+  font-family: "Mynerve", cursive;
+  font-weight: 400;
+  font-size: clamp(18px, 3.5vw, 38px);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
 /* A chip on the table. The shadow is the same disc as the chip, a hair
    down and to the right — light from above-left — so the chip itself
    covers all of it but a sliver, and that sliver is a crescent on the
@@ -230,16 +285,16 @@
   inset: 0;
   pointer-events: none;
   transform: translate3d(
-      calc(var(--chip-w, 52px) * 0.12),
-      calc(var(--chip-w, 52px) * 0.16),
+      var(--cast-dx, calc(var(--chip-w, 52px) * 0.12)),
+      var(--cast-dy, calc(var(--chip-w, 52px) * 0.16)),
       0
     );
   transition: transform 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 .chip.is-dragging .chip-cast {
   transform: translate3d(
-      calc(var(--chip-w, 52px) * 0.18),
-      calc(var(--chip-w, 52px) * 0.24),
+      calc(var(--cast-dx, calc(var(--chip-w, 52px) * 0.12)) * 1.5),
+      calc(var(--cast-dy, calc(var(--chip-w, 52px) * 0.16)) * 1.5),
       0
     );
 }
@@ -279,7 +334,9 @@
 }
 /* The light on the mat follows a mouse. A phone has none, so the clause
    that tells you to move one is not shown there. Same test as the cursor. */
-@media not ((hover: hover) and (pointer: fine)) {
+html.no-mat-lamp .hint-light { display: none; }
+
+@media (hover: none), (pointer: coarse) {
   .hint-light { display: none; }
 }
 
@@ -744,10 +801,10 @@
   transition: transform 0.2s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
-/* The end of a round: every card comes together, three of them riffle, and the
-   whole lot is dealt back into the rack. Like the flight above, both of these
-   move a card and turn it at the same time, so both name the two properties
-   that now share that work. */
+/* The end of a round: every card comes together, the pack riffles three
+   times, and the whole lot is dealt back into the rack. Like the flight
+   above, both of these move a card and turn it at the same time, so both
+   name the two properties that now share that work. */
 #played .card.is-gathering {
   transition: translate 0.5s cubic-bezier(0.3, 0.8, 0.3, 1),
               transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1);
@@ -1115,6 +1172,8 @@ body.modal-open { overflow: hidden; }
     --modal-pad: 16px;
   }
   #felt { height: 56vh; min-height: 380px; }
+  #table-heading .mat-title { font-size: clamp(36px, 12vw, 72px); }
+  #table-heading .mat-tag { font-size: clamp(16px, 4.4vw, 28px); }
   /* The caps, not the padding: the shorthand above is a min() against the card's
      own size, and restating it here as two lengths would throw that away on
      exactly the narrow window where it does the most work. */

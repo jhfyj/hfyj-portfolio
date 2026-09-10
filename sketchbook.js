@@ -936,6 +936,41 @@
 
     /* ---------------- what else is on the table ---------------- */
 
+    /* The printed name on the cloth. Surface coordinates, after the opening
+       pan, so it sits in the middle of what you can see and then travels with
+       the felt — dyed in, not a caption that stays glued to the window. */
+    function placeMatMark() {
+        var mark = document.getElementById('table-heading');
+        if (!mark) return;
+        var f = felt.getBoundingClientRect();
+        var sr = surface.getBoundingClientRect();
+        var viewX = f.left - sr.left, viewY = f.top - sr.top;
+        var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+        var cx = viewX + f.width / 2;
+        var cy = viewY + (fanTop - viewY) * 0.46;
+        // Top-left, not a centred transform: the grass tile in the letters is
+        // aligned to the cloth from this corner, and a translate(-50%) would
+        // shift the nap out from under the dye.
+        mark.classList.add('is-placed');
+        mark.style.left = '0px';
+        mark.style.top = '0px';
+        var x = Math.round(cx - mark.offsetWidth / 2);
+        var y = Math.round(cy - mark.offsetHeight / 2);
+        mark.style.left = x + 'px';
+        mark.style.top = y + 'px';
+        // Each span clips the albedo itself. Its tile origin has to be the
+        // surface's, not the span's, or the nap in the letters is a different
+        // patch of grass from the cloth they sit on.
+        var srNow = surface.getBoundingClientRect();
+        var spans = mark.querySelectorAll('.mat-title, .mat-tag');
+        for (var i = 0; i < spans.length; i++) {
+            var box = spans[i].getBoundingClientRect();
+            spans[i].style.backgroundPosition =
+                Math.round(-(box.left - srNow.left)) + 'px '
+                + Math.round(-(box.top - srNow.top)) + 'px';
+        }
+    }
+
     /* Two chips, lying on the mat. They pan with the table — they go into
        #surface rather than onto #felt, so they do not float over a cloth that
        slides out from under them — and they drag the same way a played card
@@ -997,37 +1032,57 @@
         return wrap;
     }
 
-    // Somewhere on the visible part of the table, clear of the hand and of the
-    // other chip. Surface coordinates, like everything else that is placed on
-    // the table, and read at the moment of placing because the surface is
-    // bigger than the window onto it and only part of it is worth using.
-    function chipSpot(taken) {
+    // The opening you can actually see, above the hand, in surface coordinates.
+    // Chips (and the dice that follow them) start on this band's rim so the
+    // printed name in the middle of the cloth is left alone.
+    function visibleOpening(pad) {
         var f = felt.getBoundingClientRect();
         var sr = surface.getBoundingClientRect();
         var viewX = f.left - sr.left, viewY = f.top - sr.top;
         var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+        return {
+            x: viewX + pad,
+            y: viewY + pad,
+            w: Math.max(pad, f.width - pad * 2),
+            h: Math.max(pad * 2, fanTop - viewY - pad - 24)
+        };
+    }
 
-        var minX = viewX + CHIP_W;
-        var maxX = Math.max(minX, viewX + f.width - CHIP_W * 2);
-        var minY = viewY + CHIP_W;
-        var maxY = Math.max(minY, fanTop - CHIP_W - 24);
+    // The middle of the opening, where the name is printed. A chip that landed
+    // here would sit on the letters.
+    function inOpeningCentre(x, y, size, band) {
+        var cx = x + size / 2;
+        var cy = y + size / 2;
+        return cx > band.x + band.w * 0.24
+            && cx < band.x + band.w * 0.76
+            && cy > band.y + band.h * 0.22
+            && cy < band.y + band.h * 0.72;
+    }
 
-        // Best of a handful of draws rather than the first one: two chips that
-        // happen to land on the same spot read as one chip, and a retry loop
-        // that can fail is worse than a choice that cannot.
+    // A point on the rim of the opening, jittered, kept off the name and off
+    // whatever is already down. Falls back to the well itself if the draws
+    // cannot find a gap — two chips on a short window still have to land.
+    function rimSpot(band, well, taken, size) {
         var best = null, bestGap = -1;
-        for (var t = 0; t < 24; t++) {
-            var x = minX + Math.random() * (maxX - minX);
-            var y = minY + Math.random() * (maxY - minY);
+        for (var t = 0; t < 32; t++) {
+            var x = band.x + band.w * well.fx - size / 2 + (Math.random() - 0.5) * 44;
+            var y = band.y + band.h * well.fy - size / 2 + (Math.random() - 0.5) * 36;
+            x = Math.max(band.x, Math.min(x, band.x + band.w - size));
+            y = Math.max(band.y, Math.min(y, band.y + band.h - size));
+            if (inOpeningCentre(x, y, size, band)) continue;
             var gap = Infinity;
             for (var i = 0; i < taken.length; i++) {
                 var d = Math.abs(taken[i].x - x) + Math.abs(taken[i].y - y);
                 if (d < gap) gap = d;
             }
             if (gap > bestGap) { bestGap = gap; best = { x: x, y: y }; }
-            if (bestGap > CHIP_W * 3) break;
+            if (bestGap > size * 3) break;
         }
-        return best;
+        if (best) return best;
+        return {
+            x: Math.max(band.x, Math.min(band.x + band.w * well.fx - size / 2, band.x + band.w - size)),
+            y: Math.max(band.y, Math.min(band.y + band.h * well.fy - size / 2, band.y + band.h - size))
+        };
     }
 
     // The rectangle a chip may sit in and stay whole, in the surface's own
@@ -1096,14 +1151,21 @@
 
     function scatterChips() {
         var taken = [];
+        var band = visibleOpening(CHIP_W);
+        // Left of the name and right of it, not a pair in one corner. The dice
+        // take the other three sides of the same rim.
+        var wells = [
+            { fx: 0.10, fy: 0.58 },
+            { fx: 0.90, fy: 0.42 }
+        ];
         for (var i = 0; i < 2; i++) {
-            var spot = chipSpot(taken);
+            var spot = rimSpot(band, wells[i], taken, CHIP_W);
             if (!spot) return;
             var chip = buildChip();
             chip.style.left = Math.round(spot.x) + 'px';
             chip.style.top = Math.round(spot.y) + 'px';
-            // The print turns; the crescent does not. The lamp is on the
-            // table, not on the chip, so the sliver always falls down-right.
+            // The print turns; the crescent does not. The sliver starts
+            // down-right and dice.js nudges it a few pixels with the lamp.
             chip.style.setProperty('--chip-rot', Math.round(Math.random() * 360) + 'deg');
             // Ahead of #played. What puts a chip above a card is z-index, not
             // this order: see --die-z on #surface. Behind the grass canvas it
@@ -1255,15 +1317,17 @@
         deal(null);
     }
 
-    // Opens a round: the rack is the whole pack, shuffled, and the hand is
-    // taken off the top of it before the rack is drawn - so the rack renders
-    // holding exactly what is still to come, with the slots the hand is
-    // holding already standing empty at the end. `from` deals the rack in from
-    // a point instead of simply putting it there.
-    function deal(from) {
+    // Opens a round: the rack is the whole pack, and the hand is taken off the
+    // top of it before the rack is drawn - so the rack renders holding exactly
+    // what is still to come, with the slots the hand is holding already standing
+    // empty at the end. `from` deals the rack in from a point instead of simply
+    // putting it there. `order`, when it is a full pack, is the order the table
+    // just riffled into; without it the pack is shuffled fresh, which is how a
+    // round opens.
+    function deal(from, order) {
         while (fanEl.firstChild) fanEl.removeChild(fanEl.firstChild);
         hand = [];
-        rack = shuffle(works);
+        rack = (order && order.length === works.length) ? order.slice() : shuffle(works);
         var opening = rack.splice(0, HAND);
         for (var i = 0; i < opening.length; i++) addToHand(opening[i], false);
         layOutFan();
@@ -1866,8 +1930,11 @@
         };
     }
 
-    // Every card in play comes together, three of them riffle, and the whole
-    // pack goes back out into the rack face down, turning over one by one.
+    // Every card in play comes together, the pack is riffled three times, and
+    // the whole lot is dealt back into the rack face down, turning over one
+    // by one. Each riffle splits the pack, interleaves the two halves, and
+    // squares up in the new order — so the card that lands on top changes,
+    // and the order the rack is dealt in is the order the table just mixed.
     function runReset() {
         if (resetting) return;
         resetting = true;
@@ -1894,26 +1961,71 @@
         });
 
         var round = 0;
-        var three = cards.slice(-3);
+        var gap = playedW() * 0.55;
 
-        function riffle() {
-            if (!three.length) { redeal(); return; }
-            three.forEach(function (c, i) {
+        // A real riffle, not a perfect zip: each hand drops one or two cards
+        // at a time, and either half can start, so three of these do not put
+        // the pack back where it began.
+        function riffleOrder(pack) {
+            var mid = Math.ceil(pack.length / 2);
+            var a = pack.slice(0, mid);
+            var b = pack.slice(mid);
+            var ia = 0, ib = 0, out = [];
+            var takeA = Math.random() < 0.5;
+            while (ia < a.length || ib < b.length) {
+                if (takeA && ia >= a.length) takeA = false;
+                if (!takeA && ib >= b.length) takeA = true;
+                var n = 1 + Math.floor(Math.random() * 2);
+                if (takeA) {
+                    while (n-- && ia < a.length) out.push(a[ia++]);
+                } else {
+                    while (n-- && ib < b.length) out.push(b[ib++]);
+                }
+                takeA = !takeA;
+            }
+            return out;
+        }
+
+        function stackPack(pack) {
+            pack.forEach(function (c, i) {
+                c.style.zIndex = String(1000 + i);
+                place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0);
+            });
+        }
+
+        function splitPack(pack) {
+            var mid = Math.ceil(pack.length / 2);
+            pack.forEach(function (c, i) {
                 c.classList.remove('is-gathering');
                 c.classList.add('is-riffling');
-                place(c, spot.x + (i - 1) * playedW() * 0.66, spot.y - 8 + i * 3, (i - 1) * 8);
+                var left = i < mid;
+                c.style.zIndex = String(1000 + i);
+                place(c,
+                    spot.x + (left ? -gap : gap) + (i % 2),
+                    spot.y + (i % 3) - 1,
+                    left ? -7 : 7);
             });
+        }
+
+        function riffle() {
+            if (!cards.length || round >= 3) { redeal(); return; }
+            splitPack(cards);
             setTimeout(function () {
-                three.forEach(function (c, i) { place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0); });
+                cards = riffleOrder(cards);
+                stackPack(cards);
                 round++;
-                setTimeout(round < 3 ? riffle : redeal, RIFFLE_MS);
+                setTimeout(riffle, RIFFLE_MS);
             }, RIFFLE_MS);
         }
 
         function redeal() {
             playedEl.classList.remove('is-shuffling');
+            var order = [];
+            for (var i = cards.length - 1; i >= 0; i--) {
+                if (cards[i].__work) order.push(cards[i].__work);
+            }
             while (playedEl.firstChild) playedEl.removeChild(playedEl.firstChild);
-            deal(from);
+            deal(from, order);
             resetting = false;
         }
 
@@ -1923,6 +2035,11 @@
     /* ---------------- start ---------------- */
 
     sizeSurface();
+    centrePan();
+    placeMatMark();
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(placeMatMark).catch(function () {});
+    }
 
     fetch(MANIFEST)
         .then(function (r) {
@@ -1941,6 +2058,7 @@
             buildGrid();
             sizeSurface();
             centrePan();
+            placeMatMark();
             // After centrePan, which is what decides which part of the table is
             // the visible part a chip has to land in.
             scatterChips();

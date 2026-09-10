@@ -4,8 +4,9 @@
    and loaded after it because where a die can go depends on what sketchbook.js
    has already put down.
 
-   Two or three of them, scattered across the part of the table you can see.
-   Press one and it hops, tumbles and settles on a different number; drag it
+   Two or three of them, around the edge of the opening you can see, so the
+   printed name in the middle of the cloth is left alone. Press one and it hops,
+   tumbles and settles on a different number; drag it
    and it slides, the same slop a card uses so a wobble is not a throw. The
    chips slide; the dice roll, or they move.
 
@@ -116,16 +117,22 @@
     // a shadow stays on the table — and only slides it further from the die,
     // spreads it and lets it go, which is what height looks like when the
     // light is coming from above and slightly to the left.
+    //
+    // The rest offset (CAST_OX/OY) lives on the wrapper as --cast-dx/dy so
+    // the lamp can nudge it without rewriting the cube's own turn. A few
+    // pixels toward the far side of the cursor is enough; the crescent on
+    // a chip is the same idea.
     var CAST_LIE = 52;
     var CAST_YAW = 36;
     var CAST_OX = 12;
     var CAST_OY = 17;
+    var CAST_LAMP = 6;
 
     function castFrame(hopY, hopZ, rz, tumbleX, tumbleY, opacity) {
         var lift = Math.max(0, -hopY) + hopZ * 0.18;
         var spread = 1 + lift / 40;
-        var ox = CAST_OX + lift * 0.22;
-        var oy = CAST_OY + lift * 0.36;
+        var ox = lift * 0.22;
+        var oy = lift * 0.36;
         return {
             transform: 'translate3d(' + ox + 'px, ' + oy + 'px, 0px)'
                 + ' rotateX(' + CAST_LIE + 'deg)'
@@ -140,8 +147,25 @@
 
     function applyCast(el, hopY, hopZ, rz, rx, ry, opacity) {
         var c = castFrame(hopY, hopZ, rz, rx, ry, opacity);
-        el.__cast.style.transform = c.transform;
-        el.__cast.style.opacity = String(c.opacity);
+        el.__castCube.style.transform = c.transform;
+        el.__castCube.style.opacity = String(c.opacity);
+    }
+
+    function restCast(el) {
+        el.style.setProperty('--cast-dx', CAST_OX + 'px');
+        el.style.setProperty('--cast-dy', CAST_OY + 'px');
+    }
+
+    // Shadow falls away from the lamp, a little. Rest is already down-right;
+    // the cursor only slides that sliver, it does not throw it across the mat.
+    function aimCast(el, cx, cy, baseX, baseY, throwPx) {
+        var r = el.getBoundingClientRect();
+        var px = (r.left + r.width / 2 - cx) / LIGHT_REACH;
+        var py = (r.top + r.height / 2 - cy) / LIGHT_REACH;
+        if (px > 1) px = 1; else if (px < -1) px = -1;
+        if (py > 1) py = 1; else if (py < -1) py = -1;
+        el.style.setProperty('--cast-dx', (baseX + px * throwPx).toFixed(1) + 'px');
+        el.style.setProperty('--cast-dy', (baseY + py * throwPx).toFixed(1) + 'px');
     }
 
     function paintFaces(parent, withPips) {
@@ -178,7 +202,10 @@
 
         var cast = document.createElement('div');
         cast.className = 'die-cast';
-        paintFaces(cast, false);
+        var castCube = document.createElement('div');
+        castCube.className = 'die-cast-cube';
+        paintFaces(castCube, false);
+        cast.appendChild(castCube);
         el.appendChild(cast);
 
         var cube = document.createElement('div');
@@ -187,7 +214,9 @@
         el.appendChild(cube);
         el.__cube = cube;
         el.__cast = cast;
+        el.__castCube = castCube;
         el.__faces = cube.querySelectorAll('.die-face');
+        restCast(el);
         return el;
     }
 
@@ -320,8 +349,7 @@
         // way a dragged card does it: a layer that is kept for a die sitting
         // still is a layer being paid for and not used.
         el.__cube.style.willChange = 'transform';
-        el.__cast.style.willChange = 'transform, opacity';
-        shadeAll();
+        el.__castCube.style.willChange = 'transform, opacity';
 
         // Settled before it is animated, not after. The animation is left to
         // fill nothing, so when it lets go the die is already holding the pose
@@ -335,11 +363,11 @@
         // same way round — so a tumble on the table is a tumbling silhouette
         // rather than a smudge that merely grows. It does not hop: lift only
         // pushes it further from the die, spreads it and lets more light in.
-        el.__cast.animate(castKeys, { duration: ROLL_MS, easing: 'linear' });
+        el.__castCube.animate(castKeys, { duration: ROLL_MS, easing: 'linear' });
 
         anim.onfinish = function () {
             el.__cube.style.willChange = '';
-            el.__cast.style.willChange = '';
+            el.__castCube.style.willChange = '';
             el.__rolling = false;
         };
     }
@@ -429,8 +457,8 @@
     /* The mat already has a key that follows the pointer (felt.js). The dice
        catch the same lamp. At rest only the front face is showing, so a uniform
        wash per side would not move with the cursor — the highlight has to sit
-       on the face and slide. A finger is not a lamp, so on a coarse pointer
-       every face stays the same stock. */
+       on the face and slide. A phone has no mouse, so there every face stays
+       the same stock. Desktop, including reduced motion, still gets the lamp. */
 
     /* Outward normal plus the face's own right/down, matching the rotateY/X
        that plants each side. Cube space: +X right, +Y down, +Z toward you. */
@@ -442,21 +470,24 @@
         top:    { n: [0, -1, 0],  u: [1, 0, 0],   v: [0, 0, 1] },
         bottom: { n: [0, 1, 0],   u: [1, 0, 0],   v: [0, 0, -1] }
     };
-    var SHADE_MAX = 0.22;
-    var LIT_MAX = 0.4;
+    var SHADE_MAX = 0.14;
+    var LIT_MAX = 0.22;
     var LIGHT_REACH = 140;
     var lastPtr = null;
     var lightTick = false;
-    var reduceLight = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-    var fineLight = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
+    var coarseLight = window.matchMedia && window.matchMedia('(pointer: coarse)');
+    var noHoverLight = window.matchMedia && window.matchMedia('(hover: none)');
 
-    // Same test as the custom cursor (body.has-dot): a mouse, not a finger.
-    // has-dot is the page's desktop signal; the media queries are what can
-    // change later if a tablet grows a pointer.
+    // A phone, and only a phone — same test as felt.js. iOS will report a
+    // mouse after a tap, so the UA is what actually puts the wash out there.
     function lampShouldBeEven() {
-        return (reduceLight && reduceLight.matches)
-            || !(fineLight && fineLight.matches)
-            || !document.body.classList.contains('has-dot');
+        var ua = navigator.userAgent || '';
+        if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
+        if (/iPhone|iPod/i.test(ua)) return true;
+        if (/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
+        if (coarseLight && coarseLight.matches) return true;
+        if (noHoverLight && noHoverLight.matches) return true;
+        return false;
     }
     var evenLight = lampShouldBeEven();
 
@@ -506,7 +537,13 @@
         var rolling = false;
         for (var i = 0; i < dice.length; i++) {
             shadeDie(dice[i], lastPtr.x, lastPtr.y);
+            aimCast(dice[i], lastPtr.x, lastPtr.y, CAST_OX, CAST_OY, CAST_LAMP);
             if (dice[i].__rolling) rolling = true;
+        }
+        var chips = surface.querySelectorAll(':scope > .chip');
+        for (var c = 0; c < chips.length; c++) {
+            var w = parseFloat(chips[c].style.getPropertyValue('--chip-w')) || 52;
+            aimCast(chips[c], lastPtr.x, lastPtr.y, w * 0.12, w * 0.16, w * 0.07);
         }
         if (rolling && !lightTick) {
             lightTick = true;
@@ -518,7 +555,8 @@
     }
 
     function onLampMove(e) {
-        if (evenLight || e.pointerType === 'touch') return;
+        if (evenLight || lampShouldBeEven()) return;
+        if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
         lastPtr = { x: e.clientX, y: e.clientY };
         shadeAll();
     }
@@ -530,6 +568,7 @@
             lastPtr = null;
             var dice = surface.querySelectorAll(':scope > .die');
             for (var i = 0; i < dice.length; i++) {
+                restCast(dice[i]);
                 var faces = dice[i].__faces;
                 if (!faces) continue;
                 for (var f = 0; f < faces.length; f++) {
@@ -541,6 +580,11 @@
                     faces[f].style.setProperty('--sy', '62%');
                 }
             }
+            var chips = surface.querySelectorAll(':scope > .chip');
+            for (var c = 0; c < chips.length; c++) {
+                chips[c].style.removeProperty('--cast-dx');
+                chips[c].style.removeProperty('--cast-dy');
+            }
         } else {
             felt.addEventListener('pointermove', onLampMove, { passive: true, capture: true });
         }
@@ -549,14 +593,13 @@
     function onLampMedia() {
         setEvenLight(lampShouldBeEven());
     }
-    if (fineLight) {
-        if (fineLight.addEventListener) fineLight.addEventListener('change', onLampMedia);
-        else if (fineLight.addListener) fineLight.addListener(onLampMedia);
+    function watchLightMedia(mq) {
+        if (!mq) return;
+        if (mq.addEventListener) mq.addEventListener('change', onLampMedia);
+        else if (mq.addListener) mq.addListener(onLampMedia);
     }
-    if (reduceLight) {
-        if (reduceLight.addEventListener) reduceLight.addEventListener('change', onLampMedia);
-        else if (reduceLight.addListener) reduceLight.addListener(onLampMedia);
-    }
+    watchLightMedia(coarseLight);
+    watchLightMedia(noHoverLight);
 
     /* ---------------- putting them down ---------------- */
 
@@ -610,9 +653,21 @@
         };
     }
 
-    // Three wells across the cloth, not on a line, so two or three dice
-    // read as a scatter rather than as one pile or as a row. Each well
-    // jitters, and still keeps clear of the chips.
+    // The middle of the opening, where the name is printed. Same keep-out
+    // the chips use, so a die does not sit on the letters either.
+    function inOpeningCentre(x, y, band) {
+        var cx = x + DIE_HALF;
+        var cy = y + DIE_HALF;
+        return cx > band.x + band.w * 0.24
+            && cx < band.x + band.w * 0.76
+            && cy > band.y + band.h * 0.22
+            && cy < band.y + band.h * 0.72;
+    }
+
+    // Three wells on the rim of the opening — corners, not a row through the
+    // name — so two or three dice read as a scatter around the desk rather
+    // than as a pile in the middle. Each well jitters, and still keeps clear
+    // of the chips.
     function placeInWell(band, well, taken) {
         var best = null, bestGap = -Infinity;
         for (var t = 0; t < 40; t++) {
@@ -620,9 +675,17 @@
             var y = band.y + band.h * well.fy - DIE_HALF + rand(-22, 22);
             x = Math.max(band.x, Math.min(x, band.x + band.w - DIE_W));
             y = Math.max(band.y, Math.min(y, band.y + band.h - DIE_W));
+            if (inOpeningCentre(x, y, band)) continue;
             var gap = clearance(x, y, taken);
             if (gap > bestGap) { bestGap = gap; best = { x: x, y: y }; }
             if (bestGap >= 0) break;
+        }
+        if (!best) {
+            best = {
+                x: Math.max(band.x, Math.min(band.x + band.w * well.fx - DIE_HALF, band.x + band.w - DIE_W)),
+                y: Math.max(band.y, Math.min(band.y + band.h * well.fy - DIE_HALF, band.y + band.h - DIE_W))
+            };
+            bestGap = clearance(best.x, best.y, taken);
         }
         best.clear = bestGap >= 0;
         return best;
@@ -639,9 +702,9 @@
         var taken = chipSpots();
         var band = visibleBand();
         var wells = [
-            { fx: 0.24, fy: 0.34 },
-            { fx: 0.52, fy: 0.52 },
-            { fx: 0.78, fy: 0.30 }
+            { fx: 0.16, fy: 0.12 },
+            { fx: 0.84, fy: 0.14 },
+            { fx: 0.78, fy: 0.82 }
         ];
         for (var i = 0; i < DICE; i++) {
             var s = placeInWell(band, wells[i], taken);

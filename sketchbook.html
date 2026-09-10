@@ -30,7 +30,7 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&family=Mynerve&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="skeleton.css">
     <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
@@ -83,7 +83,8 @@
          inside it is positioned against it, so the landing coordinates
          sketchbook.js works out are simply its own box. -->
     <section id="table" aria-labelledby="table-heading">
-        <h1 id="table-heading" class="visually-hidden">playground</h1>
+        <!-- The painted name lives on #surface, not here: it has to pan with
+             the cloth. aria-labelledby still finds it. -->
         <!-- data-cursor-none is on #felt as well as the two layers inside it
              because a pan takes pointer capture: while it runs, the hover
              events retarget to the capturing element, so a mark only on
@@ -104,6 +105,13 @@
                 <!-- The mat. felt.js paints the grass onto this; without WebGL
                      the albedo tiled in sketchbook.css is what shows through. -->
                 <canvas id="mat" aria-hidden="true"></canvas>
+                <!-- Printed into the felt, the way a poker desk wears its name.
+                     sketchbook.js sits it in the opening you first see; it then
+                     travels with the cloth. -->
+                <h1 id="table-heading">
+                    <span class="mat-title">Playground</span>
+                    <span class="mat-tag">where you can actually play</span>
+                </h1>
                 <!-- Played cards are appended here. -->
                 <div id="played" aria-label="Cards on the table" data-cursor-none></div>
             </div>

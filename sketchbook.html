@@ -83,7 +83,12 @@
          sketchbook.js works out are simply its own box. -->
     <section id="table" aria-labelledby="table-heading">
         <h1 id="table-heading" class="visually-hidden">Sketchbook</h1>
-        <div id="felt">
+        <!-- data-cursor-none is on #felt as well as the two layers inside it
+             because a pan takes pointer capture: while it runs, the hover
+             events retarget to the capturing element, so a mark only on
+             #surface and #played lets the dot pop back over the grabbing hand
+             for the whole drag. -->
+        <div id="felt" data-cursor-none>
             <!-- The table is bigger than the window onto it. #surface is the
                  table proper - the paper, and every card laid on it - and it
                  slides under #felt when you drag it, so there is more room to

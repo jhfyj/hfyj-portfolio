@@ -836,6 +836,26 @@
         modalCardEl.innerHTML = '';
 
         var card = buildCard(work, { interactive: true, detail: true });
+
+        // In here, and only in here, the card is cut to the shape of the work it
+        // is showing: a landscape gif opens as a landscape card, a square one as
+        // a square. It is written as --card-ar, the same custom property every
+        // card's aspect-ratio already reads, overridden on this one element —
+        // so the hand, the table and the rack are untouched and nothing has to
+        // learn a second way of being a shape. The proportions come from the
+        // work's own manifest entry rather than from a rule, which is the point:
+        // a hundredth work added to works.json opens at its own size without
+        // anything here changing. A side effect worth having is that the face's
+        // object-fit: cover then has nothing left to crop.
+        //
+        // A work missing either number keeps the stylesheet's 5:7. The fit in
+        // sketchbook.css divides by this ratio, and a card told to be 0 wide by
+        // 0 high is a card with no size at all.
+        var arW = Number(work.width), arH = Number(work.height);
+        if (isFinite(arW) && isFinite(arH) && arW > 0 && arH > 0) {
+            card.style.setProperty('--card-ar', arW + ' / ' + arH);
+        }
+
         card.flipBtn.setAttribute('aria-label', work.title + ' — turn over to read about it');
         card.flipBtn.setAttribute('aria-pressed', 'false');
         card.addEventListener('click', function () { toggleFlip(card); });

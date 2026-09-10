@@ -187,6 +187,7 @@
         el.appendChild(cube);
         el.__cube = cube;
         el.__cast = cast;
+        el.__faces = cube.querySelectorAll('.die-face');
         return el;
     }
 
@@ -320,6 +321,7 @@
         // still is a layer being paid for and not used.
         el.__cube.style.willChange = 'transform';
         el.__cast.style.willChange = 'transform, opacity';
+        shadeAll();
 
         // Settled before it is animated, not after. The animation is left to
         // fill nothing, so when it lets go the die is already holding the pose
@@ -420,6 +422,140 @@
             if (swallowClick) { swallowClick = false; return; }
             roll(el);
         });
+    }
+
+    /* ---------------- the lamp ---------------- */
+
+    /* The mat already has a key that follows the pointer (felt.js). The dice
+       catch the same lamp. At rest only the front face is showing, so a uniform
+       wash per side would not move with the cursor — the highlight has to sit
+       on the face and slide. A finger is not a lamp, so on a coarse pointer
+       every face stays the same stock. */
+
+    /* Outward normal plus the face's own right/down, matching the rotateY/X
+       that plants each side. Cube space: +X right, +Y down, +Z toward you. */
+    var FACE_BASIS = {
+        front:  { n: [0, 0, 1],   u: [1, 0, 0],   v: [0, 1, 0] },
+        back:   { n: [0, 0, -1],  u: [-1, 0, 0],  v: [0, 1, 0] },
+        right:  { n: [1, 0, 0],   u: [0, 0, -1],  v: [0, 1, 0] },
+        left:   { n: [-1, 0, 0],  u: [0, 0, 1],   v: [0, 1, 0] },
+        top:    { n: [0, -1, 0],  u: [1, 0, 0],   v: [0, 0, 1] },
+        bottom: { n: [0, 1, 0],   u: [1, 0, 0],   v: [0, 0, -1] }
+    };
+    var SHADE_MAX = 0.22;
+    var LIT_MAX = 0.4;
+    var LIGHT_REACH = 140;
+    var lastPtr = null;
+    var lightTick = false;
+    var reduceLight = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    var fineLight = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
+
+    // Same test as the custom cursor (body.has-dot): a mouse, not a finger.
+    // has-dot is the page's desktop signal; the media queries are what can
+    // change later if a tablet grows a pointer.
+    function lampShouldBeEven() {
+        return (reduceLight && reduceLight.matches)
+            || !(fineLight && fineLight.matches)
+            || !document.body.classList.contains('has-dot');
+    }
+    var evenLight = lampShouldBeEven();
+
+    function mulBasis(m, v) {
+        return [
+            m.m11 * v[0] + m.m21 * v[1] + m.m31 * v[2],
+            m.m12 * v[0] + m.m22 * v[1] + m.m32 * v[2],
+            m.m13 * v[0] + m.m23 * v[1] + m.m33 * v[2]
+        ];
+    }
+
+    function shadeDie(el, cx, cy) {
+        var faces = el.__faces;
+        if (!faces || !faces.length) return;
+        var r = el.getBoundingClientRect();
+        var dx = (cx - (r.left + r.width / 2)) / LIGHT_REACH;
+        var dy = (cy - (r.top + r.height / 2)) / LIGHT_REACH;
+        var dz = 0.55;
+        var len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        var L = [dx / len, dy / len, dz / len];
+        var near = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy) * 0.62);
+        var t = getComputedStyle(el.__cube).transform;
+        var m = (t && t !== 'none') ? new DOMMatrix(t) : new DOMMatrix();
+        for (var i = 0; i < faces.length; i++) {
+            var b = FACE_BASIS[faces[i].getAttribute('data-at')];
+            if (!b) continue;
+            var n = mulBasis(m, b.n);
+            var u = mulBasis(m, b.u);
+            var v = mulBasis(m, b.v);
+            var ndl = Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+            var lu = u[0] * L[0] + u[1] * L[1] + u[2] * L[2];
+            var lv = v[0] * L[0] + v[1] * L[1] + v[2] * L[2];
+            var side = Math.min(1, Math.sqrt(lu * lu + lv * lv));
+            var face = faces[i];
+            face.style.setProperty('--shade', (SHADE_MAX * ndl * (0.25 + 0.75 * side)).toFixed(3));
+            face.style.setProperty('--lit', (LIT_MAX * ndl * (0.35 + 0.65 * near)).toFixed(3));
+            face.style.setProperty('--lx', (50 + lu * 46).toFixed(1) + '%');
+            face.style.setProperty('--ly', (50 + lv * 46).toFixed(1) + '%');
+            face.style.setProperty('--sx', (50 - lu * 50).toFixed(1) + '%');
+            face.style.setProperty('--sy', (50 - lv * 50).toFixed(1) + '%');
+        }
+    }
+
+    function shadeAll() {
+        if (evenLight || !lastPtr) return;
+        var dice = surface.querySelectorAll(':scope > .die');
+        var rolling = false;
+        for (var i = 0; i < dice.length; i++) {
+            shadeDie(dice[i], lastPtr.x, lastPtr.y);
+            if (dice[i].__rolling) rolling = true;
+        }
+        if (rolling && !lightTick) {
+            lightTick = true;
+            requestAnimationFrame(function () {
+                lightTick = false;
+                shadeAll();
+            });
+        }
+    }
+
+    function onLampMove(e) {
+        if (evenLight || e.pointerType === 'touch') return;
+        lastPtr = { x: e.clientX, y: e.clientY };
+        shadeAll();
+    }
+
+    function setEvenLight(on) {
+        evenLight = on;
+        if (evenLight) {
+            felt.removeEventListener('pointermove', onLampMove, { capture: true });
+            lastPtr = null;
+            var dice = surface.querySelectorAll(':scope > .die');
+            for (var i = 0; i < dice.length; i++) {
+                var faces = dice[i].__faces;
+                if (!faces) continue;
+                for (var f = 0; f < faces.length; f++) {
+                    faces[f].style.setProperty('--shade', '0');
+                    faces[f].style.setProperty('--lit', '0');
+                    faces[f].style.setProperty('--lx', '50%');
+                    faces[f].style.setProperty('--ly', '38%');
+                    faces[f].style.setProperty('--sx', '50%');
+                    faces[f].style.setProperty('--sy', '62%');
+                }
+            }
+        } else {
+            felt.addEventListener('pointermove', onLampMove, { passive: true, capture: true });
+        }
+    }
+
+    function onLampMedia() {
+        setEvenLight(lampShouldBeEven());
+    }
+    if (fineLight) {
+        if (fineLight.addEventListener) fineLight.addEventListener('change', onLampMedia);
+        else if (fineLight.addListener) fineLight.addListener(onLampMedia);
+    }
+    if (reduceLight) {
+        if (reduceLight.addEventListener) reduceLight.addEventListener('change', onLampMedia);
+        else if (reduceLight.addListener) reduceLight.addListener(onLampMedia);
     }
 
     /* ---------------- putting them down ---------------- */
@@ -523,6 +659,7 @@
             surface.insertBefore(die, playedEl);
             taken.push({ x: s.x + DIE_HALF, y: s.y + DIE_HALF, r: DIE_REACH });
         }
+        setEvenLight(evenLight);
     }
 
     /* ---------------- start ---------------- */

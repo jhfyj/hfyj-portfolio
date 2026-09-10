@@ -94,10 +94,25 @@ body.has-dot .die-pip { cursor: none; }
      is what makes asking the document what is under the middle of a die a
      truthful question: the answer is the face you can actually see. */
   backface-visibility: hidden;
-  /* One stock, every face. A wash per side would make a tumble look like six
-     different materials catching the light, and the number that lands would
-     not be the same colour as the number that left. */
+  /* One stock. A baked wash per side is what made some faces darker at rest;
+     that table is gone. On a mouse the lamp is the cursor: dice.js writes
+     --lx/--ly/--lit/--shade so a highlight sits on the side looking at the
+     pointer. A finger is not a lamp, so those stay 0 and every face is the
+     same colour. */
   background-color: var(--back-stock);
+  --shade: 0;
+  --lit: 0;
+  --lx: 50%;
+  --ly: 38%;
+  --sx: 50%;
+  --sy: 62%;
+  background-image:
+    radial-gradient(circle 58% at var(--lx) var(--ly),
+      rgba(255, 255, 255, var(--lit)),
+      transparent 70%),
+    radial-gradient(circle 78% at var(--sx) var(--sy),
+      rgba(0, 0, 0, var(--shade)),
+      transparent 72%);
   box-shadow: inset 0 0 0 1px var(--stock-edge);
   /* Nine cells; the pips name the ones they sit in. Padding rather than a
      margin on the pips so a face reads the same at any size. */
@@ -106,6 +121,16 @@ body.has-dot .die-pip { cursor: none; }
   grid-template-rows: repeat(3, 1fr);
   padding: 15%;
   gap: 5%;
+}
+
+/* The highlight is a mouse lamp. A coarse pointer, a finger, or a request
+   for less motion gets the even stock the variables already default to —
+   and this rule drops the wash entirely so a stray inline --lit cannot
+   paint one. Same test as body.has-dot. */
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .die-face {
+    background-image: none;
+  }
 }
 
 .die-pip {

@@ -161,11 +161,16 @@
     gl.uniform1f(loc.tile, TILE);
 
     var light = [0.5, 0.72];
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
     // Same test the custom cursor uses. A phone has no mouse to follow; the
     // key then sits still rather than chasing a finger across the cloth.
     var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
-    var even = reduce || !(finePointer && finePointer.matches);
+    function lampEven() {
+        return (reduceMotion && reduceMotion.matches)
+            || !(finePointer && finePointer.matches)
+            || !document.body.classList.contains('has-dot');
+    }
+    var even = lampEven();
     gl.uniform1f(loc.even, even ? 1 : 0);
     var dirty = true;
 
@@ -233,6 +238,7 @@
 
     function setLightFromEvent(e) {
         if (even || !cssW || !cssH) return;
+        if (e.pointerType === 'touch') return;
         var r = canvas.getBoundingClientRect();
         if (!r.width || !r.height) return;
         light[0] = (e.clientX - r.left) / r.width;
@@ -244,20 +250,24 @@
     function setEven(on) {
         even = on;
         gl.uniform1f(loc.even, even ? 1 : 0);
-        if (even) felt.removeEventListener('pointermove', setLightFromEvent);
-        else felt.addEventListener('pointermove', setLightFromEvent, { passive: true });
+        if (even) felt.removeEventListener('pointermove', setLightFromEvent, { capture: true });
+        else felt.addEventListener('pointermove', setLightFromEvent, { passive: true, capture: true });
         dirty = true;
         requestDraw();
     }
 
-    if (!even) felt.addEventListener('pointermove', setLightFromEvent, { passive: true });
+    if (!even) felt.addEventListener('pointermove', setLightFromEvent, { passive: true, capture: true });
     // Leave the key where it was when the pointer leaves, rather than snapping
     // back: a light that jumped home every time you reached for the hand would
     // be noisier than a lamp that simply stays put.
+    function onLampMedia() { setEven(lampEven()); }
     if (finePointer) {
-        var onFine = function (e) { setEven(reduce || !e.matches); };
-        if (finePointer.addEventListener) finePointer.addEventListener('change', onFine);
-        else if (finePointer.addListener) finePointer.addListener(onFine);
+        if (finePointer.addEventListener) finePointer.addEventListener('change', onLampMedia);
+        else if (finePointer.addListener) finePointer.addListener(onLampMedia);
+    }
+    if (reduceMotion) {
+        if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', onLampMedia);
+        else if (reduceMotion.addListener) reduceMotion.addListener(onLampMedia);
     }
 
     if (typeof ResizeObserver === 'function') {

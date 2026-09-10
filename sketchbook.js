@@ -21,16 +21,16 @@
     'use strict';
 
     var MANIFEST = 'assets/sketchbook/works.json';
-    var BACK = 'Cards/back.jpg';
+    var SVG_NS = 'http://www.w3.org/2000/svg';
 
     // The hand is five wide in the design and the refill keeps it there; it is
     // named rather than written into three places.
     var HAND = 5;
 
-    // The mockup's heading reads "Upcoming Cards (12/100)": a hundred is the
-    // set the sketchbook is being built towards, not a count of anything that
-    // exists, so it is a constant here and the numerator is the manifest.
-    var PLANNED = 100;
+    // How long the pack takes to come together, riffle and go back out.
+    var GATHER_MS = 560;
+    var RIFFLE_MS = 240;
+    var DEAL_STEP_MS = 26;      // between one card landing in the rack and the next
 
     // A drag under this many pixels was someone clicking a card that happened
     // to wobble, not moving it. Above it the click is swallowed so a card is
@@ -57,9 +57,11 @@
     var deck = [];       // what the fan draws from next
     var hand = [];       // the five card elements currently in the fan, in order
     var topZ = 1;        // last card touched sits above the rest
-    var gridTiles = {};  // id -> the tile in the catalogue, so it can be marked
-    var dealt = {};      // ids that have been played at least once
-    var dealtCount = 0;
+    var slotEls = [];    // the rack: one slot per work, made once and kept
+    var rack = [];       // the works still to come, in the order they sit in it
+    var tileOf = {};     // id -> the card currently in the rack
+    var dealt = {};      // ids that have left the rack this round
+    var resetting = false;
 
     /* ---------------- the card face ---------------- */
 
@@ -110,14 +112,39 @@
     }
 
     // The deck's own back, which is what a card on the table turns over onto.
+    // Drawn rather than loaded: Cards/back.jpg was one fixed yellow whatever the
+    // page was set to, and this is the same frame and mark built out of the
+    // theme's tokens, so the blue back and the yellow-on-grey one are one piece
+    // of markup instead of two exports to keep in step. Same geometry as the
+    // footer's hand - a 25-wide border inset 35.5 in a 1059x1449 frame.
     function buildBackArt() {
-        var img = document.createElement('img');
-        img.src = BACK;
-        img.setAttribute('data-skel', '');
-        img.alt = '';
-        img.decoding = 'async';
-        img.draggable = false;
-        return img;
+        var out = document.createDocumentFragment();
+
+        var svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'card-back-frame');
+        svg.setAttribute('viewBox', '0 0 1059 1449');
+        // Stretched to the card rather than fitted: a percentage inset draws
+        // unequal margins on a card that is taller than it is wide, and this
+        // frame is meant to sit the same distance from all four edges.
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var r = document.createElementNS(SVG_NS, 'rect');
+        r.setAttribute('x', '35.5');
+        r.setAttribute('y', '35.5');
+        r.setAttribute('width', String(1059 - 35.5 * 2));
+        r.setAttribute('height', String(1449 - 35.5 * 2));
+        r.setAttribute('rx', '24');
+        r.setAttribute('fill', 'none');
+        r.setAttribute('stroke', 'currentColor');
+        r.setAttribute('stroke-width', '25');
+        svg.appendChild(r);
+        out.appendChild(svg);
+
+        var mark = document.createElement('span');
+        mark.className = 'card-back-mark';
+        out.appendChild(mark);
+        return out;
     }
 
     // The information side, which is what the card in the modal turns over onto
@@ -185,13 +212,16 @@
         inner.className = 'card-inner';
         inner.appendChild(buildFace(work, opts.still));
 
-        // Grid tiles never turn over, so they are not given a back to turn to.
-        if (opts.interactive) {
+        // A rack tile is dealt in face down at the end of a round, so it needs a
+        // back as much as a card on the table does; only its behaviour differs.
+        if (opts.interactive || opts.back) {
             var back = document.createElement('div');
             back.className = 'card-face card-face--back';
             back.appendChild(opts.detail ? buildDetail(work) : buildBackArt());
             inner.appendChild(back);
+        }
 
+        if (opts.interactive) {
             var flip = document.createElement('button');
             flip.className = 'card-flip';
             flip.type = 'button';
@@ -305,6 +335,9 @@
         if (!work) return null;
         var el = buildCard(work, { interactive: true });
         el.setAttribute('data-cursor', 'play this card');
+        // An arrow ahead of the words, because playing one sends it up onto
+        // the table. site.css draws it; this only names it.
+        el.setAttribute('data-cursor-icon', 'play');
         el.flipBtn.setAttribute('aria-label', 'Play ' + work.title);
         // Held on the element so play() can take it off again: the card keeps
         // living once it reaches the table, where a click means something else.
@@ -494,6 +527,7 @@
     }
 
     function play(el) {
+        if (resetting) return;
         var i = hand.indexOf(el);
         if (i === -1) return;
 
@@ -516,6 +550,7 @@
         el.className = 'card';
         el.style.zIndex = String(++topZ);
         el.setAttribute('data-cursor', 'flip · drag');
+        el.removeAttribute('data-cursor-icon');
         el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
         el.flipBtn.setAttribute('aria-pressed', 'false');
         // It leaves the hand at the hand's size and arrives at the table's, so
@@ -550,7 +585,7 @@
         makePlayable(el);
         addExpand(el);
 
-        markDealt(el.__work);
+        retire(el.__work);
 
         // The hand is five wide at all times, so the gap closes immediately.
         var added = draw(true);
@@ -600,6 +635,11 @@
                 // The flight, if it is still running, would fight the drag.
                 el.classList.remove('is-dealing');
                 el.classList.add('is-dragging');
+                // Four degrees, leaning the way the card is being pulled. Set
+                // once, at the moment the gesture becomes a drag, rather than
+                // tracked live: the tilt is a signal that the card has been
+                // picked up, and one that wobbled as you moved would be noise.
+                el.style.setProperty('--tilt', (dx >= 0 ? 4 : -4) + 'deg');
             }
             // Bounds for this card's own tilt: #felt clips, and the corner of a
             // tilted card reaches further than its upright box does.
@@ -616,6 +656,7 @@
                 el.releasePointerCapture(e.pointerId);
             }
             el.classList.remove('is-dragging');
+            el.style.removeProperty('--tilt');
             swallowClick = drag.moved;
             drag = null;
         }
@@ -711,41 +752,200 @@
 
     /* ---------------- the catalogue ---------------- */
 
+    // The slots are made once and kept for the life of the page. Cards move
+    // between them; the slots themselves never come or go, so the block holds
+    // its footprint and the empties collect at the end rather than the whole
+    // grid reflowing shorter every time a card is played.
     function buildGrid() {
         var frag = document.createDocumentFragment();
+        slotEls = [];
         for (var i = 0; i < works.length; i++) {
-            var tile = buildCard(works[i], { still: true });
-            // In the document from the start and shown only once the work has
-            // been dealt out, so the tile is marked without the grid reflowing.
-            var flag = document.createElement('span');
-            flag.className = 'played-flag';
-            flag.textContent = 'Played';
-            tile.appendChild(flag);
-            gridTiles[works[i].id] = tile;
-            frag.appendChild(tile);
+            var slot = document.createElement('div');
+            slot.className = 'slot';
+            slotEls.push(slot);
+            frag.appendChild(slot);
         }
         gridEl.appendChild(frag);
+        rack = works.slice();
+        fillRack(null);
         updateCount();
     }
 
-    // What is still to come, not what exists: a card you have played is no
-    // longer upcoming. The hundred is the set the sketchbook is being built
-    // towards, so only the numerator moves.
-    function updateCount() {
-        if (!countEl) return;
-        countEl.textContent = '(' + Math.max(0, works.length - dealtCount) + '/' + PLANNED + ')';
+    // Fills the rack from `rack`, one card per slot from the front. With `from`
+    // - a point in client coordinates - every card starts there instead, face
+    // down and the size it was on the table, and flies home turning over.
+    function fillRack(from) {
+        for (var i = 0; i < slotEls.length; i++) {
+            while (slotEls[i].firstChild) slotEls[i].removeChild(slotEls[i].firstChild);
+        }
+        tileOf = {};
+        var list = [];
+        for (var i = 0; i < rack.length; i++) {
+            var card = buildCard(rack[i], { still: true, back: true });
+            slotEls[i].appendChild(card);
+            tileOf[rack[i].id] = card;
+            list.push(card);
+        }
+        if (!from) return;
+
+        // Every rect read before any transform is written. One card's transform
+        // cannot move another, but keeping the reads and the writes apart is
+        // what stops a loop like this thrashing layout.
+        var rects = list.map(function (c) { return c.getBoundingClientRect(); });
+        list.forEach(function (c, i) {
+            var r = rects[i];
+            c.classList.add('is-flipped');
+            c.style.transition = 'none';
+            c.style.transform = 'translate('
+                + (from.x - (r.left + r.width / 2)) + 'px,'
+                + (from.y - (r.top + r.height / 2)) + 'px) scale('
+                + (r.width ? playedW() / r.width : 0.5) + ')';
+        });
+        void gridEl.offsetWidth;
+        list.forEach(function (c, i) {
+            var at = i * DEAL_STEP_MS;
+            setTimeout(function () {
+                c.classList.add('is-moving');
+                c.style.transition = '';
+                c.style.transform = '';
+            }, at);
+            // The turn starts as the card lands, so the rack comes up face by
+            // face rather than all at once at the end.
+            setTimeout(function () { c.classList.remove('is-flipped'); }, at + 380);
+            setTimeout(function () { c.classList.remove('is-moving'); }, at + 900);
+        });
     }
 
-    // Counted once per work, however many times it comes back round: the deck
-    // reshuffles after sixteen plays, and a work dealt twice has not become two
-    // fewer cards to come.
-    function markDealt(work) {
+    // What is still to come, out of what the sketchbook started with.
+    function updateCount() {
+        if (countEl) countEl.textContent = '(' + rack.length + '/' + works.length + ')';
+    }
+
+    // A work leaves the rack the first time it is played. Once per work: the
+    // deck reshuffles after sixteen plays, and a work dealt twice has not
+    // become two fewer cards to come.
+    function retire(work) {
         if (!work || dealt[work.id]) return;
         dealt[work.id] = true;
-        dealtCount++;
-        var tile = gridTiles[work.id];
-        if (tile) tile.classList.add('is-played');
+
+        var idx = -1;
+        for (var i = 0; i < rack.length; i++) if (rack[i].id === work.id) { idx = i; break; }
+        if (idx === -1) return;
+
+        // First: where every card that is staying sits right now.
+        var stay = [];
+        for (var i = idx + 1; i < rack.length; i++) {
+            var c = tileOf[rack[i].id];
+            if (c) stay.push({ el: c, r: c.getBoundingClientRect() });
+        }
+
+        var leaving = tileOf[work.id];
+        rack.splice(idx, 1);
+        delete tileOf[work.id];
+
+        // The one that has gone shrinks where it stood. It is lifted out of its
+        // slot and pinned over the grid first, so the slot is already free for
+        // the card advancing into it while this one is still on screen.
+        if (leaving) {
+            var lr = leaving.getBoundingClientRect();
+            var gr = gridEl.getBoundingClientRect();
+            gridEl.appendChild(leaving);
+            leaving.style.left = (lr.left - gr.left) + 'px';
+            leaving.style.top = (lr.top - gr.top) + 'px';
+            leaving.style.width = lr.width + 'px';
+            leaving.style.height = lr.height + 'px';
+            void leaving.offsetWidth;
+            leaving.classList.add('is-leaving');
+            setTimeout(function () {
+                if (leaving.parentNode) leaving.parentNode.removeChild(leaving);
+            }, 360);
+        }
+
+        // Last: everything behind it moves up a slot.
+        for (var i = idx; i < rack.length; i++) slotEls[i].appendChild(tileOf[rack[i].id]);
+
+        // Invert, then play.
+        for (var i = 0; i < stay.length; i++) {
+            var now = stay[i].el.getBoundingClientRect();
+            var dx = stay[i].r.left - now.left, dy = stay[i].r.top - now.top;
+            if (!dx && !dy) continue;
+            stay[i].el.classList.remove('is-moving');
+            stay[i].el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        }
+        void gridEl.offsetWidth;
+        for (var i = 0; i < stay.length; i++) {
+            stay[i].el.classList.add('is-moving');
+            stay[i].el.style.transform = '';
+        }
+
         updateCount();
+        if (!rack.length) setTimeout(runReset, 620);
+    }
+
+    /* ---------------- the end of a round ---------------- */
+
+    // Where the pack comes together: the middle of the part of the table you
+    // can see, above the hand, in surface coordinates.
+    function stackSpot() {
+        var f = felt.getBoundingClientRect();
+        var sr = surface.getBoundingClientRect();
+        var top = f.top - sr.top;
+        var fanTop = fanEl.getBoundingClientRect().top - sr.top;
+        return {
+            x: (f.left - sr.left) + (f.width - playedW()) / 2,
+            y: top + Math.max(10, (fanTop - top - playedH()) / 2),
+        };
+    }
+
+    // Every card in play comes together, three of them riffle, and the whole
+    // pack goes back out into the rack face down, turning over one by one.
+    function runReset() {
+        if (resetting) return;
+        resetting = true;
+
+        var cards = Array.prototype.slice.call(playedEl.children);
+        var spot = stackSpot();
+        var sr = surface.getBoundingClientRect();
+        // Held in client coordinates for the deal, which happens after the
+        // table has been cleared and there is nothing left to measure from.
+        var from = { x: sr.left + spot.x + playedW() / 2, y: sr.top + spot.y + playedH() / 2 };
+
+        cards.forEach(function (c, i) {
+            c.classList.remove('is-dealing');
+            c.classList.add('is-gathering');
+            c.style.zIndex = String(1000 + i);
+            // A pack squares up, but not perfectly - a pixel or two of slop is
+            // what makes it read as paper rather than as one thick card.
+            place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0);
+        });
+
+        var round = 0;
+        var three = cards.slice(-3);
+
+        function riffle() {
+            if (!three.length) { redeal(); return; }
+            three.forEach(function (c, i) {
+                c.classList.remove('is-gathering');
+                c.classList.add('is-riffling');
+                place(c, spot.x + (i - 1) * playedW() * 0.66, spot.y - 8 + i * 3, (i - 1) * 8);
+            });
+            setTimeout(function () {
+                three.forEach(function (c, i) { place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0); });
+                round++;
+                setTimeout(round < 3 ? riffle : redeal, RIFFLE_MS);
+            }, RIFFLE_MS);
+        }
+
+        function redeal() {
+            while (playedEl.firstChild) playedEl.removeChild(playedEl.firstChild);
+            dealt = {};
+            rack = works.slice();
+            fillRack(from);
+            updateCount();
+            resetting = false;
+        }
+
+        setTimeout(riffle, cards.length ? GATHER_MS : 0);
     }
 
     /* ---------------- start ---------------- */

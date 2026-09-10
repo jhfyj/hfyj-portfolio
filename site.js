@@ -141,6 +141,10 @@ window.Site = (function () {
             hot = t;
             if (t) {
                 if (label) label.textContent = t.getAttribute('data-cursor');
+                // An optional glyph ahead of the words, named by the element
+                // rather than drawn by it: the pill stays one element on every
+                // page and site.css decides what each name looks like.
+                dot.setAttribute('data-icon', t.getAttribute('data-cursor-icon') || '');
                 dot.classList.add('is-pill');
             } else {
                 dot.classList.remove('is-pill');

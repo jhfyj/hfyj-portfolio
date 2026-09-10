@@ -29,6 +29,9 @@
   --num: rgb(156, 156, 156);
   --accent: #5E81E2;
   --rule: rgba(0, 0, 0, 0.10);
+  /* An arrow pointing up, for the cursor pill. Inline so it costs no request
+     and cannot 404 the one place it is used. */
+  --cursor-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 10.6V2.1M6 2.1 2.5 5.6M6 2.1l3.5 3.5' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --panel: rgb(240, 240, 244);   /* raised chrome (the theme button, the cursor pill) */
 
   --col: 1012px;   /* content column; each page sets its own */
@@ -229,6 +232,24 @@ a { color: inherit; }
   transition: opacity 0.15s ease;
 }
 #cursor-dot.is-pill #cursor-label { opacity: 1; }
+
+/* A glyph ahead of the words, for pills that name one with data-cursor-icon.
+   Drawn as a mask over currentColor rather than as an <img>, so it inverts with
+   the label it sits beside instead of needing a second file for dark. */
+#cursor-dot.is-pill[data-icon="play"] #cursor-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#cursor-dot.is-pill[data-icon="play"] #cursor-label::before {
+  content: "";
+  flex: none;
+  width: 11px;
+  height: 11px;
+  background-color: currentColor;
+  -webkit-mask: var(--cursor-arrow) center / contain no-repeat;
+  mask: var(--cursor-arrow) center / contain no-repeat;
+}
 /* JS adds this only on a fine pointer, so touch keeps its native behaviour.
    .dot-live waits for the first mousemove so the dot never flashes at 0,0. */
 body.has-dot { cursor: none; }

@@ -14,6 +14,10 @@
   --felt: #FAFAF8;
   --felt-line: rgba(0, 0, 0, 0.055);
   --stock: #ffffff;        /* the card itself */
+  /* The back is its own surface. Light keeps a near-white stock so the brand
+     blue reads as ink on paper; dark uses the deck's grey, which is lighter
+     than the table, so a face-down card still separates from it. */
+  --back-stock: #F7F5F5;
   --stock-edge: rgba(0, 0, 0, 0.12);
   --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), 0 12px 28px rgba(0, 0, 0, 0.10);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.12), 0 22px 48px rgba(0, 0, 0, 0.18);
@@ -45,11 +49,12 @@
   --felt: #171717;
   --felt-line: rgba(255, 255, 255, 0.06);
   --stock: #202020;
+  --back-stock: #373737;
   --stock-edge: rgba(255, 255, 255, 0.14);
   /* Shadow does almost no work on a dark ground, so the card is separated by a
      lighter stock and a visible edge instead; the shadow only stops it looking
      pasted on. */
-  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.4);
   --card-shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.55), 0 22px 48px rgba(0, 0, 0, 0.6);
 }
 
@@ -177,9 +182,14 @@
      is hover's to write, and from --y, which is the slot's: three things move a
      card vertically and none of them should have to know about the others. */
   --enter: 0px;
+  /* An extra few degrees while a card is being dragged, so picking one up is
+     visible even before it has moved far. Composed into the same rotate as the
+     card's own tilt rather than added as a second transform: two transforms on
+     one element cannot both be written without one clobbering the other. */
+  --tilt: 0deg;
   left: 0;
   top: 0;
-  transform: translate3d(var(--x), calc(var(--y) + var(--lift) + var(--enter)), 0) rotate(var(--rot));
+  transform: translate3d(var(--x), calc(var(--y) + var(--lift) + var(--enter)), 0) rotate(calc(var(--rot) + var(--tilt)));
   /* The card is a 3D box so the flip has a back to turn to. */
   perspective: 1000px;
   border: 0;
@@ -240,7 +250,38 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-.card-face--back { transform: rotateY(180deg); }
+.card-face--back {
+  transform: rotateY(180deg);
+  background: var(--back-stock);
+}
+
+/* The back is drawn, not photographed. Cards/back.jpg was one fixed yellow
+   whatever the page was set to; this is the same frame and mark built out of
+   the theme's own tokens, so the blue back and the yellow-on-grey one are one
+   piece of markup rather than two exports that have to be kept in step. The
+   geometry is the deck's: a 25-wide accent border inset 35.5 in a 1059x1449
+   frame, and a mark 437 across in the middle. The SVG scales that frame rather
+   than a percentage inset, because a percentage inset draws unequal margins on
+   a card that is taller than it is wide. */
+.card-back-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+}
+.card-back-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 41.27%;             /* 437 / 1059 */
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background-color: var(--accent);
+  -webkit-mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+}
 
 .card-face img {
   width: 100%;
@@ -349,6 +390,11 @@
               width 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
+/* The end of a round: every card comes together, three of them riffle, and the
+   whole lot is dealt back into the rack. */
+#played .card.is-gathering { transition: transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1); }
+#played .card.is-riffling { transition: transform 0.22s ease; }
+
 /* ---------- the catalogue ---------- */
 
 #upcoming { padding-top: 52px; }
@@ -363,19 +409,48 @@
 #upcoming h2 .count { color: var(--num); font-variant-numeric: tabular-nums; }
 
 #grid {
+  position: relative;        /* a card on its way out is pinned over this */
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
+/* A fixed rack. One slot per work the sketchbook started with, made once and
+   never taken away: cards advance through them as they are played, so the block
+   keeps its footprint and the empties collect at the end instead of the whole
+   grid reflowing shorter every time a card goes down. */
+.slot {
+  position: relative;
+  aspect-ratio: var(--card-ar);
+  border-radius: var(--card-r);
+}
+.slot:empty { box-shadow: inset 0 0 0 1px var(--rule); }
+
 /* A grid tile is the same card face at a different size, so it inherits the
    shape and the stock and only overrides what a tile does differently: it fills
    its column instead of being a fixed width, and it does not move. */
 #grid .card {
-  position: relative;
-  width: 100%;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;        /* the slot holds the shape now */
   transform: none;
   cursor: default;
+}
+
+/* FLIP. The script puts a card back where it was with an inline transform, then
+   clears it with this on, so the advance is animated without anything having to
+   know the grid's geometry. */
+#grid .card.is-moving { transition: transform 0.42s cubic-bezier(0.2, 0.75, 0.3, 1); }
+
+/* A card that has been played shrinks away where it stood, pinned over the grid
+   so its slot is already free for the card advancing into it. */
+#grid .card.is-leaving {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.9, 0.4), opacity 0.3s ease;
+  transform: scale(0.14);
+  opacity: 0;
+  pointer-events: none;
 }
 #grid .card-face { box-shadow: inset 0 0 0 1px var(--stock-edge); }
 #grid .card-face img { transition: transform 0.4s ease; }
@@ -390,31 +465,6 @@
 }
 #grid .card:hover .card-name,
 #grid .card:focus-within .card-name { opacity: 1; }
-
-/* A work that has been dealt out is no longer upcoming, and the heading counts
-   it out. The tile stays so the catalogue is still browsable - it is dimmed and
-   flagged rather than removed, which would jump the whole grid every time a
-   card was played. */
-.played-flag {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 2;
-  display: none;
-  padding: 3px 7px;
-  border-radius: 100px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-#grid .card.is-played .played-flag { display: block; }
-#grid .card.is-played .card-face { opacity: 0.4; }
-#grid .card.is-played .card-face img { filter: grayscale(1); }
-#grid .card.is-played:hover .card-face { opacity: 0.72; }
-#grid .card .card-face { transition: opacity 0.22s ease; }
 
 #grid-empty { color: var(--caption); font-size: 15px; }
 
@@ -591,7 +641,10 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .card-inner,
   #fan .card,
-  #grid .card .card-face,
+  #grid .card.is-moving,
+  #grid .card.is-leaving,
+  #played .card.is-gathering,
+  #played .card.is-riffling,
   #played .card.is-dealing,
   #grid .card-face img,
   .card-expand,

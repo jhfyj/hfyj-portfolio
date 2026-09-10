@@ -125,13 +125,11 @@
      is never a second copy of a work sitting in the document, and the rise
      animation has a new element to play on every time. -->
 <div id="card-modal" hidden>
-    <div class="modal-scrim" data-modal-close></div>
+    <div class="modal-scrim"></div>
+    <!-- No close control: a click anywhere off the card closes it, and so does
+         Escape. Both are handled in sketchbook.js, on the modal itself, rather
+         than by anything in here. -->
     <div class="modal-panel" role="dialog" aria-modal="true" aria-label="">
-        <button class="modal-close" type="button" aria-label="Close" data-modal-close>
-            <svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-        </button>
         <div id="modal-card"></div>
     </div>
 </div>

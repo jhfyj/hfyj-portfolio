@@ -30,7 +30,7 @@
     // How long the pack takes to come together, riffle and go back out.
     var GATHER_MS = 560;
     var RIFFLE_MS = 240;
-    var DEAL_STEP_MS = 26;      // between one card landing in the rack and the next
+    var DEAL_STEP_MS = 42;      // between one card landing in the rack and the next
 
     // A drag under this many pixels was someone clicking a card that happened
     // to wobble, not moving it. Above it the click is swallowed so a card is
@@ -270,32 +270,6 @@
         b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
         b.addEventListener('click', function (e) {
             e.stopPropagation();
-            openModal(el.__work, b);
-        });
-
-        // The same door, opened a second way. It is bound here rather than on
-        // the card so that only a card with an expanded view answers to it:
-        // the ones in the hand and the tiles in the rack have no button and no
-        // details behind them, and a double click on those goes on meaning
-        // what it meant.
-        //
-        // A double click is two ordinary clicks first, and a click on the
-        // table turns the card over — so the card turns, and turns back, on
-        // the way to the modal. Waiting out the double-click window before
-        // flipping would prevent that, at the price of putting a quarter of a
-        // second in front of every single flip, which is much the commoner
-        // gesture; a card that hesitates every time you turn it is a worse
-        // page than one that occasionally turns twice. So the flip stays
-        // instant and the second click reverses it: the transition
-        // interpolates from wherever the first one had got to, which reads as
-        // the card starting to turn and thinking better of it, and it leaves
-        // the card on the face it started on — the state the modal wants,
-        // since the modal builds its own copy from the work and not from this
-        // element.
-        el.addEventListener('dblclick', function (e) {
-            e.stopPropagation();
-            // Or the second click selects the card's title along with it.
-            e.preventDefault();
             openModal(el.__work, b);
         });
 
@@ -767,8 +741,10 @@
         // with it and the scrim measures exactly the window.
         document.body.classList.add('modal-open');
 
-        var close = modalEl.querySelector('.modal-close');
-        if (close) close.focus();
+        // There is no close button to take focus, so it goes to the card
+        // itself - which is the one thing in here you can do anything with,
+        // and announces what turning it over will give you.
+        if (card.flipBtn) card.flipBtn.focus();
     }
 
     function closeModal() {
@@ -783,10 +759,13 @@
     }
 
     if (modalEl) {
-        // The scrim and the close button both carry data-modal-close, so the
-        // two ways out are one listener rather than two that could drift.
+        // Anywhere but the card closes it. Written as "not on the card" rather
+        // than as a listener on the scrim: the panel is taller than the card it
+        // holds, so a click in the space beside or below one would otherwise
+        // land on the panel and do nothing, which reads as the page having
+        // ignored you.
         modalEl.addEventListener('click', function (e) {
-            if (e.target.closest && e.target.closest('[data-modal-close]')) closeModal();
+            if (!modalCardEl.contains(e.target)) closeModal();
         });
 
         document.addEventListener('keydown', function (e) {
@@ -860,6 +839,13 @@
             slotEls[i].appendChild(card);
             tileOf[rack[i].id] = card;
             makeSortable(card, rack[i]);
+            // A tile is a card you have not played yet, and wanting to read
+            // about one before you decide to play it is the obvious thing to
+            // want. Same control, same corner, same modal - it appears on
+            // hover exactly as it does on the table, and its pointerdown is
+            // stopped inside addExpand, so reaching for it never starts the
+            // drag that would reorder the rack.
+            addExpand(card);
             list.push(card);
         }
         labelRack();
@@ -1273,6 +1259,11 @@
         resetting = true;
 
         var cards = Array.prototype.slice.call(playedEl.children);
+        // One card's shadow is depth; twenty-one of them squared up on the
+        // same spot is a dark smudge under the pack, because each card casts
+        // over the one below instead of the table. The pile keeps its hairline
+        // edge, which is what makes it read as paper at all.
+        playedEl.classList.add('is-shuffling');
         var spot = stackSpot();
         var sr = surface.getBoundingClientRect();
         // Held in client coordinates for the deal, which happens after the
@@ -1306,6 +1297,7 @@
         }
 
         function redeal() {
+            playedEl.classList.remove('is-shuffling');
             while (playedEl.firstChild) playedEl.removeChild(playedEl.firstChild);
             deal(from);
             resetting = false;

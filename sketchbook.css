@@ -198,7 +198,6 @@
      enough to push every tile out of its column and the last one off the page. */
   margin: 0;
   background: none;
-  cursor: pointer;
   /* A card mid-drag must not select the page text under it. */
   user-select: none;
   -webkit-user-select: none;
@@ -375,7 +374,6 @@
   width: var(--card-w-played);
   box-shadow: none;
 }
-#played .card.is-dragging { cursor: grabbing; }
 #played .card.is-dragging .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
 
 /* The flight out of the fan. sketchbook.js puts the card at its landing spot
@@ -394,6 +392,12 @@
    whole lot is dealt back into the rack. */
 #played .card.is-gathering { transition: transform 0.5s cubic-bezier(0.3, 0.8, 0.3, 1); }
 #played .card.is-riffling { transition: transform 0.22s ease; }
+
+/* Every card in the pack drops its shadow while the round is being reshuffled.
+   Stacked on one spot, each card's shadow falls on the card below rather than
+   on the table, and twenty-one of them add up to a smudge. The hairline edge
+   stays: it is what keeps the pile reading as paper. */
+#played.is-shuffling .card-face { box-shadow: inset 0 0 0 1px var(--stock-edge); }
 
 /* ---------- the catalogue ---------- */
 
@@ -470,7 +474,6 @@
   height: auto;
   aspect-ratio: auto;        /* the slot holds the shape now */
   transform: none;
-  cursor: default;
 }
 
 /* FLIP. The script puts a card back where it was with an inline transform, then
@@ -492,8 +495,20 @@
    a card must not also be scrolling the page out from under it — and the
    gesture is pointer events rather than the browser's own drag-and-drop
    precisely so that a finger and a mouse are the same code. */
+/* Nor any other cursor. The dot is what is over a card — a pointing hand under
+   it was two cursors saying the same thing, and on a card being dragged it was
+   the wrong one. Scoped to body.has-dot so a coarse pointer, which has no dot,
+   is left with the browser's own. */
+body.has-dot .card,
+body.has-dot #grid .card,
+body.has-dot .card-flip,
+body.has-dot .card-expand { cursor: none; }
+
+/* No grab hand on a card, here or on the table. The hand belongs to the mat,
+   which is the thing you pan; over a card the dot is the cursor, picked up or
+   not, so the two gestures stay told apart by what is under the pointer rather
+   than by two hands that look alike. */
 #grid .slot > .card {
-  cursor: grab;
   touch-action: none;
 }
 #grid .slot > .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -505,7 +520,6 @@
    the card lagging behind the hand holding it. */
 #grid .card.is-lifted {
   z-index: 5;
-  cursor: grabbing;
   transition: none;
 }
 #grid .card.is-lifted .card-face {
@@ -576,25 +590,6 @@ body.modal-open { overflow: hidden; }
   gap: 14px;
   max-height: 100%;
 }
-
-.modal-close {
-  align-self: flex-end;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid var(--rule);
-  border-radius: 100px;
-  background: var(--page);
-  color: var(--ink);
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.modal-close svg { width: 14px; height: 14px; display: block; }
-.modal-close:hover { background: var(--accent); color: var(--accent-ink, #10131C); }
-.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 #modal-card { display: flex; }
 

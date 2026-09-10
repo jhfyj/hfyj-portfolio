@@ -870,7 +870,7 @@ const CARD_URLS = [
     "the-dial.html",                       // 5 — The Dial
     "#",                                    // 6 — BMW Designworks (Coming Soon)
     "#",                                    // 7 — Nenos Inc. (Coming Soon)
-    // 8 — Sketchbook. Local now: sketchbook.html is the built page, and it is
+    // 8 — Playground. Local now: sketchbook.html is the built page, and it is
     // the one this site should be sending people to. It used to point at the
     // live Framer site because there was nothing here to point at.
     "sketchbook.html",
@@ -922,7 +922,7 @@ const CARD_FACE_LAYOUT = {
     title: { x: 54 / 1059, baseline: 960 / 1449, size: 96 / 1449 },
 };
 
-// Only the five project cards. Card 0 (about me) and card 8 (sketchbook) are
+// Only the five project cards. Card 0 (about me) and card 8 (playground) are
 // laid out differently and their pages do not open on a hero at all.
 const HANDOFF_INDICES = new Set([1, 2, 3, 4, 5]);
 
@@ -2153,7 +2153,7 @@ function loadCard7() {
     });
 }
 
-// ── Card 8 — Sketchbook ──────────────────────────────────────────────────────
+// ── Card 8 — Playground ──────────────────────────────────────────────────────
 // Kept next to card 0 (About Me) — they're adjacent in the ring (8 and 0 sit
 // next to each other since the carousel wraps around).
 
@@ -2299,8 +2299,8 @@ window.addEventListener('mousemove', (e) => {
             const alt = gridCard.querySelector('img')?.alt || '';
             if (alt === 'About Me') {
                 setCardCursor('about me');
-            } else if (alt === 'Sketchbook') {
-                setCardCursor('view sketchbook');
+            } else if (alt === 'Playground') {
+                setCardCursor('view playground');
             } else if (gridCard.dataset.comingSoon !== undefined) {
                 setCardCursor(COMING_SOON_LABEL);
             } else {
@@ -2353,7 +2353,7 @@ window.addEventListener('mousemove', (e) => {
             } else {
                 const idx = root.userData.cardIndex;
                 setCardCursor(idx === 0 ? 'about me'
-                    : idx === 8 ? 'view sketchbook'
+                    : idx === 8 ? 'view playground'
                     : COMING_SOON_INDICES.has(idx) ? COMING_SOON_LABEL
                     : 'open project');
             }
@@ -2798,7 +2798,7 @@ function snaptoNearestCard() {
 // attributes use. Card i's slot here is at position (cardCount - i) % cardCount.
 const CARD_NAMES = [
     'About Me',            // card 0
-    'Sketchbook',          // card 8
+    'Playground',          // card 8
     'Nenos Inc.',          // card 7
     'BMW Designworks',     // card 6
     'The Dial',            // card 5
@@ -3239,7 +3239,7 @@ if (_gfTimes.length) {
 }
 
 // Footer nav — HOME switches to card view, PROJECT scrolls grid to top,
-// SKETCHBOOK / ABOUT switch to card view then rotate to that card.
+// PLAYGROUND / ABOUT switch to card view then rotate to that card.
 document.querySelectorAll('#grid-footer .gf-nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
         const action = link.dataset.action;

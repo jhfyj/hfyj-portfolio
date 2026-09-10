@@ -792,10 +792,18 @@
     // between them; the slots themselves never come or go, so the block holds
     // its footprint and the empties collect at the end rather than the whole
     // grid reflowing shorter every time a card is played.
+    //
+    // There is one slot per work still to come, which is the whole sketchbook
+    // less the hand: a round opens by dealing HAND cards off the front of the
+    // rack, and nothing ever puts a card back, so the rack peaks at
+    // works.length - HAND on the first frame of a round and only falls from
+    // there. Building works.length of them left the last five standing empty
+    // for the life of the page, reading as five cards that had been played
+    // before the page loaded.
     function buildGrid() {
         var frag = document.createDocumentFragment();
         slotEls = [];
-        for (var i = 0; i < works.length; i++) {
+        for (var i = 0; i < works.length - HAND; i++) {
             var slot = document.createElement('div');
             slot.className = 'slot';
             slotEls.push(slot);

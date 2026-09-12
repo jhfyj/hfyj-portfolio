@@ -22,6 +22,12 @@
 
     var MANIFEST = 'assets/sketchbook/works.json';
     var SVG_NS = 'http://www.w3.org/2000/svg';
+    // Kick the catalogue off before the rest of this file does any work, so
+    // the request is in flight while the table is being measured.
+    var worksPromise = fetch(MANIFEST).then(function (r) {
+        if (!r.ok) throw new Error('works.json: HTTP ' + r.status);
+        return r.json();
+    });
 
     // The hand is five wide in the design and the refill keeps it there; it is
     // named rather than written into three places.
@@ -57,6 +63,9 @@
     var hand = [];       // the card elements in the fan, in order
     var topZ = 1;        // last card touched sits above the rest
     var chipZ = 40000;   // last chip picked up sits above the other, still over every card
+    // The riffle has to climb over --die-z (40000). The idle pack stays
+    // under the chips; only the gather uses this band.
+    var SHUFFLE_Z = 50000;
     var slotEls = [];    // the rack: one slot per work, made once and kept
     var rack = [];       // the works still to come, in the order they sit in it
     var tileOf = {};     // id -> the card currently in the rack
@@ -244,6 +253,15 @@
         img.height = work.height;
         img.alt = work.title;
         img.decoding = 'async';
+        // The hand is on screen from the first paint. Everything in the rack
+        // is below the fold, so those wait. fetchpriority on the five in the
+        // fan is what stops them queuing behind twenty posters.
+        if (opts.lazy) {
+            img.loading = 'lazy';
+        } else {
+            img.loading = 'eager';
+            img.setAttribute('fetchpriority', 'high');
+        }
         // An image is draggable by default, and pressing on one and moving
         // hands the gesture to the browser's own drag-and-drop: the pointer
         // events stop arriving and the card is left behind after about thirty
@@ -418,7 +436,7 @@
 
         var inner = document.createElement('div');
         inner.className = 'card-inner';
-        inner.appendChild(buildFace(work, opts.still, { embed: opts.embed }));
+        inner.appendChild(buildFace(work, opts.still, { embed: opts.embed, lazy: opts.lazy }));
 
         // A rack tile is dealt in face down at the end of a round, so it needs a
         // back as much as a card on the table does; only its behaviour differs.
@@ -713,13 +731,26 @@
         return !!(modal && !modal.hasAttribute('hidden'));
     }
 
+    // A phone is a phone, and a small window is a small window. What this
+    // deliberately no longer asks is whether the pointer is coarse or whether
+    // anything can hover: a desktop with a touchscreen answers both the way a
+    // tablet does, and so does an embedded webview, and those machines were
+    // being refused a gesture their mouse can perform perfectly well.
+    //
+    // Nothing is lost by dropping them, because a finger cannot reach this code
+    // in the first place: scrolling by touch fires no wheel event at all, and a
+    // pinch arrives with ctrlKey set and is turned away at the listener. The
+    // only touch device that can open the cloth is one driven by a trackpad,
+    // which is a mouse by another name.
+    //
+    // Must stay no narrower than the media query in sketchbook.css that pins
+    // --felt-expand to 0: a viewport the stylesheet has opted out of, but this
+    // has not, opens an invisible cloth and locks the page behind it.
     function expandOnPhone() {
         var ua = navigator.userAgent || '';
         if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
         if (/iPhone|iPod/i.test(ua)) return true;
         if (/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
-        if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
-        if (window.matchMedia && window.matchMedia('(hover: none)').matches) return true;
         if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches) return true;
         return false;
     }
@@ -872,15 +903,13 @@
         document.documentElement.style.setProperty('--felt-expand', '0');
         document.documentElement.classList.remove('felt-covering', 'felt-fullscreen', 'felt-snapping');
     }
+    // The width is the only one of the tests above that can change while the
+    // page is open, and it does: a window dragged narrow mid-gesture would
+    // otherwise leave the cloth held over a viewport the stylesheet has
+    // stopped drawing it on.
     if (window.matchMedia) {
-        var coarse = window.matchMedia('(pointer: coarse)');
-        var noHover = window.matchMedia('(hover: none)');
-        var onPhoneChange = function () { killExpandOnPhone(); };
-        if (coarse.addEventListener) coarse.addEventListener('change', onPhoneChange);
-        else if (coarse.addListener) coarse.addListener(onPhoneChange);
-        if (noHover.addEventListener) noHover.addEventListener('change', onPhoneChange);
-        else if (noHover.addListener) noHover.addListener(onPhoneChange);
         var narrow = window.matchMedia('(max-width: 700px)');
+        var onPhoneChange = function () { killExpandOnPhone(); };
         if (narrow.addEventListener) narrow.addEventListener('change', onPhoneChange);
         else if (narrow.addListener) narrow.addListener(onPhoneChange);
     }
@@ -1157,7 +1186,7 @@
 
     /* The printed name on the cloth. Surface coordinates, after the opening
        pan, so it sits in the middle of the felt and then travels with it —
-       dyed in, not a caption that stays glued to the window. */
+       a white print on the nap, not a caption glued to the window. */
     function placeMatMark() {
         var mark = document.getElementById('table-heading');
         if (!mark) return;
@@ -1172,16 +1201,8 @@
         mark.classList.add('is-placed');
         mark.style.left = Math.round(cx - mark.offsetWidth / 2) + 'px';
         mark.style.top = Math.round(cy - mark.offsetHeight / 2) + 'px';
-        // Each span clips the albedo itself. Its tile origin has to be the
-        // surface's, not the span's, or the nap in the letters is a different
-        // patch of grass from the cloth they sit on.
-        var srNow = surface.getBoundingClientRect();
-        var spans = mark.querySelectorAll('.mat-title, .mat-tag');
-        for (var i = 0; i < spans.length; i++) {
-            var box = spans[i].getBoundingClientRect();
-            spans[i].style.backgroundPosition =
-                Math.round(-(box.left - srNow.left)) + 'px '
-                + Math.round(-(box.top - srNow.top)) + 'px';
+        if (window.Felt && typeof window.Felt.stamp === 'function') {
+            window.Felt.stamp();
         }
     }
 
@@ -1262,28 +1283,93 @@
         };
     }
 
-    // The middle of the opening, where the name is printed. A chip that landed
-    // here would sit on the letters.
-    function inOpeningCentre(x, y, size, band) {
-        var cx = x + size / 2;
-        var cy = y + size / 2;
-        return cx > band.x + band.w * 0.24
-            && cx < band.x + band.w * 0.76
-            && cy > band.y + band.h * 0.22
-            && cy < band.y + band.h * 0.72;
+    // The printed name, in the surface's own pixels, plus a little air so a
+    // chip's crescent cannot sit on a letter. Layout boxes, not screen rects:
+    // the home card scales #felt and a bounding client rect would mix spaces.
+    function titleKeepout() {
+        var mark = document.getElementById('table-heading');
+        var sw = tableW || surface.offsetWidth;
+        var sh = tableH || surface.offsetHeight;
+        var pad = 32;
+        if (mark && mark.classList.contains('is-placed') && mark.offsetWidth > 0) {
+            return {
+                x: (parseFloat(mark.style.left) || 0) - pad,
+                y: (parseFloat(mark.style.top) || 0) - pad,
+                w: mark.offsetWidth + pad * 2,
+                h: mark.offsetHeight + pad * 2
+            };
+        }
+        var w = Math.min(560, sw * 0.62);
+        var h = Math.min(200, sh * 0.28);
+        return { x: sw / 2 - w / 2, y: sh / 2 - h / 2, w: w, h: h };
     }
 
-    // A point on the rim of the opening, jittered, kept off the name and off
-    // whatever is already down. Falls back to the well itself if the draws
-    // cannot find a gap — two chips on a short window still have to land.
-    function rimSpot(band, well, taken, size) {
+    function overlapsKeep(x, y, size, keep) {
+        return x < keep.x + keep.w && x + size > keep.x
+            && y < keep.y + keep.h && y + size > keep.y;
+    }
+
+    function clampToBand(x, y, size, band) {
+        return {
+            x: Math.max(band.x, Math.min(x, band.x + band.w - size)),
+            y: Math.max(band.y, Math.min(y, band.y + band.h - size))
+        };
+    }
+
+    // If a draw (or a saved spot) sits on the name, slide it off along the
+    // axis that clears the letters with the shortest move, then keep it in
+    // the opening. Never returns a point on the keep-out if the band has room.
+    function pushOffKeep(x, y, size, keep, band) {
+        var spot = clampToBand(x, y, size, band);
+        if (!overlapsKeep(spot.x, spot.y, size, keep)) return spot;
+        var cx = spot.x + size / 2;
+        var cy = spot.y + size / 2;
+        var kcx = keep.x + keep.w / 2;
+        var kcy = keep.y + keep.h / 2;
+        var dx = cx - kcx;
+        var dy = cy - kcy;
+        var gap = 10;
+        var alongX = Math.abs(dx) * keep.h >= Math.abs(dy) * keep.w;
+        var tried = alongX
+            ? { x: dx < 0 ? keep.x - size - gap : keep.x + keep.w + gap, y: spot.y }
+            : { x: spot.x, y: dy < 0 ? keep.y - size - gap : keep.y + keep.h + gap };
+        tried = clampToBand(tried.x, tried.y, size, band);
+        if (!overlapsKeep(tried.x, tried.y, size, keep)) return tried;
+        var other = alongX
+            ? { x: spot.x, y: dy < 0 ? keep.y - size - gap : keep.y + keep.h + gap }
+            : { x: dx < 0 ? keep.x - size - gap : keep.x + keep.w + gap, y: spot.y };
+        return clampToBand(other.x, other.y, size, band);
+    }
+
+    // A seat beside the letters, in the opening. side is w / e / nw / ne / se.
+    function wellNearTitle(band, keep, size, side) {
+        var gap = 22;
+        var kcx = keep.x + keep.w / 2;
+        var kcy = keep.y + keep.h / 2;
+        var x = kcx - size / 2;
+        var y = kcy - size / 2;
+        if (side === 'w') { x = keep.x - size - gap; y = kcy - size / 2; }
+        else if (side === 'e') { x = keep.x + keep.w + gap; y = kcy - size / 2; }
+        else if (side === 'nw') { x = keep.x - size * 0.2; y = keep.y - size - gap; }
+        else if (side === 'ne') { x = keep.x + keep.w - size * 0.8; y = keep.y - size - gap; }
+        else if (side === 'se') { x = keep.x + keep.w + gap; y = keep.y + keep.h + gap * 0.35; }
+        else if (side === 'sw') { x = keep.x - size - gap; y = keep.y + keep.h + gap * 0.35; }
+        return pushOffKeep(x, y, size, keep, band);
+    }
+
+    // A point beside the name, jittered, kept off the letters and off
+    // whatever is already down. The fallback still pushes off the keep-out
+    // — two chips on a short window still have to land, just not on the word.
+    function rimSpot(band, keep, taken, size, side) {
+        var seed = wellNearTitle(band, keep, size, side);
         var best = null, bestGap = -1;
-        for (var t = 0; t < 32; t++) {
-            var x = band.x + band.w * well.fx - size / 2 + (Math.random() - 0.5) * 44;
-            var y = band.y + band.h * well.fy - size / 2 + (Math.random() - 0.5) * 36;
-            x = Math.max(band.x, Math.min(x, band.x + band.w - size));
-            y = Math.max(band.y, Math.min(y, band.y + band.h - size));
-            if (inOpeningCentre(x, y, size, band)) continue;
+        for (var t = 0; t < 48; t++) {
+            var x = seed.x + (Math.random() - 0.5) * 52;
+            var y = seed.y + (Math.random() - 0.5) * 40;
+            var clamped = clampToBand(x, y, size, band);
+            x = clamped.x;
+            y = clamped.y;
+            if (overlapsKeep(x, y, size, keep)) continue;
             var gap = Infinity;
             for (var i = 0; i < taken.length; i++) {
                 var d = Math.abs(taken[i].x - x) + Math.abs(taken[i].y - y);
@@ -1293,10 +1379,7 @@
             if (bestGap > size * 3) break;
         }
         if (best) return best;
-        return {
-            x: Math.max(band.x, Math.min(band.x + band.w * well.fx - size / 2, band.x + band.w - size)),
-            y: Math.max(band.y, Math.min(band.y + band.h * well.fy - size / 2, band.y + band.h - size))
-        };
+        return pushOffKeep(seed.x, seed.y, size, keep, band);
     }
 
     // The rectangle a chip may sit in and stay whole, in the surface's own
@@ -1366,14 +1449,12 @@
     function scatterChips() {
         var taken = [];
         var band = visibleOpening(CHIP_W);
-        // Left of the name and right of it, not a pair in one corner. The dice
-        // take the other three sides of the same rim.
-        var wells = [
-            { fx: 0.10, fy: 0.58 },
-            { fx: 0.90, fy: 0.42 }
-        ];
+        var keep = titleKeepout();
+        // Left of the name and right of it. The dice take north and south-east
+        // of the same word, so the five pieces read as a ring, not a pile.
+        var sides = ['w', 'e'];
         for (var i = 0; i < 2; i++) {
-            var spot = rimSpot(band, wells[i], taken, CHIP_W);
+            var spot = rimSpot(band, keep, taken, CHIP_W, sides[i]);
             if (!spot) return;
             var chip = buildChip();
             chip.style.left = Math.round(spot.x) + 'px';
@@ -1415,7 +1496,11 @@
         modalOpener = opener || null;
         modalCardEl.innerHTML = '';
 
-        var card = buildCard(work, { interactive: true, detail: true, embed: !!work.youtube });
+        // Front only, for now: no indices, no fold, no turn-over. The
+        // details side lives on `modal-card-flip`. This card is the work
+        // in a white frame, and it leans a little with the pointer.
+        var card = buildCard(work, { embed: !!work.youtube });
+        card.classList.add('is-expanded');
 
         // In here, and only in here, the card is cut to the shape of the work it
         // is showing: a landscape gif opens as a landscape card, a square one as
@@ -1446,10 +1531,8 @@
             }
         }
 
-        card.flipBtn.setAttribute('aria-label', work.title + ' — turn over to read about it');
-        card.flipBtn.setAttribute('aria-pressed', 'false');
-        card.addEventListener('click', function () { toggleFlip(card); });
         modalCardEl.appendChild(card);
+        wireModalTilt(card);
 
         // The dialog is named after the work it is showing, so it announces
         // something better than "dialog" when it takes focus.
@@ -1459,14 +1542,48 @@
         // with it and the scrim measures exactly the window.
         document.body.classList.add('modal-open');
 
-        // There is no close button to take focus, so it goes to the card
-        // itself - which is the one thing in here you can do anything with,
-        // and announces what turning it over will give you.
-        if (card.flipBtn) card.flipBtn.focus();
+        if (modalPanel) modalPanel.focus();
+    }
+
+    var modalTiltOff = null;
+
+    // A few degrees toward the pointer, on the inner so it does not fight
+    // the rise. Mouse and pen only: a finger has no cursor to follow.
+    function wireModalTilt(card) {
+        if (modalTiltOff) modalTiltOff();
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (reduce && reduce.matches) return;
+
+        function setTilt(x, y) {
+            card.style.setProperty('--tilt-x', x.toFixed(2) + 'deg');
+            card.style.setProperty('--tilt-y', y.toFixed(2) + 'deg');
+        }
+
+        function onMove(e) {
+            if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+            var r = card.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            var px = (e.clientX - r.left) / r.width - 0.5;
+            var py = (e.clientY - r.top) / r.height - 0.5;
+            px = Math.max(-0.65, Math.min(0.65, px));
+            py = Math.max(-0.65, Math.min(0.65, py));
+            setTilt(-py * 8, px * 10);
+        }
+
+        function onLeave() { setTilt(0, 0); }
+
+        modalEl.addEventListener('pointermove', onMove);
+        modalEl.addEventListener('pointerleave', onLeave);
+        modalTiltOff = function () {
+            modalEl.removeEventListener('pointermove', onMove);
+            modalEl.removeEventListener('pointerleave', onLeave);
+            modalTiltOff = null;
+        };
     }
 
     function closeModal() {
         if (!modalEl || modalEl.hasAttribute('hidden')) return;
+        if (modalTiltOff) modalTiltOff();
         modalEl.setAttribute('hidden', '');
         document.body.classList.remove('modal-open');
         modalCardEl.innerHTML = '';
@@ -1543,10 +1660,17 @@
         hand = [];
         rack = (order && order.length === works.length) ? order.slice() : shuffle(works);
         var opening = rack.splice(0, HAND);
+        fanEl.classList.add('is-placing');
         for (var i = 0; i < opening.length; i++) addToHand(opening[i], false);
         layOutFan();
         fillRack(from);
+        // The rack just grew the page. A scrollbar can steal a few pixels
+        // of felt, which would change the spread — lay it once more at the
+        // width the reader actually has, still without easing.
+        layOutFan();
         updateCount();
+        void fanEl.offsetWidth;
+        fanEl.classList.remove('is-placing');
     }
 
     /* ---------------- a rack tile that is being looked at ---------------- */
@@ -1680,7 +1804,7 @@
         tileOf = {};
         var list = [];
         for (var i = 0; i < rack.length; i++) {
-            var card = buildCard(rack[i], { still: true, back: true });
+            var card = buildCard(rack[i], { still: true, back: true, lazy: true });
             slotEls[i].appendChild(card);
             tileOf[rack[i].id] = card;
             makeSortable(card, rack[i]);
@@ -2168,7 +2292,7 @@
         cards.forEach(function (c, i) {
             c.classList.remove('is-dealing');
             c.classList.add('is-gathering');
-            c.style.zIndex = String(1000 + i);
+            c.style.zIndex = String(SHUFFLE_Z + i);
             // A pack squares up, but not perfectly - a pixel or two of slop is
             // what makes it read as paper rather than as one thick card.
             place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0);
@@ -2202,7 +2326,7 @@
 
         function stackPack(pack) {
             pack.forEach(function (c, i) {
-                c.style.zIndex = String(1000 + i);
+                c.style.zIndex = String(SHUFFLE_Z + i);
                 place(c, spot.x + (i % 3) - 1, spot.y + (i % 2), 0);
             });
         }
@@ -2213,7 +2337,7 @@
                 c.classList.remove('is-gathering');
                 c.classList.add('is-riffling');
                 var left = i < mid;
-                c.style.zIndex = String(1000 + i);
+                c.style.zIndex = String(SHUFFLE_Z + i);
                 place(c,
                     spot.x + (left ? -gap : gap) + (i % 2),
                     spot.y + (i % 3) - 1,
@@ -2492,12 +2616,29 @@
         writeStore(SCENE_KEY, collectScene());
     }
 
+    function surfaceBand(size) {
+        var pad = 8;
+        var sw = tableW || surface.offsetWidth;
+        var sh = tableH || surface.offsetHeight;
+        return {
+            x: pad,
+            y: pad,
+            w: Math.max(pad, sw - pad * 2),
+            h: Math.max(pad, sh - pad * 2)
+        };
+    }
+
     function placeSavedChips(list) {
         if (!list || !list.length) return false;
+        var keep = titleKeepout();
+        var band = surfaceBand(CHIP_W);
         for (var i = 0; i < list.length; i++) {
             var chip = buildChip();
-            chip.style.left = Math.round(list[i].x) + 'px';
-            chip.style.top = Math.round(list[i].y) + 'px';
+            var parked = overlapsKeep(list[i].x, list[i].y, CHIP_W, keep)
+                ? pushOffKeep(list[i].x, list[i].y, CHIP_W, keep, band)
+                : { x: list[i].x, y: list[i].y };
+            chip.style.left = Math.round(parked.x) + 'px';
+            chip.style.top = Math.round(parked.y) + 'px';
             chip.style.setProperty('--chip-rot', Math.round(list[i].rot || 0) + 'deg');
             surface.insertBefore(chip, playedEl);
             makeDraggableChip(chip);
@@ -2588,11 +2729,7 @@
         document.fonts.ready.then(function () { placeMatMark(); }).catch(function () {});
     }
 
-    fetch(MANIFEST)
-        .then(function (r) {
-            if (!r.ok) throw new Error('works.json: HTTP ' + r.status);
-            return r.json();
-        })
+    worksPromise
         .then(function (data) {
             works = (data && data.works) || [];
             if (!works.length) throw new Error('works.json held no works');

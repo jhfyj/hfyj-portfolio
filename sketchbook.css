@@ -55,7 +55,6 @@
      window twice: a card sized to the whole window is a card that overflows it
      by exactly this, twice. */
   --modal-pad: 24px;
-  --card-r: 8px;
   /* The corner control's box. Smaller than the live site's 36px because the
      card it sits on is smaller, and because it has to stay in the corner of a
      card that is tilted: the further it is from the corner the further it
@@ -191,9 +190,18 @@ html.felt-snapping #table-hint {
   transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Phones never open the cloth over the window. A coarse pointer is a
-   drag of the table, not a scroll-up. */
-@media (pointer: coarse), (hover: none), (max-width: 700px) {
+/* Phones never open the cloth over the window: there is not enough window to
+   be worth covering, and the gesture is a scroll-up, which a finger dragging
+   the table is not.
+
+   Width only. This used to opt out on a coarse pointer or no hover as well,
+   which reads as "a phone" and is not: a laptop with a touchscreen matches
+   both, so does an embedded webview, and on those machines the cloth would be
+   pinned shut here while sketchbook.js — which no longer asks either question —
+   opened it anyway. That combination is the worst of the three outcomes: the
+   page locks its overflow for a cloth that never appears. The two guards have
+   to agree, and this is the one they can both see. */
+@media (max-width: 700px) {
   :root { --felt-expand: 0 !important; }
   html.felt-covering #felt { z-index: auto; }
   html.felt-covering #topbar {
@@ -262,12 +270,10 @@ html.felt-snapping #table-hint {
 #mat.is-lit { opacity: 1; }
 
 /* The desk's printed name. It lives on #surface so it pans with the cloth.
-   The fill is the mat's own nap, clipped to the glyphs and slightly
-   darkened so the blades stay visible — dyed into the felt, the way a
-   poker desk wears its logo. The clip has to live on the spans that hold the
-   letters: clipping the heading itself clips nothing, because the heading
-   has no text of its own. pointer-events are off: a pan through the name is
-   still a pan. Hidden until sketchbook.js has sat it in the opening. */
+   White ink at half strength, sitting on the grass — not a multiply stain
+   and not an overlay wash (that just lightened the nap and hid the word).
+   pointer-events are off: a pan through the name is still a pan. Hidden
+   until sketchbook.js has sat it in the opening. */
 #table-heading {
   position: absolute;
   left: 0;
@@ -286,18 +292,15 @@ html.felt-snapping #table-hint {
   color: transparent;
 }
 #table-heading.is-placed { visibility: visible; }
+/* Once the name is in the grass shader it takes the lamp with the nap.
+   The HTML heading stays for a11y and as the no-WebGL fallback. */
+html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 #table-heading .mat-title,
 #table-heading .mat-tag {
-  background-image:
-    linear-gradient(#b4b4b4, #b4b4b4),
-    url(assets/sketchbook/felt/albedo.jpg);
-  background-size: 520px 520px;
-  background-repeat: repeat;
-  background-blend-mode: multiply;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  /* Fallback print if WebGL never arrives: white at half strength. */
+  background-image: none;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.5);
 }
 #table-heading .mat-title {
   display: block;
@@ -382,6 +385,10 @@ html.felt-snapping #table-hint {
 }
 
 #played { position: absolute; inset: 0; }
+/* The riffle has to pass over the chips and dice (--die-z is 40000).
+   #played is not a stacking context the rest of the time, so idle cards
+   still slide under a chip; only the gather climbs. */
+#played.is-shuffling { z-index: 50000; }
 
 /* The fan sits along the bottom edge, half off it: a hand you are holding up
    to the table rather than five cards lying on it. */
@@ -392,7 +399,10 @@ html.felt-snapping #table-hint {
   /* Above the table, always: the five cards you are holding are never buried
      by one you have put down. */
   z-index: 2;
-  transform: translateX(-50%);
+  /* Centred with a margin, not translateX(-50%). The felt-arrive animation
+     writes transform, and that used to wipe the centering for 480ms and
+     snap the hand back when the class came off. */
+  margin-left: calc(var(--card-w) / -2);
   /* Its own height is the card's; the cards inside are absolutely placed
      against its centre, which is what makes the arc easy to state. */
   width: var(--card-w);
@@ -505,6 +515,9 @@ html.no-mat-lamp .hint-light { display: none; }
      smudge along the edge rather than as a border. Two pixels is the least a
      stock edge can be and still be one. */
   --frame: max(2px, 1.98cqw);
+  /* 8px on the 172px hand. cqw, not a length, so a card on the table
+     and one in the modal keep the same corner as the one you are holding. */
+  --card-r: 4.65cqw;
   /* Concentric with the card's own corner. A picture that kept the card's full
      radius inside a border would look rounder than the stock around it, and one
      given no radius at all would show four square corners inside a rounded
@@ -898,6 +911,10 @@ html.no-mat-lamp .hint-light { display: none; }
    properties: a hand closing up slides its cards and turns them at the same
    time, and those are `translate` and `transform` now. */
 #fan .card { transition: translate 0.22s ease, transform 0.22s ease, opacity 0.22s ease; }
+/* The opening deal writes every slot at once. Without this the cards start
+   stacked on --x: 0 and ease out, which reads as the hand landing off-centre
+   and snapping into place. */
+#fan.is-placing .card { transition: none; }
 /* A card played leaves the hand and the rest close up; the new one comes in at
    the end, rising into the gap rather than appearing in it. */
 #fan .card.is-entering { --enter: 54px; opacity: 0; }
@@ -986,7 +1003,10 @@ html.no-mat-lamp .hint-light { display: none; }
 .slot {
   position: relative;
   aspect-ratio: var(--card-ar);
-  border-radius: var(--card-r);
+  /* Same 4.65% of width as .card. Percentages on border-radius are
+     per-axis, so the y value is scaled by the 5:7 so the corner stays
+     a circle — a slot cannot query its own width. */
+  border-radius: 4.65% / calc(4.65% * 5 / 7);
 }
 /* An empty slot is a place a card is missing from, so it is drawn as one: a
    faint fill as well as the hairline, or on a white page it reads as nothing
@@ -1204,9 +1224,24 @@ body.modal-open { overflow: hidden; }
      printed on the back has to know how short a card it is on. */
   --modal-card-h: calc(var(--modal-card-w) / (var(--card-ar)));
   width: var(--modal-card-w);
-  cursor: pointer;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  perspective: 1100px;
+  cursor: default;
   animation: card-rise 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) both;
 }
+/* Lean lives on the inner so the rise (on the wrapper) can finish first.
+   A few degrees only — enough to catch the light, not enough to read as a
+   turn. */
+#modal-card > .card:not(.is-flipped) .card-inner {
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transition: transform 140ms ease-out;
+}
+/* Expanded: the stock frame only. The fold and the indices stay on the
+   table cards; in here they just ate the picture. */
+#modal-card .card-pip { display: none; }
+#modal-card .card-well { clip-path: none; }
+#modal-card .card-name { padding: 22px 10px 9px; }
 #modal-card > .card .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
 
 @keyframes card-rise {
@@ -1348,6 +1383,7 @@ body.modal-open { overflow: hidden; }
      usable arriving all at once. */
   #modal-card > .card,
   .modal-scrim { animation-duration: 0.001s; }
+  #modal-card > .card .card-inner { transition-duration: 0.001s; }
   #mat { transition-duration: 0.001s; }
   #felt,
   html.felt-snapping #felt { transition-duration: 0.001s; }

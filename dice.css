@@ -44,8 +44,8 @@
   /* Above every card on the table, including one being dragged. #played
      takes no z-index of its own and no transform, so it is not a stacking
      context: its cards stack against this one directly. sketchbook.js
-     counts those cards up from two, and the shuffle briefly parks them in
-     the 1000s, so a small number would eventually be climbed over. --die-z
+     counts those cards up from two. The riffle climbs to 50000 so the
+     pack passes over this band; idle cards stay under it. --die-z
      lives on #surface, the stacking context they all share, and chips use
      the same band. The shadow is a child of this element, so it travels
      with the die and cannot slip under a card the die itself is sitting

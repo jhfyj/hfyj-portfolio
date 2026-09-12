@@ -4,8 +4,7 @@
    and loaded after it because where a die can go depends on what sketchbook.js
    has already put down.
 
-   Two or three of them, around the edge of the opening you can see, so the
-   printed name in the middle of the cloth is left alone. Press one and it hops,
+   Two or three of them, around the printed name — never on it. Press one and it hops,
    tumbles and settles on a different number; drag it
    and it slides, the same slop a card uses so a wobble is not a throw. The
    chips slide; the dice roll, or they move.
@@ -128,7 +127,16 @@
     var CAST_OY = 17;
     var CAST_LAMP = 6;
 
-    function castFrame(hopY, hopZ, rz, tumbleX, tumbleY, opacity) {
+    // The turn is about one axis, and it has to be this one. Six dark faces
+    // read as a cube only while none of them faces the viewer squarely: look
+    // straight down any axis of a cube and all six project onto the same
+    // square, which on screen is a single flat plane — a sticker on the grass
+    // rather than a shadow. Turning on this axis cannot do that, because it is
+    // the axis the laid-down cube already points nearest the viewer along: it
+    // stays where CAST_LIE and CAST_YAW put it, and the other two sweep round
+    // in the plane across from it. The die's own tumble is free to use both
+    // axes; its faces are lit and their edges say which way it is going.
+    function castFrame(hopY, hopZ, rz, turn, opacity) {
         var lift = Math.max(0, -hopY) + hopZ * 0.18;
         var spread = 1 + lift / 40;
         var ox = lift * 0.22;
@@ -139,14 +147,13 @@
                 + ' rotateY(' + CAST_YAW + 'deg)'
                 + ' scale(' + spread + ')'
                 + ' rotateZ(' + rz + 'deg)'
-                + ' rotateX(' + tumbleX + 'deg)'
-                + ' rotateY(' + tumbleY + 'deg)',
+                + ' rotateY(' + turn + 'deg)',
             opacity: opacity == null ? Math.max(0.3, 1 - lift / 52) : opacity
         };
     }
 
-    function applyCast(el, hopY, hopZ, rz, rx, ry, opacity) {
-        var c = castFrame(hopY, hopZ, rz, rx, ry, opacity);
+    function applyCast(el, hopY, hopZ, rz, turn, opacity) {
+        var c = castFrame(hopY, hopZ, rz, turn, opacity);
         el.__castCube.style.transform = c.transform;
         el.__castCube.style.opacity = String(c.opacity);
     }
@@ -267,7 +274,7 @@
         a.z = rz;
         el.__angles = a;
         el.__cube.style.transform = frame(0, 0, a.z, a.x, a.y);
-        applyCast(el, 0, 0, a.z, 0, 0, 1);
+        applyCast(el, 0, 0, a.z, 0, 1);
         setValue(el, v);
     }
 
@@ -317,11 +324,11 @@
         var spinZ = wrap(to.z - from.z);
 
         // The shadow cube lands on the same cube-on-the-table pose every time,
-        // so its extra turns are whole revolutions — the die's face-change is
-        // not its problem. Same direction as the die, so the two stay a pair
-        // on the way round rather than winding against each other.
-        var castSpinX = 360 * (spinX < 0 ? -1 : 1);
-        var castSpinY = 360 * (spinY < 0 ? -1 : 1);
+        // so its turn is a whole revolution — the die's face-change is not its
+        // problem. One revolution, on the one axis castFrame can turn (see
+        // there for why), in whichever direction the die is going, so the two
+        // stay a pair on the way round rather than winding against each other.
+        var castSpin = 360 * (spinY < 0 ? -1 : 1);
 
         var keys = [];
         var castKeys = [];
@@ -334,7 +341,7 @@
                 offset: k.at,
                 transform: frame(k.y, k.z, rz, rx, ry)
             };
-            var ck = castFrame(k.y, k.z, rz, castSpinX * k.turned, castSpinY * k.turned);
+            var ck = castFrame(k.y, k.z, rz, castSpin * k.turned);
             ck.offset = k.at;
             if (k.ease) {
                 kf.easing = k.ease;
@@ -359,10 +366,10 @@
         announce(next);
 
         var anim = el.__cube.animate(keys, { duration: ROLL_MS, easing: 'linear' });
-        // The shadow cube turns with the die — a whole extra revolution, the
-        // same way round — so a tumble on the table is a tumbling silhouette
-        // rather than a smudge that merely grows. It does not hop: lift only
-        // pushes it further from the die, spreads it and lets more light in.
+        // The shadow cube turns with the die — a whole revolution, the same way
+        // round — so a tumble on the table is a turning silhouette rather than
+        // a smudge that merely grows. It does not hop: lift only pushes it
+        // further from the die, spreads it and lets more light in.
         el.__castCube.animate(castKeys, { duration: ROLL_MS, easing: 'linear' });
 
         anim.onfinish = function () {
@@ -678,41 +685,94 @@
         };
     }
 
-    // The middle of the opening, where the name is printed. Same keep-out
-    // the chips use, so a die does not sit on the letters either.
-    function inOpeningCentre(x, y, band) {
-        var cx = x + DIE_HALF;
-        var cy = y + DIE_HALF;
-        return cx > band.x + band.w * 0.24
-            && cx < band.x + band.w * 0.76
-            && cy > band.y + band.h * 0.22
-            && cy < band.y + band.h * 0.72;
+    function titleKeepout() {
+        var mark = document.getElementById('table-heading');
+        var sw = surface.offsetWidth;
+        var sh = surface.offsetHeight;
+        var pad = 32;
+        if (mark && mark.classList.contains('is-placed') && mark.offsetWidth > 0) {
+            return {
+                x: (parseFloat(mark.style.left) || 0) - pad,
+                y: (parseFloat(mark.style.top) || 0) - pad,
+                w: mark.offsetWidth + pad * 2,
+                h: mark.offsetHeight + pad * 2
+            };
+        }
+        var w = Math.min(560, sw * 0.62);
+        var h = Math.min(200, sh * 0.28);
+        return { x: sw / 2 - w / 2, y: sh / 2 - h / 2, w: w, h: h };
     }
 
-    // Three wells on the rim of the opening — corners, not a row through the
-    // name — so two or three dice read as a scatter around the desk rather
-    // than as a pile in the middle. Each well jitters, and still keeps clear
-    // of the chips.
-    function placeInWell(band, well, taken) {
+    function overlapsKeep(x, y, keep) {
+        return x < keep.x + keep.w && x + DIE_W > keep.x
+            && y < keep.y + keep.h && y + DIE_W > keep.y;
+    }
+
+    function clampToBand(x, y, band) {
+        return {
+            x: Math.max(band.x, Math.min(x, band.x + band.w - DIE_W)),
+            y: Math.max(band.y, Math.min(y, band.y + band.h - DIE_W))
+        };
+    }
+
+    function pushOffKeep(x, y, keep, band) {
+        var spot = clampToBand(x, y, band);
+        if (!overlapsKeep(spot.x, spot.y, keep)) return spot;
+        var cx = spot.x + DIE_HALF;
+        var cy = spot.y + DIE_HALF;
+        var kcx = keep.x + keep.w / 2;
+        var kcy = keep.y + keep.h / 2;
+        var dx = cx - kcx;
+        var dy = cy - kcy;
+        var gap = 10;
+        var alongX = Math.abs(dx) * keep.h >= Math.abs(dy) * keep.w;
+        var tried = alongX
+            ? { x: dx < 0 ? keep.x - DIE_W - gap : keep.x + keep.w + gap, y: spot.y }
+            : { x: spot.x, y: dy < 0 ? keep.y - DIE_W - gap : keep.y + keep.h + gap };
+        tried = clampToBand(tried.x, tried.y, band);
+        if (!overlapsKeep(tried.x, tried.y, keep)) return tried;
+        var other = alongX
+            ? { x: spot.x, y: dy < 0 ? keep.y - DIE_W - gap : keep.y + keep.h + gap }
+            : { x: dx < 0 ? keep.x - DIE_W - gap : keep.x + keep.w + gap, y: spot.y };
+        return clampToBand(other.x, other.y, band);
+    }
+
+    function wellNearTitle(band, keep, side) {
+        var gap = 22;
+        var kcx = keep.x + keep.w / 2;
+        var kcy = keep.y + keep.h / 2;
+        var x = kcx - DIE_HALF;
+        var y = kcy - DIE_HALF;
+        if (side === 'nw') { x = keep.x - DIE_W * 0.2; y = keep.y - DIE_W - gap; }
+        else if (side === 'ne') { x = keep.x + keep.w - DIE_W * 0.8; y = keep.y - DIE_W - gap; }
+        else if (side === 'se') { x = keep.x + keep.w + gap; y = keep.y + keep.h + gap * 0.35; }
+        else if (side === 'sw') { x = keep.x - DIE_W - gap; y = keep.y + keep.h + gap * 0.35; }
+        return pushOffKeep(x, y, keep, band);
+    }
+
+    // Three seats around the name — north-west, north-east, south-east —
+    // so the dice and the chips (west / east) read as a ring, not a pile
+    // through the letters. Each well jitters, and still keeps clear of
+    // the chips. The fallback still leaves the word alone.
+    function placeInWell(band, keep, side, taken) {
+        var seed = wellNearTitle(band, keep, side);
         var best = null, bestGap = -Infinity;
-        for (var t = 0; t < 40; t++) {
-            var x = band.x + band.w * well.fx - DIE_HALF + rand(-26, 26);
-            var y = band.y + band.h * well.fy - DIE_HALF + rand(-22, 22);
-            x = Math.max(band.x, Math.min(x, band.x + band.w - DIE_W));
-            y = Math.max(band.y, Math.min(y, band.y + band.h - DIE_W));
-            if (inOpeningCentre(x, y, band)) continue;
+        for (var t = 0; t < 48; t++) {
+            var x = seed.x + rand(-26, 26);
+            var y = seed.y + rand(-22, 22);
+            var clamped = clampToBand(x, y, band);
+            x = clamped.x;
+            y = clamped.y;
+            if (overlapsKeep(x, y, keep)) continue;
             var gap = clearance(x, y, taken);
             if (gap > bestGap) { bestGap = gap; best = { x: x, y: y }; }
             if (bestGap >= 0) break;
         }
         if (!best) {
-            best = {
-                x: Math.max(band.x, Math.min(band.x + band.w * well.fx - DIE_HALF, band.x + band.w - DIE_W)),
-                y: Math.max(band.y, Math.min(band.y + band.h * well.fy - DIE_HALF, band.y + band.h - DIE_W))
-            };
+            best = pushOffKeep(seed.x, seed.y, keep, band);
             bestGap = clearance(best.x, best.y, taken);
         }
-        best.clear = bestGap >= 0;
+        best.clear = bestGap >= 0 && !overlapsKeep(best.x, best.y, keep);
         return best;
     }
 
@@ -728,9 +788,19 @@
 
     function placeSavedDice(list) {
         if (!list || !list.length) return false;
+        var keep = titleKeepout();
+        var band = {
+            x: 8,
+            y: 8,
+            w: Math.max(8, surface.offsetWidth - 16),
+            h: Math.max(8, surface.offsetHeight - 16)
+        };
         for (var i = 0; i < list.length; i++) {
             var s = list[i];
-            layDie(s.x, s.y, s.face || 1, s.rz || 0);
+            var parked = overlapsKeep(s.x, s.y, keep)
+                ? pushOffKeep(s.x, s.y, keep, band)
+                : { x: s.x, y: s.y };
+            layDie(parked.x, parked.y, s.face || 1, s.rz || 0);
         }
         return true;
     }
@@ -751,13 +821,10 @@
 
         var taken = chipSpots();
         var band = visibleBand();
-        var wells = [
-            { fx: 0.16, fy: 0.12 },
-            { fx: 0.84, fy: 0.14 },
-            { fx: 0.78, fy: 0.82 }
-        ];
+        var keep = titleKeepout();
+        var sides = ['nw', 'ne', 'se'];
         for (var i = 0; i < DICE; i++) {
-            var s = placeInWell(band, wells[i], taken);
+            var s = placeInWell(band, keep, sides[i], taken);
             // Two is the fewest that reads as dice rather than as one stray
             // object, so the first two go down even on a crowded window. The
             // third only goes down if it can have room of its own.

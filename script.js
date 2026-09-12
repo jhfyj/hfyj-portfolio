@@ -1236,6 +1236,17 @@ const ABOUTME_BOTTOM_CUT = 'M92.1527 105.785C39 105.785 19.571 132.5 19.571 170L
 // Rotated 180° about its own box and dropped so its local origin lands at
 // (1058, 1434) — i.e. local (x, y) draws at (1058 - x, 1434 - y).
 const ABOUTME_CUT_MATRIX = (s) => new DOMMatrix([-s, 0, 0, -s, 1058 * s, 1434 * s]);
+// Local x=0 stays on the card's right, so the rounded corner never uncovers.
+// Local x=837 is the shelf's far left — scale that axis down and the notch
+// walks toward the pills without the hard clip a pointwise shift produced.
+const ABOUTME_CUT_FAR_X = 837;
+const ABOUTME_CUT_ORIGIN_X = 1058;
+function playgroundCutMatrix(s, rowXDesign) {
+    const hug = ABOUTME_PILLS[0].x - (ABOUTME_CUT_ORIGIN_X - ABOUTME_CUT_FAR_X);
+    const farX = ABOUTME_CUT_ORIGIN_X - (rowXDesign - hug);
+    const k = Math.max(0.55, Math.min(1, farX / ABOUTME_CUT_FAR_X));
+    return new DOMMatrix([-s * k, 0, 0, -s, ABOUTME_CUT_ORIGIN_X * s, 1434 * s]);
+}
 // Tag pills, in design px, straight off the Figma row (node 1122:55): a 724-wide
 // row that ends on the same 21px inset the photo does, with 12px gaps.
 const ABOUTME_PILLS = [
@@ -2437,8 +2448,31 @@ function loadCard8() {
 
             const maskPath = new Path2D();
             maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
+
+            // Measure the two pills first so the shelf can sit on them — the
+            // same 94px hug About Me uses from NYU to the notch — instead of
+            // leaving a two-pill gap on a three-pill shelf.
+            const pillY = ABOUTME_PILL_Y * s, pillH = ABOUTME_PILL_H * s;
+            const pillK = (40 * s) / ABOUTME_PILL_FONT_PX;
+            const pillGap = 12 * s;
+            ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
+            const pillWidths = PLAYGROUND_PILLS.map(
+                (label) => ctx.measureText(label).width * pillK + 80 * s,
+            );
+            const rowW = pillWidths.reduce((a, b) => a + b, 0)
+                + pillGap * (PLAYGROUND_PILLS.length - 1);
+            const rowX = canvas.width - 21 * s - rowW;
+
+            const cutPath = new Path2D();
+            cutPath.addPath(
+                new Path2D(ABOUTME_BOTTOM_CUT),
+                playgroundCutMatrix(s, rowX / s),
+            );
+            const grassPath = new Path2D();
+            grassPath.addPath(maskPath);
+            grassPath.addPath(cutPath);
             ctx.save();
-            ctx.clip(maskPath);
+            ctx.clip(grassPath, 'evenodd');
             ctx.fillStyle = ctx.createPattern(tile, 'repeat');
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -2463,8 +2497,12 @@ function loadCard8() {
             const midY = 640 * s;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'alphabetic';
-            ctx.globalCompositeOperation = 'multiply';
-            ctx.fillStyle = '#5a5a5a';
+            // Same print as the live table: white at half strength, sitting
+            // on the grass. Overlay of white on this nap just lightened the
+            // green and the word disappeared.
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#ffffff';
             ctx.letterSpacing = '-0.02em';
             ctx.font = `400 ${titlePx}px "DM Sans", sans-serif`;
             ctx.fillText('Playground', midX, midY - block / 2 + titlePx);
@@ -2472,37 +2510,13 @@ function loadCard8() {
             ctx.font = `400 ${tagPx}px "Mynerve", cursive`;
             ctx.fillText('where you can actually play', midX, midY + block / 2);
             ctx.letterSpacing = '0';
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1;
             ctx.restore();
 
             ctx.strokeStyle = ink;
             ctx.lineWidth = s;
             ctx.stroke(maskPath);
 
-            // Same hug as tmplDrawPill: width is the label plus 40px of pad
-            // each side, then the row is right-aligned to the photo inset.
-            const pillY = ABOUTME_PILL_Y * s, pillH = ABOUTME_PILL_H * s;
-            const pillK = (40 * s) / ABOUTME_PILL_FONT_PX;
-            const pillGap = 12 * s;
-            ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
-            const pillWidths = PLAYGROUND_PILLS.map(
-                (label) => ctx.measureText(label).width * pillK + 80 * s,
-            );
-            const rowW = pillWidths.reduce((a, b) => a + b, 0)
-                + pillGap * (PLAYGROUND_PILLS.length - 1);
-            const rowX = canvas.width - 21 * s - rowW;
-
-            // Same Vector 15 as About Me — right-corner clipping stays
-            // intact. Only the long-arm x values move, so the notch
-            // rides with the two pills instead of a hard clip.
-            const farX = Math.max(480, 1058 - (rowX / s - 56));
-            const shift = 837 - farX;
-            const cutD = ABOUTME_BOTTOM_CUT.replace(
-                /837|802\.751|784\.763|768\.188|754\.411|728\.41|700\.134|556\.671/g,
-                (m) => String(parseFloat(m) - shift),
-            );
-            const cutPath = new Path2D();
-            cutPath.addPath(new Path2D(cutD), ABOUTME_CUT_MATRIX(s));
             ctx.fillStyle = cardBg;
             ctx.fill(cutPath);
             ctx.restore();

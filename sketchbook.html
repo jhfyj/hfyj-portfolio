@@ -44,6 +44,11 @@
     <script src="skeleton.js"></script>
     <link rel="stylesheet" href="sketchbook.css">
     <link rel="stylesheet" href="dice.css">
+    <!-- The catalogue and the grass both sit on the critical path: the hand
+         cannot be dealt without works.json, and the mat cannot paint without
+         the albedo. Starting them here means they overlap the scripts below. -->
+    <link rel="preload" href="assets/sketchbook/works.json" as="fetch" crossorigin>
+    <link rel="preload" href="assets/sketchbook/felt/albedo.jpg" as="image">
 </head>
 <body>
 
@@ -150,7 +155,7 @@
     <!-- No close control: a click anywhere off the card closes it, and so does
          Escape. Both are handled in sketchbook.js, on the modal itself, rather
          than by anything in here. -->
-    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="" tabindex="-1">
         <div id="modal-card"></div>
     </div>
 </div>

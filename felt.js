@@ -75,6 +75,9 @@
         'uniform vec2 uLight;',
         'uniform float uTile;',
         'uniform float uEven;',
+        'uniform sampler2D uMark;',
+        'uniform vec2 uMarkOrig;',
+        'uniform vec2 uMarkSize;',
         'varying vec2 vUv;',
         'void main() {',
         '  vec2 uv = (vUv * uRes) / uTile;',
@@ -85,8 +88,13 @@
         '  uv += view * (h - 0.5) * 0.06;',
         '  vec3 albedo = pow(texture2D(uAlbedo, uv).rgb, vec3(2.2));',
         '  albedo = mix(albedo, vec3(0.07, 0.28, 0.12), 0.16);',
+        '  vec2 mu = (vUv - uMarkOrig) / max(uMarkSize, vec2(1.0e-5));',
+        '  float inside = step(0.0, mu.x) * step(mu.x, 1.0) * step(0.0, mu.y) * step(mu.y, 1.0);',
+        '  float ink = texture2D(uMark, clamp(mu, 0.0, 1.0)).a * inside;',
+        '  albedo = mix(albedo, albedo * 0.30 + vec3(0.78, 0.80, 0.70), ink);',
         '  vec3 n = normalize(texture2D(uNormal, uv).rgb * 2.0 - 1.0);',
         '  float rough = texture2D(uRough, uv).r;',
+        '  rough = mix(rough, max(rough, 0.72), ink);',
         '  float ao = texture2D(uAO, uv).r;',
         '  vec3 V = vec3(0.0, 0.0, 1.0);',
         '  vec3 L = mix(normalize(vec3(tracked, 0.70)),',
@@ -150,6 +158,9 @@
         light: gl.getUniformLocation(prog, 'uLight'),
         tile: gl.getUniformLocation(prog, 'uTile'),
         even: gl.getUniformLocation(prog, 'uEven'),
+        mark: gl.getUniformLocation(prog, 'uMark'),
+        markOrig: gl.getUniformLocation(prog, 'uMarkOrig'),
+        markSize: gl.getUniformLocation(prog, 'uMarkSize'),
     };
 
     function makeTex(unit, linear) {
@@ -167,19 +178,36 @@
         return t;
     }
 
-    var units = { albedo: 0, normal: 1, rough: 2, ao: 3, height: 4 };
+    var units = { albedo: 0, normal: 1, rough: 2, ao: 3, height: 4, mark: 5 };
     makeTex(units.albedo, false);
     makeTex(units.normal, true);
     makeTex(units.rough, true);
     makeTex(units.ao, true);
     makeTex(units.height, true);
 
+    var markTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + units.mark);
+    gl.bindTexture(gl.TEXTURE_2D, markTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+        new Uint8Array([0, 0, 0, 0]));
+
     gl.uniform1i(loc.albedo, units.albedo);
     gl.uniform1i(loc.normal, units.normal);
     gl.uniform1i(loc.rough, units.rough);
     gl.uniform1i(loc.ao, units.ao);
     gl.uniform1i(loc.height, units.height);
+    gl.uniform1i(loc.mark, units.mark);
     gl.uniform1f(loc.tile, TILE);
+    gl.uniform2f(loc.markOrig, 0, 0);
+    gl.uniform2f(loc.markSize, 0, 0);
+
+    var markCanvas = document.createElement('canvas');
+    var markCtx = markCanvas.getContext('2d');
+    var MARK_PAD = 32;
 
     var light = [0.5, 0.72];
     var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)');
@@ -314,10 +342,86 @@
     watchMedia(coarsePointer);
     watchMedia(noHover);
 
+    function stamp() {
+        // The name is lifted into the grass albedo, then lit with the rest
+        // of the nap — a print in the cloth, not a caption sitting on it.
+        var heading = document.getElementById('table-heading');
+        var title = heading && heading.querySelector('.mat-title');
+        var tag = heading && heading.querySelector('.mat-tag');
+        if (!title || !tag || !markCtx || !cssW || !cssH) return;
+
+        var titleCs = window.getComputedStyle(title);
+        var tagCs = window.getComputedStyle(tag);
+        var titleSize = parseFloat(titleCs.fontSize) || 72;
+        var tagSize = parseFloat(tagCs.fontSize) || 24;
+        var titleH = titleSize * 1.05;
+        var tagH = tagSize * (parseFloat(tagCs.lineHeight) ? 1 : 1.2);
+        if (tagCs.lineHeight && tagCs.lineHeight !== 'normal') {
+            var lh = parseFloat(tagCs.lineHeight);
+            if (lh) tagH = lh;
+        }
+        var gap = parseFloat(tagCs.marginTop);
+        if (!(gap > 0)) gap = 0.18 * tagSize;
+
+        markCtx.font = titleCs.font;
+        if (typeof markCtx.letterSpacing === 'string') {
+            markCtx.letterSpacing = titleCs.letterSpacing;
+        }
+        var titleW = markCtx.measureText(title.textContent || 'Playground').width;
+        markCtx.font = tagCs.font;
+        if (typeof markCtx.letterSpacing === 'string') {
+            markCtx.letterSpacing = tagCs.letterSpacing;
+        }
+        var tagW = markCtx.measureText(tag.textContent || '').width;
+
+        var blockW = Math.max(titleW, tagW);
+        var blockH = titleH + gap + tagH;
+        var w = Math.max(2, Math.ceil(blockW + MARK_PAD * 2));
+        var h = Math.max(2, Math.ceil(blockH + MARK_PAD * 2));
+        markCanvas.width = w;
+        markCanvas.height = h;
+        markCtx.setTransform(1, 0, 0, 1, 0, 0);
+        markCtx.clearRect(0, 0, w, h);
+        markCtx.fillStyle = '#ffffff';
+        markCtx.textAlign = 'center';
+        markCtx.textBaseline = 'middle';
+
+        var cx = w / 2;
+        markCtx.font = titleCs.font;
+        if (typeof markCtx.letterSpacing === 'string') {
+            markCtx.letterSpacing = titleCs.letterSpacing;
+        }
+        markCtx.fillText(title.textContent || 'Playground', cx, MARK_PAD + titleH / 2);
+        markCtx.font = tagCs.font;
+        if (typeof markCtx.letterSpacing === 'string') {
+            markCtx.letterSpacing = tagCs.letterSpacing;
+        }
+        markCtx.fillText(tag.textContent || '', cx, MARK_PAD + titleH + gap + tagH / 2);
+
+        var left = (cssW - w) / 2;
+        var top = (cssH - h) / 2;
+        gl.uniform2f(loc.markOrig, left / cssW, 1 - (top + h) / cssH);
+        gl.uniform2f(loc.markSize, w / cssW, h / cssH);
+
+        gl.activeTexture(gl.TEXTURE0 + units.mark);
+        gl.bindTexture(gl.TEXTURE_2D, markTex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, markCanvas);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        document.documentElement.classList.add('mat-ink');
+        dirty = true;
+        requestDraw();
+    }
+
     function resizeAndPaint() {
-        resize();
+        var grew = resize();
         // Paint this turn. A rAF later is a black (or empty) bottom on the
         // frame the cloth grew.
+        if (grew) stamp();
         if (dirty) draw();
         else requestDraw();
     }
@@ -334,7 +438,12 @@
     // are in the surface's CSS pixels — the same space chips and cards live
     // in — so the caller can crop to #felt without knowing the drawing
     // buffer's own size. Returns false if there is nothing to copy yet.
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { stamp(); }).catch(function () {});
+    }
+
     window.Felt = {
+        stamp: stamp,
         blit: function (dest, sx, sy, sw, sh, dx, dy, dw, dh) {
             if (!dest || !canvas.width || !cssW || !cssH) return false;
             if (!(sw > 0 && sh > 0 && dw > 0 && dh > 0)) return false;

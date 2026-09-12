@@ -42,6 +42,28 @@
     // to wobble, not moving it. Above it the click is swallowed so a card is
     // never dropped and flipped by the same gesture.
     var DRAG_SLOP = 4;
+    // Upcoming tiles only. A finger on the rack is also how you scroll the
+    // page, so those wait a beat before they come with it. A card on the
+    // felt is already in play and moves the moment you pull it.
+    var HOLD_MS = 600;
+
+    function isTouchPointer(e) {
+        return e.pointerType === 'touch';
+    }
+
+    // Capture can throw if the pointer is already gone — iOS cancels a
+    // touch between the down and this call more often than it should, and
+    // an exception here used to leave the card mid-gesture forever.
+    function capturePtr(node, id) {
+        if (!node || !node.setPointerCapture) return;
+        try { node.setPointerCapture(id); } catch (err) {}
+    }
+    function releasePtr(node, id) {
+        if (!node || !node.releasePointerCapture || !node.hasPointerCapture) return;
+        try {
+            if (node.hasPointerCapture(id)) node.releasePointerCapture(id);
+        } catch (err) {}
+    }
 
     // Degrees between one card in the hand and the next.
     var FAN_TILT = 6.5;
@@ -668,6 +690,10 @@
     }
 
     var panDrag = null;
+    // Has the visitor moved the table themselves? Until they have, the view is
+    // ours to keep centred; after that it is theirs, and nothing may take it
+    // back off them. See the resize handler at the foot of this file.
+    var panTouched = false;
 
     felt.addEventListener('pointerdown', function (e) {
         if (e.button !== undefined && e.button !== 0) return;
@@ -679,29 +705,49 @@
             ox: pan.x, oy: pan.y,
             moved: false,
         };
-        if (felt.setPointerCapture) felt.setPointerCapture(e.pointerId);
+        capturePtr(felt, e.pointerId);
+        window.addEventListener('pointerup', endPan, true);
+        window.addEventListener('pointercancel', endPan, true);
     });
 
     felt.addEventListener('pointermove', function (e) {
         if (!panDrag || e.pointerId !== panDrag.id) return;
         var dx = e.clientX - panDrag.px, dy = e.clientY - panDrag.py;
         if (!panDrag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
-        if (!panDrag.moved) { panDrag.moved = true; felt.classList.add('is-panning'); }
+        if (!panDrag.moved) {
+            panDrag.moved = true;
+            panTouched = true;
+            felt.classList.add('is-panning');
+        }
         pan.x = panDrag.ox + dx;
         pan.y = panDrag.oy + dy;
         applyPan();
     });
 
     function endPan(e) {
-        if (!panDrag || e.pointerId !== panDrag.id) return;
-        if (felt.releasePointerCapture && felt.hasPointerCapture && felt.hasPointerCapture(e.pointerId)) {
-            felt.releasePointerCapture(e.pointerId);
-        }
+        if (!panDrag) return;
+        if (e && e.pointerId !== undefined && e.pointerId !== panDrag.id) return;
+        window.removeEventListener('pointerup', endPan, true);
+        window.removeEventListener('pointercancel', endPan, true);
+        releasePtr(felt, panDrag.id);
         felt.classList.remove('is-panning');
         panDrag = null;
     }
     felt.addEventListener('pointerup', endPan);
     felt.addEventListener('pointercancel', endPan);
+    felt.addEventListener('lostpointercapture', endPan);
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) return;
+        if (panDrag) {
+            window.removeEventListener('pointerup', endPan, true);
+            window.removeEventListener('pointercancel', endPan, true);
+            releasePtr(felt, panDrag.id);
+            felt.classList.remove('is-panning');
+            panDrag = null;
+        }
+        if (carry) abandonCarry();
+    });
 
     /* ---------------- opening the cloth to the window ---------------- */
 
@@ -1105,7 +1151,7 @@
             };
             // Capture, so a fast drag that outruns the pointer keeps sending
             // moves here instead of to whatever is now underneath it.
-            if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+            capturePtr(el, e.pointerId);
         });
 
         // Belt to the images' braces: a card is a <button> holding pictures,
@@ -1119,36 +1165,17 @@
             if (!drag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
             if (!drag.moved) {
                 drag.moved = true;
-                // Bounds for this card's own tilt — #felt clips, and the corner
-                // of a tilted card reaches further than its upright box does —
-                // measured once, here, the way lift() measures the rack's
-                // slots. Nothing in this gesture moves the surface or changes
-                // the card's tilt, and bounds() reads the surface's box and
-                // --card-w-played off the computed style: five forced
-                // style-and-layout passes on a handler that then writes to the
-                // same element, every move. Read before the class and the tilt
-                // below dirty the style it would have to be recomputed from.
+                // Bounds for this card's own tilt — #felt clips, and the
+                // corner of a tilted card reaches further than its upright
+                // box does — measured once, here. Nothing in this gesture
+                // moves the surface or changes the card's tilt.
                 drag.bounds = bounds(readVar(el, '--rot'));
                 // The flight, if it is still running, would fight the drag.
                 el.classList.remove('is-dealing');
                 el.classList.add('is-dragging');
-                // The card is the one thing on this page that moves without a
-                // compositor layer of its own: #surface has translate3d and is
-                // promoted, so panning the whole table is nearly free, while a
-                // card being dragged is repainted into the table's layer every
-                // frame. That means re-rastering the band it has swept through,
-                // and rastering that band means decoding again every animated
-                // work inside it — which is why the further the card goes the
-                // worse it gets. One long drag across a table of ten cards cost
-                // 677ms of image decoding and dropped seventeen frames; on its
-                // own layer the same drag costs 24ms and drops three. Only for
-                // the gesture: a layer per card kept for the life of the page
-                // is the other way to spend that, and a table fills up.
                 el.style.willChange = 'transform';
-                // Four degrees, leaning the way the card is being pulled. Set
-                // once, at the moment the gesture becomes a drag, rather than
-                // tracked live: the tilt is a signal that the card has been
-                // picked up, and one that wobbled as you moved would be noise.
+                // Four degrees, leaning the way the card is being pulled.
+                // Set once, at the moment the gesture becomes a drag.
                 el.style.setProperty('--tilt', (dx >= 0 ? 4 : -4) + 'deg');
             }
             var b = drag.bounds;
@@ -1159,14 +1186,11 @@
         });
 
         function end(e) {
-            if (!drag || e.pointerId !== drag.id) return;
-            if (el.releasePointerCapture && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
-                el.releasePointerCapture(e.pointerId);
-            }
+            if (!drag) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== drag.id) return;
+            releasePtr(el, drag.id);
             el.classList.remove('is-dragging');
             el.style.removeProperty('--tilt');
-            // Off the compositor again. The layer was worth its memory while
-            // the card was moving and is worth nothing now it has stopped.
             el.style.willChange = '';
             swallowClick = drag.moved;
             drag = null;
@@ -1396,6 +1420,61 @@
         };
     }
 
+    // Chips and dice share the cloth. A drag that would cover another piece
+    // is slid off it — they sit beside each other, never in a pile. Circles
+    // rather than boxes: a chip is a disc, and a die's reach is its corner.
+    var PIECE_GAP = 6;
+
+    function pieceCircle(el, x, y) {
+        var chip = el.classList.contains('chip');
+        var size = chip
+            ? (parseFloat(el.style.getPropertyValue('--chip-w')) || CHIP_W)
+            : (el.offsetWidth || 46);
+        var left = x != null ? x : (parseFloat(el.style.left) || 0);
+        var top = y != null ? y : (parseFloat(el.style.top) || 0);
+        return {
+            x: left + size / 2,
+            y: top + size / 2,
+            r: chip ? size / 2 : size * 0.71,
+            size: size
+        };
+    }
+
+    function keepOffPieces(x, y, el, bounds) {
+        var self = pieceCircle(el, x, y);
+        var half = self.size / 2;
+        var others = [];
+        var nodes = surface.querySelectorAll(':scope > .chip, :scope > .die');
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i] === el) continue;
+            others.push(pieceCircle(nodes[i]));
+        }
+        var cx = self.x;
+        var cy = self.y;
+        for (var pass = 0; pass < 5; pass++) {
+            for (var n = 0; n < others.length; n++) {
+                var o = others[n];
+                var dx = cx - o.x;
+                var dy = cy - o.y;
+                var min = self.r + o.r + PIECE_GAP;
+                var d2 = dx * dx + dy * dy;
+                if (d2 >= min * min) continue;
+                var d = Math.sqrt(d2);
+                if (d < 0.001) { dx = 1; dy = 0; d = 1; }
+                var push = (min - d) / d;
+                cx += dx * push;
+                cy += dy * push;
+            }
+            if (bounds) {
+                cx = Math.min(Math.max(cx, bounds.minX + half), bounds.maxX + half);
+                cy = Math.min(Math.max(cy, bounds.minY + half), bounds.maxY + half);
+            }
+        }
+        return { x: cx - half, y: cy - half };
+    }
+
+    window.PlaygroundPieces = { keepOff: keepOffPieces };
+
     function makeDraggableChip(el) {
         var drag = null;
 
@@ -1429,15 +1508,15 @@
             var b = drag.bounds;
             var x = Math.min(Math.max(drag.ox + dx, b.minX), b.maxX);
             var y = Math.min(Math.max(drag.oy + dy, b.minY), b.maxY);
-            el.style.left = Math.round(x) + 'px';
-            el.style.top = Math.round(y) + 'px';
+            var parked = keepOffPieces(x, y, el, b);
+            el.style.left = Math.round(parked.x) + 'px';
+            el.style.top = Math.round(parked.y) + 'px';
         });
 
         function end(e) {
-            if (!drag || e.pointerId !== drag.id) return;
-            if (el.releasePointerCapture && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
-                el.releasePointerCapture(e.pointerId);
-            }
+            if (!drag) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== drag.id) return;
+            releasePtr(el, drag.id);
             el.classList.remove('is-dragging');
             el.style.willChange = '';
             drag = null;
@@ -2059,9 +2138,7 @@
         // A press that never cleared the slop never left its slot, so there is
         // nothing to put back.
         if (!c.lifted) {
-            if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
-                c.el.releasePointerCapture(c.id);
-            }
+            releasePtr(c.el, c.id);
             return;
         }
 
@@ -2078,9 +2155,7 @@
         // Capture is released after the card is in its slot: doing it first
         // can fire pointercancel on this turn, and the handler would see a
         // carry that had already been dropped.
-        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
-            c.el.releasePointerCapture(c.id);
-        }
+        releasePtr(c.el, c.id);
 
         // The same FLIP the other cards get, so the card settles into the slot
         // from wherever it was let go of instead of snapping into it.
@@ -2122,9 +2197,7 @@
         if (!carry) return;
         var c = carry;
         carry = null;
-        if (c.el.releasePointerCapture && c.el.hasPointerCapture && c.el.hasPointerCapture(c.id)) {
-            c.el.releasePointerCapture(c.id);
-        }
+        releasePtr(c.el, c.id);
         if (c.el.parentNode === gridEl) gridEl.removeChild(c.el);
     }
 
@@ -2139,21 +2212,65 @@
         // drag-and-drop, and the pointer events simply stop arriving.
         el.addEventListener('dragstart', function (e) { e.preventDefault(); });
 
+        var holdTimer = 0;
+
+        function clearHold() {
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = 0;
+            }
+        }
+
+        function unbindWindow() {
+            window.removeEventListener('pointerup', endDrag, true);
+            window.removeEventListener('pointercancel', endDrag, true);
+        }
+
+        function armHold() {
+            holdTimer = 0;
+            if (!carry || carry.el !== el) return;
+            carry.armed = true;
+            lift();
+            capturePtr(el, carry.id);
+            if (navigator.vibrate) {
+                try { navigator.vibrate(12); } catch (err) {}
+            }
+        }
+
         el.addEventListener('pointerdown', function (e) {
             if (e.button !== undefined && e.button !== 0) return;
             // Not while the pack is coming together and going back out: every
             // card in the rack is about to be replaced.
-            if (resetting || carry) return;
+            if (resetting) return;
+            // A leftover carry from a cancelled finger is how the rack used
+            // to lock up: every later press saw carry and returned.
+            if (carry) {
+                if (carry.el === el) {
+                    clearHold();
+                    unbindWindow();
+                    abandonCarry();
+                } else {
+                    return;
+                }
+            }
             if (rackIndex(work) === -1) return;
+            var touch = isTouchPointer(e);
             carry = {
                 el: el, work: work, id: e.pointerId,
                 px: e.clientX, py: e.clientY,
                 from: rackIndex(work), to: rackIndex(work),
                 lifted: false, boxes: null, pin: null,
+                armed: !touch,
             };
-            // Capture, so a drag that outruns the pointer keeps sending moves
-            // here rather than to whichever tile is now underneath it.
-            if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+            window.addEventListener('pointerup', endDrag, true);
+            window.addEventListener('pointercancel', endDrag, true);
+            if (carry.armed) {
+                // Capture, so a drag that outruns the pointer keeps sending
+                // moves here rather than to whichever tile is now underneath.
+                capturePtr(el, e.pointerId);
+            } else {
+                holdTimer = setTimeout(armHold, HOLD_MS);
+            }
         });
 
         // Out of its slot and pinned over #grid, which is already positioned
@@ -2191,19 +2308,30 @@
 
         el.addEventListener('pointermove', function (e) {
             if (!carry || carry.el !== el || e.pointerId !== carry.id) return;
-            if (resetting) { abandonCarry(); return; }
+            if (resetting) { clearHold(); unbindWindow(); abandonCarry(); return; }
             var dx = e.clientX - carry.px, dy = e.clientY - carry.py;
+            if (!carry.armed) {
+                if (Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+                // The hold never finished: this finger is scrolling the page.
+                clearHold();
+                unbindWindow();
+                abandonCarry();
+                return;
+            }
             // The same few pixels makePlayable() allows. A rack that threw a
             // tile out of its slot every time the page was touched would be
             // unusable on a phone, and unreadable with a mouse.
             if (!carry.lifted && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
             if (!carry.lifted) lift();
+            capturePtr(el, carry.id);
             var area = gridEl.getBoundingClientRect();
             // Out of the rack: do not keep painting the card across the table
             // (or off the page), and do not drop it in the nearest slot as if
             // that were still a reorder. Send it home.
             if (e.clientX < area.left || e.clientX > area.right ||
                 e.clientY < area.top || e.clientY > area.bottom) {
+                clearHold();
+                unbindWindow();
                 returnCarry();
                 return;
             }
@@ -2218,11 +2346,14 @@
         });
 
         function endDrag(e) {
-            if (!carry || carry.el !== el || e.pointerId !== carry.id) return;
+            if (!carry || carry.el !== el) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== carry.id) return;
+            clearHold();
+            unbindWindow();
             var area = gridEl.getBoundingClientRect();
             if (carry.lifted &&
-                (e.clientX < area.left || e.clientX > area.right ||
-                 e.clientY < area.top || e.clientY > area.bottom)) {
+                (e && (e.clientX < area.left || e.clientX > area.right ||
+                 e.clientY < area.top || e.clientY > area.bottom))) {
                 returnCarry();
                 return;
             }
@@ -2230,6 +2361,10 @@
         }
         el.addEventListener('pointerup', endDrag);
         el.addEventListener('pointercancel', endDrag);
+        el.addEventListener('lostpointercapture', endDrag);
+        el.addEventListener('contextmenu', function (e) {
+            if (carry && carry.el === el) e.preventDefault();
+        });
 
         // The same reorder without a pointer. Left and right step one slot; up
         // and down step a row, whatever a row is at this width.
@@ -2779,9 +2914,14 @@
         resizeTimer = setTimeout(function () {
             layOutFan();
             // The cloth may need to grow with the window; it will not shrink.
-            // applyPan then keeps the current view inside the new limits.
             sizeSurface();
-            applyPan();
+            // A phone resizes itself. The URL bar retracts the moment the page
+            // is scrolled and the opening is a share of the window, so it grows
+            // under a cloth that is standing still — which slides the printed
+            // name off the middle of a view the visitor never asked to move.
+            // So keep it centred until they move the table themselves; after
+            // that their view is only ever clamped back inside the cloth.
+            if (panTouched) applyPan(); else centrePan();
             placeMatMark();
         }, 120);
     });

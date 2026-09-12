@@ -1149,7 +1149,16 @@ function _placeCard(i, group) {
         Math.cos(THREE.MathUtils.degToRad(angle)) * r
     );
     group.rotation.y = THREE.MathUtils.degToRad(angle);
-    group.visible = false; // hidden until intro drops it in
+    // First visit: hidden until the deal drops them in. A return already
+    // saw that, and waiting for the last of nine textures is the pause
+    // after Playground — the page is up, the ring is empty, then
+    // everything appears at once. Sit each card down as it finishes.
+    group.visible = introSkipped;
+    if (introSkipped) {
+        cardIntroY[i] = 0;
+        cardHoverY[i] = 0;
+        group.position.y = 0;
+    }
 
     // Shadow beneath the card
     const shadowGeo = new THREE.PlaneGeometry(1.4, 0.5);
@@ -1468,13 +1477,11 @@ function loadCard0() {
     aboutmeLoads[0] = new Promise((resolve) => { photo.onload = () => resolve(photo); });
 
     Promise.all([
-        // document.fonts.ready alone is not enough: it settles once the fonts
-        // the *document* asked for have arrived, and index.html renders nothing
-        // in Play, so the face used to paint its name in whatever sans-serif
-        // the canvas fell back to — 2% wider than Play, which is why the name
-        // never quite sat where the design put it. Naming the faces this card
-        // draws with is what actually fetches them.
-        document.fonts.ready,
+        // Naming the faces this card draws with is what actually fetches
+        // them. fonts.ready only waits on type the document already asked
+        // for, and index.html renders nothing in Play — so the name used
+        // to paint 2% wide in the fallback sans. It also waits on every
+        // other face on the page, which is the pause on the way back.
         document.fonts.load(`700 ${80 * s}px "Play"`),
         document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
         document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
@@ -1752,7 +1759,10 @@ function loadCard1() {
     mockup.src = 'https://jhfyj.github.io/New-Website-Code/Cards/puregym-mockups.webp';
 
     Promise.all([
-        document.fonts.ready,
+        document.fonts.load(`700 ${96 * s}px "Play"`),
+        document.fonts.load(`italic 400 ${36 * s}px "DM Sans"`),
+        document.fonts.load(`400 ${64 * s}px "DM Sans"`),
+        document.fonts.load(`600 ${40 * s}px "DM Sans"`),
         new Promise((resolve) => { mockup.onload = resolve; }),
     ]).then(() => {
         const r = 36 * s;
@@ -1967,7 +1977,10 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
     }
 
     return Promise.all([
-        document.fonts.ready,
+        document.fonts.load(`700 ${96 * s}px "Play"`),
+        document.fonts.load(`italic 400 ${36 * s}px "DM Sans"`),
+        document.fonts.load(`400 ${64 * s}px "DM Sans"`),
+        document.fonts.load(`600 ${40 * s}px "DM Sans"`),
         photo ? new Promise((resolve) => { photo.onload = resolve; }) : Promise.resolve(),
     ]).then(() => {
         const r = 36 * s;
@@ -2263,6 +2276,39 @@ function loadCard8() {
     canvas.height = ABOUTME_DESIGN.h * s;
     const ctx = canvas.getContext('2d');
     const FELT = '#2a4528';
+    const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
+    const cardH = 1.7, cardW = cardH * aspect;
+
+    let texture = null;
+    let group = null;
+
+    // Coming back from the table, this is the card facing the camera.
+    // The real face waits on the nap, the mark, four fonts and a pile of
+    // prop canvases — long enough to read as an empty ring. A felt-only
+    // stand-in sits down now; the detailed face swaps over it once the
+    // work below is done.
+    function placeNow() {
+        if (group) return;
+        texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
+        const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
+        const mesh = new THREE.Mesh(geometry, frontMat);
+        group = new THREE.Group();
+        group.userData.cardIndex = 8;
+        group.userData.cardTitle = 'Playground';
+        group.add(mesh);
+        _placeCard(8, group);
+    }
+
+    if (introSkipped) {
+        ctx.fillStyle = FELT;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, canvas.width, canvas.height, 36 * s);
+        ctx.fill();
+        placeNow();
+    }
 
     function loadImage(src) {
         return new Promise((resolve, reject) => {
@@ -2273,15 +2319,27 @@ function loadCard8() {
         });
     }
 
+    // fonts.ready waits for every face the document asked for, including
+    // Play and the rest of the carousel's type. This card only draws the
+    // four loads below, and on a return those are already cached — the
+    // extra wait was just the pause.
     Promise.all([
         hfyjMarkReady,
         loadImage('assets/sketchbook/felt/albedo.jpg'),
-        document.fonts.ready,
         document.fonts.load(`400 ${144 * s}px "DM Sans"`),
         document.fonts.load(`400 ${46 * s}px "Mynerve"`),
         document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
         document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
-    ]).then(([, albedo]) => {
+    ]).then(async ([, albedo]) => {
+        // The stand-in is already on the ring. Give it a frame to paint
+        // before this thread spends itself tiling the nap and dressing
+        // the props — otherwise a warm cache finishes the Promise in the
+        // same turn and the placeholder never makes it to the screen.
+        if (introSkipped && group) {
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(resolve));
+            });
+        }
         const r = 36 * s;
         const tile = document.createElement('canvas');
         tile.width = tile.height = Math.round(520 * s);
@@ -2547,20 +2605,9 @@ function loadCard8() {
         }
 
         paint(currentTheme);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-        const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
-        const cardH = 1.7, cardW = cardH * aspect;
-        const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
-        const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
-        const mesh = new THREE.Mesh(geometry, frontMat);
-        const group = new THREE.Group();
-        group.userData.cardIndex = 8;
-        group.userData.cardTitle = 'Playground';
-        group.add(mesh);
+        const alreadyOut = !!group;
+        placeNow();
+        if (alreadyOut) texture.needsUpdate = true;
 
         // ── The chips and the die are real things on the card ────────────
         //
@@ -2866,8 +2913,6 @@ function loadCard8() {
                 dressProps(theme);
             },
         });
-
-        _placeCard(8, group);
     }).catch((err) => console.error('[playground]', err));
 }
 
@@ -2946,7 +2991,7 @@ window.addEventListener('mousemove', (e) => {
             if (alt === 'About Me') {
                 setCardCursor('about me');
             } else if (alt === 'Playground') {
-                setCardCursor('view playground');
+                setCardCursor('open playground');
             } else if (gridCard.dataset.comingSoon !== undefined) {
                 setCardCursor(COMING_SOON_LABEL);
             } else {
@@ -2999,7 +3044,7 @@ window.addEventListener('mousemove', (e) => {
             } else {
                 const idx = root.userData.cardIndex;
                 setCardCursor(idx === 0 ? 'about me'
-                    : idx === 8 ? 'view playground'
+                    : idx === 8 ? 'open playground'
                     : COMING_SOON_INDICES.has(idx) ? COMING_SOON_LABEL
                     : 'open project');
             }
@@ -4198,6 +4243,14 @@ function skipIntro() {
     }
     const panels = document.getElementById('about-panels');
     if (panels) { panels.classList.remove('visible'); panels.classList.remove('exiting'); }
+}
+
+// A return visit used to sit in 'idle' until the last card called
+// startIntro. Unlock the chrome now so the nav and the scrubber are
+// there for the fade-in, not waiting on the same Promise as the faces.
+if (introSkipped) {
+    document.body.classList.add('gradient-visible');
+    skipIntro();
 }
 
 // --- Scrubber overlay hide/show ---

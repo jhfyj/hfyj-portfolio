@@ -103,7 +103,6 @@
 }
 
 /* Everything except the table itself keeps the site's measure. */
-#table-hint,
 #upcoming {
   max-width: var(--col);
   margin-left: auto;
@@ -134,8 +133,15 @@
      grid below it visible on a laptop. The floor keeps that true when the
      viewport is short — below it there is no room to play a card into.
      --felt-expand interpolates that strip toward the window: more scroll-up
-     at the top of the page opens the cloth until it is the whole view. */
+     at the top of the page opens the cloth until it is the whole view.
+
+     The pair, here as below: a phone held in landscape is wider than the
+     narrow breakpoint and lands on this rule, and on such a browser vh is the
+     window as it would be with the URL bar hidden whether or not it is. On vh
+     alone the opening is taller than the view, and the name printed at its
+     middle sits below the middle of what can be seen. */
   --felt-base: max(64vh, 460px);
+  --felt-base: max(64dvh, 460px);
   height: calc(var(--felt-base) + (100vh - var(--felt-base)) * var(--felt-expand));
   height: calc(var(--felt-base) + (100dvh - var(--felt-base)) * var(--felt-expand));
   /* Grows up over the 63px bar as well as down, so 1 is genuinely fullscreen
@@ -173,7 +179,6 @@ html.felt-covering #topbar {
   /* The bar's own hide-on-scroll transition would trail the gesture. */
   transition: none;
 }
-html.felt-covering #table-hint,
 html.felt-covering #upcoming {
   opacity: calc(1 - var(--felt-expand));
   pointer-events: none;
@@ -186,7 +191,7 @@ html.felt-covering.felt-snapping #topbar {
   transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
               transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-html.felt-snapping #table-hint {
+html.felt-snapping #upcoming {
   transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -210,7 +215,6 @@ html.felt-snapping #table-hint {
     pointer-events: auto;
     transition: transform 0.35s ease, opacity 0.35s ease;
   }
-  html.felt-covering #table-hint,
   html.felt-covering #upcoming { opacity: 1; pointer-events: auto; }
   html.felt-fullscreen { overflow: visible; }
 }
@@ -411,16 +415,6 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   margin-bottom: calc(var(--card-w) / (5 / 7) * -0.34);
 }
 
-#table-hint {
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--faint);
-  letter-spacing: 0.01em;
-}
-/* The light on the mat follows a mouse. A phone has none, so the clause
-   that tells you to move one is not shown there. Same test as the cursor. */
-html.no-mat-lamp .hint-light { display: none; }
-
 /* ---------- card → table transition ---------- */
 
 /* Same overlay the case pages use. The flight is measured in
@@ -452,7 +446,6 @@ html.no-mat-lamp .hint-light { display: none; }
   opacity: 0;
 }
 :root.card-transition #topbar,
-:root.card-transition #table-hint,
 :root.card-transition #upcoming {
   opacity: 0;
   pointer-events: none;
@@ -461,7 +454,6 @@ html.no-mat-lamp .hint-light { display: none; }
 /* After the cloth has opened: chrome comes in, not the table. */
 :root.felt-arrive #played,
 :root.felt-arrive #fan,
-:root.felt-arrive #table-hint,
 :root.felt-arrive #upcoming,
 :root.felt-arrive #topbar {
   animation: felt-piece-in 480ms cubic-bezier(.22, .61, .36, 1) both;
@@ -469,8 +461,7 @@ html.no-mat-lamp .hint-light { display: none; }
 :root.felt-arrive #topbar { animation-delay: 40ms; }
 :root.felt-arrive #played { animation-delay: 70ms; }
 :root.felt-arrive #fan { animation-delay: 130ms; }
-:root.felt-arrive #table-hint { animation-delay: 180ms; }
-:root.felt-arrive #upcoming { animation-delay: 220ms; }
+:root.felt-arrive #upcoming { animation-delay: 180ms; }
 
 @keyframes felt-piece-in {
   from { opacity: 0; transform: translateY(12px); }
@@ -479,10 +470,6 @@ html.no-mat-lamp .hint-light { display: none; }
 @keyframes felt-piece-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@media (hover: none), (pointer: coarse) {
-  .hint-light { display: none; }
 }
 
 /* ---------- a card ---------- */
@@ -540,6 +527,9 @@ html.no-mat-lamp .hint-light { display: none; }
      card's own tilt rather than added as a second transform: two transforms on
      one element cannot both be written without one clobbering the other. */
   --tilt: 0deg;
+  /* 1 until a hold or a drag picks the card up, then a hair under it so
+     the thing in the hand is visibly smaller than the one on the table. */
+  --pick: 1;
   left: 0;
   top: 0;
   /* Where the card is and which way it is leaning are put on two different
@@ -561,7 +551,7 @@ html.no-mat-lamp .hint-light { display: none; }
      rotate the offset vector before applying it, which does not lean the card:
      it carries it off across the table. */
   translate: var(--x) calc(var(--y) + var(--lift) + var(--enter)) 0px;
-  transform: rotate(calc(var(--rot) + var(--tilt)));
+  transform: rotate(calc(var(--rot) + var(--tilt))) scale(var(--pick));
   /* The card is a 3D box so the flip has a back to turn to. */
   perspective: 1000px;
   border: 0;
@@ -927,7 +917,11 @@ html.no-mat-lamp .hint-light { display: none; }
 #played .card {
   width: var(--card-w-played);
   box-shadow: none;
+  /* A long-press on a phone is how you pick a card up. The callout is the
+     browser offering to save the picture instead, and it steals the hold. */
+  -webkit-touch-callout: none;
 }
+#played .card.is-dragging { --pick: 0.92; }
 #played .card.is-dragging .card-face { box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge); }
 
 /* The flight out of the fan. sketchbook.js puts the card at its landing spot
@@ -955,7 +949,8 @@ html.no-mat-lamp .hint-light { display: none; }
      so easing everything the card does would have eased the wrong one. Kept
      short and front-loaded: the tilt is a reply to a gesture that has already
      started, and a slow one would arrive after the card had moved. */
-  transition: transform 0.2s cubic-bezier(0.2, 0.75, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.2, 0.75, 0.3, 1),
+              scale 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
 }
 
 /* The end of a round: every card comes together, the pack riffles three
@@ -978,7 +973,7 @@ html.no-mat-lamp .hint-light { display: none; }
 
 /* ---------- the catalogue ---------- */
 
-#upcoming { padding-top: 52px; }
+#upcoming { padding-top: 24px; }
 
 #upcoming h2 {
   font-family: "DM Sans", "Figtree", system-ui, sans-serif;
@@ -1096,7 +1091,10 @@ body.has-dot .chip { cursor: none; }
    not, so the two gestures stay told apart by what is under the pointer rather
    than by two hands that look alike. */
 #grid .slot > .card {
-  touch-action: none;
+  /* pan-y until a hold has claimed the finger — touch-action: none here is
+     how a scroll that started on a tile used to stall the whole rack. */
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
 }
 #grid .slot > .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
@@ -1106,8 +1104,12 @@ body.has-dot .chip { cursor: none; }
    transform: it is following a finger, and anything between the two reads as
    the card lagging behind the hand holding it. */
 #grid .card.is-lifted {
+  touch-action: none;
   z-index: 5;
-  transition: none;
+  /* Position still has no transition — it is following a finger. The
+     shrink is the hold landing, and that one is allowed to ease. */
+  transition: scale 0.18s cubic-bezier(0.2, 0.75, 0.3, 1);
+  scale: 0.92;
 }
 #grid .card.is-lifted .card-face {
   box-shadow: var(--card-shadow-lift), inset 0 0 0 1px var(--stock-edge);
@@ -1346,7 +1348,17 @@ body.modal-open { overflow: hidden; }
        two places saying how much room the modal keeps is two places to drift. */
     --modal-pad: 16px;
   }
-  #felt { --felt-base: max(56vh, 380px); }
+  /* Seventy percent of the window, not a floor that ate most of a short
+     phone. dvh is the visible window once the browser chrome is counted;
+     vh is the fallback for a browser that has not heard of it — and it has to
+     be said, not merely described. On a phone vh is the window with the URL
+     bar hidden, whether or not it is, so on vh alone the opening is taller
+     than the view and its middle — where the name is printed — sits below the
+     middle of what the visitor can see. */
+  #felt {
+    --felt-base: 70vh;
+    --felt-base: 70dvh;
+  }
   #table-heading .mat-title { font-size: clamp(36px, 12vw, 72px); }
   #table-heading .mat-tag { font-size: clamp(16px, 4.4vw, 28px); }
   /* The caps, not the padding: the shorthand above is a min() against the card's
@@ -1387,4 +1399,10 @@ body.modal-open { overflow: hidden; }
   #mat { transition-duration: 0.001s; }
   #felt,
   html.felt-snapping #felt { transition-duration: 0.001s; }
+}
+
+@supports (height: 1dvh) {
+  @media (max-width: 700px) {
+    #felt { --felt-base: 70dvh; }
+  }
 }

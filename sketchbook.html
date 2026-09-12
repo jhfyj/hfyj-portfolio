@@ -49,6 +49,9 @@
          the albedo. Starting them here means they overlap the scripts below. -->
     <link rel="preload" href="assets/sketchbook/works.json" as="fetch" crossorigin>
     <link rel="preload" href="assets/sketchbook/felt/albedo.jpg" as="image">
+    <!-- Warm the home document while this page is open, so leaving the
+         table does not start the carousel's HTML from a cold fetch. -->
+    <link rel="prefetch" href="index.html">
 </head>
 <body>
 
@@ -127,7 +130,6 @@
             <!-- Exactly five, always. sketchbook.js fills and refills it. -->
             <div id="fan" role="group" aria-label="Your hand"></div>
         </div>
-        <p id="table-hint">Click a card to play it · drag the table to see more of it · drag a card or a chip around · click a card to turn it over · expand it for the details<span class="hint-light"> · move the pointer to catch the light on the mat</span></p>
     </section>
 
     <section id="upcoming" aria-labelledby="upcoming-heading">

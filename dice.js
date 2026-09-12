@@ -432,6 +432,11 @@
             var b = drag.bounds;
             var x = Math.min(Math.max(drag.ox + dx, b.minX), b.maxX);
             var y = Math.min(Math.max(drag.oy + dy, b.minY), b.maxY);
+            if (window.PlaygroundPieces && window.PlaygroundPieces.keepOff) {
+                var parked = window.PlaygroundPieces.keepOff(x, y, el, b);
+                x = parked.x;
+                y = parked.y;
+            }
             el.style.left = Math.round(x) + 'px';
             el.style.top = Math.round(y) + 'px';
         });

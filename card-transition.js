@@ -37,35 +37,17 @@
     const DURATION = 620;
     const TITLE_DELAY = 40;     // the artwork leads, the title follows it in
 
-    // Leaving again. script.js keeps this one; unlike the arrival stash it is
-    // not consumed, because it describes where the card is rather than a
-    // gesture that has already happened.
-    const ORIGIN_KEY = 'hfyj:card-origin';
     // Read once, by the pre-paint block in index.html, and dropped there.
     const RETURN_KEY = 'hfyj:card-return';
-    const EXIT_DURATION = 520;
-    // Longer than the arrival's 40ms. Going in, the two want to read as one
-    // thing opening; coming out, the graphic going first and the title
-    // following is the point, so the gap has to be visible.
-    const EXIT_TITLE_DELAY = 110;
-    // The trip back to the top is driven here rather than handed to the browser's
-    // own smooth scrolling, because that scales its duration with the distance:
-    // eight thousand pixels of clarusai took 1.3s, and with the flight behind it
-    // that is two seconds between pressing Home and anything happening. Which
-    // reads as a page that did not respond. A fixed budget with a gentle floor
-    // keeps a short trip from feeling abrupt and a long one from feeling broken;
-    // the far end of the page costs about half a second either way.
-    const SCROLL_HOME_MIN_MS = 260;
-    const SCROLL_HOME_MAX_MS = 620;
-    // This was the mirror of EASE, on the reasoning that reflecting the
-    // arrival's curve through the diagonal makes the two directions the same
-    // motion run each way. Mathematically true, and wrong to watch: mirroring
-    // an ease-out gives an ease-in, so the artwork was travelling at its
-    // fastest at the instant it reached the card and then vanishing — which
-    // reads as shrinking away to nothing rather than settling into place.
-    // Both directions decelerate into their destination now, because in both
-    // of them the end is an arrival.
-    const EXIT_EASE = 'cubic-bezier(.22, .61, .36, 1)';
+    // Leaving is a fade and nothing else. It used to be the arrival run
+    // backwards — the page scrolled itself to the top, then the hero shrank
+    // into the card's photo well with the title following it down — and the
+    // whole of that had to finish before the navigation could happen. From the
+    // foot of a long page it was the better part of two seconds between
+    // pressing Home and the home page existing, most of it spent watching
+    // artwork you had already decided to leave. A short fade says the same
+    // thing about where you are going and gets out of the way.
+    const LEAVE_FADE = 130;
     const CROSSFADE = 200;
     // The card's photo well is drawn with 24px corners inside a 1016.663px
     // well (tmplPhotoClipPath in script.js), so the radius the flight has to
@@ -81,7 +63,7 @@
     // runs in <head>, when neither of them exists yet. The hero is identified
     // by position rather than by class: it is the column's first child on every
     // page, which is the whole point of the hero-first order.
-    const OWNED = '.case-head h1, .case > :first-child';
+    const OWNED = '.case-head h1, .case > :first-child, #felt';
 
     // Both halves have to name this page the same way, and all they share is a
     // URL. Last path segment, minus any .html.
@@ -108,17 +90,20 @@
         const age = Date.now() - s.t;
         if (!(age >= 0 && age < FRESH_MS)) return null;
         if (s.slug !== slugOf(location.pathname)) return null;
-        if (!s.image || !s.photo || !s.title) return null;
+        // Playground flies the whole cloth, not a photo well plus a title.
+        // A stash without a title is only legal for that kind; anything else
+        // still needs both ends of the usual flight.
+        if (s.kind === 'felt') {
+            if (!s.photo) return null;
+        } else if (!s.image || !s.photo || !s.title) {
+            return null;
+        }
         return s;
     }
 
     // Reduced motion gets today's page, exactly. Clearing the stash rather than
     // leaving it is deliberate: it has already served its purpose and a stale
     // one is only ever a liability.
-    // Declared up here rather than beside its first use: the exit flight reads
-    // it too, and it runs long after the guards below have returned on a page
-    // that arrived without a stash — by which point a const declared past them
-    // would never have been initialised at all.
     const root = document.documentElement;
 
     const reduced = !!(window.matchMedia &&
@@ -127,8 +112,15 @@
 
     // Set up the way out before any of the arrival guards below, because the
     // two directions are independent: a page reached by typing its URL has no
-    // arrival stash to fly from, and still has to be able to fly home.
-    if (canAnimate) setupExit();
+    // arrival stash to fly from, and still has to be able to get home.
+    //
+    // Unconditionally, unlike the arrival. Leaving is a transition rather than
+    // a scripted flight, so it needs neither the Web Animations API nor an
+    // appetite for motion — and the interesting half of it is not the fade but
+    // the history.back(), which saves rebuilding the whole carousel. Gating
+    // this on canAnimate handed a reader who asks for less motion a slower way
+    // home as well as a plainer one. fadeHome skips the fade itself instead.
+    setupExit();
 
     if (reduced) {
         try { sessionStorage.removeItem(KEY); } catch (err) {}
@@ -179,6 +171,7 @@
         clearTimeout(failsafe);
         window.CardTransition.active = false;
         root.classList.remove('card-transition');
+        root.classList.remove('felt-landed');
         if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
         layer = null;
     }
@@ -344,6 +337,47 @@
         }
     }
 
+    // Playground. There is no photograph. #felt is the same cloth the
+    // home card was containing, so the flight is that element: scaled
+    // to sit inside the card well, then eased out to its full span.
+    // The name and the rim pieces ride because they live on the felt.
+    // The hand, the bar and the rack wait until it has landed.
+    function playFelt(hero) {
+        const heroBox = boxOf(hero.getBoundingClientRect());
+        const well = stash.photo;
+        const shut = heightFillFlight(heroBox, well);
+
+        hero.style.transformOrigin = '0 0';
+        hero.style.willChange = 'transform, clip-path';
+
+        const from = {
+            transform: 'translate(' + shut.tx + 'px,' + shut.ty + 'px) scale(' + shut.s + ')',
+            clipPath: insetOf(shut, WELL_RADIUS * well.w / shut.s),
+        };
+        const to = {
+            transform: 'none',
+            clipPath: 'inset(0 round ' + cornerOf(hero) + 'px)',
+        };
+        hero.style.transform = from.transform;
+        hero.style.clipPath = from.clipPath;
+
+        const opts = { duration: DURATION, easing: EASE, fill: 'forwards' };
+        const flight = hero.animate([from, to], opts);
+
+        arm(DURATION + 600);
+
+        function land() {
+            try { flight.cancel(); } catch (err) {}
+            hero.style.transform = '';
+            hero.style.clipPath = '';
+            hero.style.willChange = '';
+            root.classList.add('felt-arrive');
+            finish();
+            setTimeout(function () { root.classList.remove('felt-arrive'); }, 900);
+        }
+        flight.finished.then(land, land);
+    }
+
     // The card's photo well is cropped to roughly 5:4 and the heroes run
     // anything from 1:1 to 16:9, so the two boxes are never the same shape.
     // Two ways of dealing with that are wrong. Scaling one box onto the other
@@ -376,6 +410,21 @@
         };
     }
 
+    // Playground fills the well on height and clips the sides — the same
+    // scale syncPlaygroundFelt uses on the home card. min(width, height)
+    // would letterbox the cloth; the card is a crop of the opening, not
+    // a shrink-to-fit of it.
+    function heightFillFlight(box, win) {
+        const s = win.h / box.h;
+        return {
+            s: s,
+            tx: win.x + win.w / 2 - box.w * s / 2 - box.x,
+            ty: win.y - box.y,
+            insetX: Math.max(0, (box.w - win.w / s) / 2),
+            insetY: 0,
+        };
+    }
+
     // The smallest box of the given shape that covers `rect`, centred on it.
     function coverBoxOfAspect(rect, aspect) {
         const w = Math.max(rect.w, rect.h * aspect);
@@ -395,32 +444,10 @@
 
     // ---------------------------------------------------------------- exit
     //
-    // Going home is the arrival run backwards: the hero shrinks back into the
-    // card's photo well and the title follows it down into the card's title.
-    // Both animate to the very transforms the arrival flight starts *from*,
-    // which is what makes the two readings of the same motion agree.
-    //
-    // Nothing is stashed on the way out and the home page is not told anything.
-    // It does not need to be: the shrink lands on the card's real box, and the
-    // carousel restores the rotation that put the card there, so the cut at the
-    // end of the flight arrives on the card the hero just became.
-
-    function readOrigin() {
-        let raw = null;
-        try { raw = sessionStorage.getItem(ORIGIN_KEY); } catch (err) { return null; }
-        if (!raw) return null;
-        let o = null;
-        try { o = JSON.parse(raw); } catch (err) { return null; }
-        if (!o || !o.photo || !o.title) return null;
-        // Written for one card. Arriving here by some other route — a
-        // next-project card, a typed URL — means the carousel is not showing
-        // this project and there is nothing to shrink towards.
-        if (o.slug !== slugOf(location.pathname)) return null;
-        // Screen coordinates belong to the window they were measured in.
-        if (Math.abs(o.vw - window.innerWidth) > 2) return null;
-        if (Math.abs(o.vh - window.innerHeight) > 2) return null;
-        return o;
-    }
+    // Going home is a fade. The page dips out over a few frames and the
+    // navigation happens; the home page fades itself up on the other side,
+    // off the note left below. No measuring, no flight, and nothing the
+    // navigation has to wait for beyond those few frames.
 
     // Is the previous history entry the home page? There is no API that
     // answers this, so it is triangulated from two things that together leave
@@ -447,133 +474,47 @@
         }
     }
 
-    function flyHome(hero, h1, origin, href) {
-        const heroRect = hero.getBoundingClientRect();
-        const h1Rect = h1.getBoundingClientRect();
-        const h1Style = getComputedStyle(h1);
-        const h1Size = parseFloat(h1Style.fontSize) || 42;
-        const h1Baseline = baselineOf(h1);
-
-        // The mirror of the arrival. The hero is the whole picture and the
-        // card's photo well is a crop of it, so the hero scales down uniformly
-        // until it covers the well and the window closes onto the well's exact
-        // box — same size, same place, same crop as the card that is about to
-        // be underneath it. Fitting the hero *inside* the well instead, as
-        // this used to, left a 16:9 hero at 358×193 against a 358×287 photo:
-        // recognisably the right picture arriving at the wrong size.
-        const well = origin.photo;
-        const land = coverFlight(boxOf(heroRect), well);
-        const heroTo = 'translate(' + land.tx + 'px,' + land.ty + 'px) scale(' + land.s + ')';
-        const heroClipFrom = insetOf({ insetX: 0, insetY: 0 }, cornerOf(hero));
-        const heroClipTo = insetOf(land, WELL_RADIUS * well.w / land.s);
-        const titleTo = 'translate(' +
-            (origin.title.x - h1Rect.left) + 'px,' +
-            (origin.title.baseline - h1Baseline) + 'px) ' +
-            'scale(' + (origin.title.size / h1Size) + ')';
-
-        // Everything that is not flying gets out of the way, so the page reads
-        // as collapsing back into the card rather than as two elements leaving
-        // a page that stayed put.
-        root.classList.add('card-exit');
-        // Transforms do not affect layout, so the two can shrink straight
-        // through whatever they pass over; a stacking context keeps them on top
-        // of it while they do.
-        hero.style.transformOrigin = '0 0';
-        hero.style.position = 'relative';
-        hero.style.zIndex = '3';
-        // The same baseline the arrival scales about — see baselineOf.
-        h1.style.transformOrigin = '0 ' + (h1Baseline - h1Rect.top) + 'px';
-        h1.style.position = 'relative';
-        h1.style.zIndex = '3';
-
-        const opts = { duration: EXIT_DURATION, easing: EXIT_EASE, fill: 'forwards' };
-        // Fully opaque the whole way, and still opaque when the navigation
-        // happens. These two used to fade out over the last fifth of the
-        // flight, which put the fade on top of the fastest part of the old
-        // ease-in: the artwork reached the card and disappeared in the same
-        // few frames. It lands on the card's own box, so there is nothing to
-        // hide — the picture is already exactly where the card is about to
-        // draw it, and the home page fading up behind covers the swap.
-        const flights = [
-            hero.animate([{ transform: 'none', clipPath: heroClipFrom },
-                          { transform: heroTo, clipPath: heroClipTo }], opts),
-            h1.animate([{ transform: 'none' }, { transform: titleTo }],
-                       Object.assign({ delay: EXIT_TITLE_DELAY }, opts)),
-        ];
-
-        let left = false;
-        function go() {
-            if (left) return;
-            left = true;
-            // Going back rather than forward, when back is genuinely where home
-            // is. A fresh navigation rebuilds the whole carousel — nine card
-            // faces drawn to canvas, their textures uploaded, the scene set up
-            // again — which is a second of work to arrive at a page the browser
-            // may still be holding intact. history.back() lets it restore that
-            // page instead, and the shrink runs straight into a carousel that
-            // never went away.
-            //
-            // Falls through to an ordinary navigation whenever the page is not
-            // eligible, so this costs nothing when it does not apply.
-            //
-            // The note goes down first either way. It tells the home page it
-            // is being arrived at rather than opened, so it can bring itself
-            // in around the card the artwork has just landed on instead of
-            // appearing in one frame. A restored page reads it from its
-            // pageshow handler and a freshly loaded one from its <head>; it
-            // used to be written only on the second path, so the restore — the
-            // common case, and the one that looks most like a reload without
-            // it — arrived as a hard cut.
-            try { sessionStorage.setItem(RETURN_KEY, String(Date.now())); } catch (err) {}
-            if (homeIsBack()) {
-                history.back();
-                return;
-            }
-            window.location.href = href;
+    function leaveForHome(href) {
+        // The note goes down first, whichever way we leave. It tells the home
+        // page it is being returned to rather than opened, so it fades itself
+        // up instead of switching on. A restored page reads it from its
+        // pageshow handler and a freshly loaded one from its <head>.
+        try { sessionStorage.setItem(RETURN_KEY, String(Date.now())); } catch (err) {}
+        // Going back rather than forward, when back is genuinely where home is.
+        // A fresh navigation rebuilds the whole carousel — nine card faces
+        // drawn to canvas, their textures uploaded, the scene set up again —
+        // which is a second of work to arrive at a page the browser may still
+        // be holding intact. Falls through to an ordinary navigation whenever
+        // the page is not eligible, so this costs nothing when it does not
+        // apply.
+        if (homeIsBack()) {
+            history.back();
+            return;
         }
-        // The navigation is what ends this, so it cannot be allowed to depend
-        // on two promises resolving. A page stuck mid-shrink because an
-        // animation never finished would be a dead end with no way out of it.
-        setTimeout(go, EXIT_DURATION + EXIT_TITLE_DELAY + 260);
-        Promise.all(flights.map(function (a) { return a.finished; })).then(go, go);
+        window.location.href = href;
     }
 
-    // Back to the top, then hand over. flyHome measures where the hero is at
-    // the moment it runs, so it cannot start until the scrolling has actually
-    // stopped — starting early would fly from a position the page is no longer
-    // in. Hence waiting on the scroll position itself rather than on a fixed
-    // delay: a smooth scroll's duration is the browser's to decide and varies
-    // with the distance.
-    function scrollHomeThen(done) {
-        const y0 = window.scrollY || window.pageYOffset || 0;
+    function fadeHome(href) {
+        // The table keeps where its pieces were left, and it has to be asked
+        // before the page goes.
+        if (window.PlaygroundCover && window.PlaygroundCover.save) {
+            try { window.PlaygroundCover.save(); } catch (err) {}
+        }
+
         const reduce = window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (y0 <= 1 || reduce) { window.scrollTo(0, 0); return requestAnimationFrame(done); }
+        if (reduce) return leaveForHome(href);
 
-        // site.css sets scroll-behavior: smooth on <html>, which would make the
-        // browser animate towards every position this sets — an animation
-        // chasing an animation, and far slower than either. Off for the trip,
-        // back on at the end.
-        const root = document.documentElement;
-        const prior = root.style.scrollBehavior;
-        root.style.scrollBehavior = 'auto';
+        // Inline rather than a class in a stylesheet: one script serves the
+        // case pages and the table, their CSS is two different files, and a
+        // fade on the way out is not worth saying twice.
+        document.body.style.transition = 'opacity ' + LEAVE_FADE + 'ms linear';
+        document.body.style.opacity = '0';
 
-        const ms = Math.min(SCROLL_HOME_MAX_MS,
-                            Math.max(SCROLL_HOME_MIN_MS, SCROLL_HOME_MIN_MS + y0 * 0.03));
-        const t0 = (window.performance && performance.now()) ? performance.now() : Date.now();
-
-        (function step() {
-            const now = (window.performance && performance.now()) ? performance.now() : Date.now();
-            const k = Math.min(1, (now - t0) / ms);
-            // Decelerating, so it arrives rather than stops — the same shape the
-            // flight that follows it uses, which is what lets the two read as
-            // one movement instead of a scroll and then an animation.
-            const e = 1 - Math.pow(1 - k, 3);
-            window.scrollTo(0, Math.round(y0 * (1 - e)));
-            if (k < 1) return requestAnimationFrame(step);
-            root.style.scrollBehavior = prior;
-            requestAnimationFrame(done);
-        })();
+        // On a timer and not on the transition ending. The navigation is what
+        // ends this, and a page left sitting at zero opacity because a
+        // transitionend never arrived would be a dead end with no way out.
+        setTimeout(function () { leaveForHome(href); }, LEAVE_FADE);
     }
 
     function setupExit() {
@@ -584,41 +525,33 @@
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             const a = e.target && e.target.closest && e.target.closest('a[href]');
             if (!a || (a.target && a.target !== '_self')) return;
-            if (!/^index\.html(?:[#?]|$)/.test(a.getAttribute('href') || '')) return;
+            const href = a.getAttribute('href') || '';
+            if (!/^index\.html(?:[#?]|$)/.test(href)) return;
 
-            const origin = readOrigin();
-            if (!origin) return;
-
-            const hero = document.querySelector('.case > :first-child');
-            const h1 = document.querySelector('.case-head h1');
-            if (!hero || !h1 || hero === document.querySelector('.case-head')) return;
-
-            const href = a.getAttribute('href');
+            // No measuring and nothing to aim at, so no reason to ask whether
+            // the carousel happens to be showing this project: every way home
+            // fades, including the ones the flight used to decline and cut on.
             e.preventDefault();
-
-            // The topbar is fixed, so this link is reachable from the foot of a
-            // very long page — by which point the hero is thousands of pixels
-            // above the fold. Rather than skip the flight, go and get it: the
-            // page returns to the top and *then* the hero folds into the card,
-            // so leaving reads as one gesture wherever it was started from.
-            const r = hero.getBoundingClientRect();
-            const visible = r.bottom > 40 && r.top < window.innerHeight - 40;
-
-            function fly() {
-                try {
-                    flyHome(hero, h1, origin, href);
-                } catch (err) {
-                    window.location.href = href;
-                }
+            try {
+                fadeHome(href);
+            } catch (err) {
+                window.location.href = href;
             }
-
-            if (visible) { fly(); return; }
-            scrollHomeThen(fly);
         }, true);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         try {
+            if (stash.kind === 'felt') {
+                const felt = document.getElementById('felt');
+                if (!felt) return finish();
+                arm(HERO_WAIT + DURATION + CROSSFADE + 600);
+                whenHeroHasABox(felt, function (ok) {
+                    if (!ok) return finish();
+                    try { playFelt(felt); } catch (err) { finish(); }
+                });
+                return;
+            }
             const hero = document.querySelector('.case > :first-child');
             const h1 = document.querySelector('.case-head h1');
             // A page whose column opens on the header has no hero to fly to.

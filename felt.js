@@ -26,14 +26,28 @@
     var canvas = document.getElementById('mat');
     if (!surface || !felt || !canvas) return;
 
+    // The home Playground card is a cover on a Three.js ring. A second
+    // WebGL context here loses to the carousel, the maps never stay lit,
+    // and a 1920px mat was the letterbox. CSS albedo on #surface is the
+    // cloth; the full playground page still gets the lit nap.
+    if (!document.getElementById('table')) {
+        canvas.style.display = 'none';
+        return;
+    }
+
     var gl = canvas.getContext('webgl', {
         alpha: false,
         antialias: false,
         depth: false,
         stencil: false,
         powerPreference: 'low-power',
+        preserveDrawingBuffer: false,
     });
     if (!gl) return;
+
+    canvas.addEventListener('webglcontextlost', function () {
+        canvas.classList.remove('is-lit');
+    });
 
     var MAP = 'assets/sketchbook/felt/';
     // One tile is this many CSS pixels on a side. Grass 003 is 1.4m in the
@@ -170,9 +184,14 @@
     var light = [0.5, 0.72];
     var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)');
     var noHover = window.matchMedia && window.matchMedia('(hover: none)');
-    // A phone, and only a phone. Media queries are not enough: iOS will
-    // report a mouse after a tap, which is how the pool was surviving there.
+    // A phone, and only a phone — except the home Playground card, which
+    // is a cover sitting on a Three.js ring. Tracking there redraws the
+    // nap on every pointermove and fights the carousel for the frame.
+    // Media queries are not enough for a phone: iOS will report a mouse
+    // after a tap, which is how the pool was surviving there.
+    var onHomeCard = !document.getElementById('table');
     function lampEven() {
+        if (onHomeCard) return true;
         var ua = navigator.userAgent || '';
         if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
         if (/iPhone|iPod/i.test(ua)) return true;
@@ -217,6 +236,9 @@
     load(MAP + 'height.jpg', units.height);
 
     var cssW = 0, cssH = 0;
+    // Same green as --felt, so a newly allocated buffer is cloth and not a
+    // black frame while the first draw is still queued.
+    gl.clearColor(0.165, 0.271, 0.157, 1);
 
     function resize() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -224,12 +246,14 @@
         cssH = Math.max(1, surface.clientHeight);
         var w = Math.round(cssW * dpr);
         var h = Math.round(cssH * dpr);
-        if (canvas.width === w && canvas.height === h) return;
+        if (canvas.width === w && canvas.height === h) return false;
         canvas.width = w;
         canvas.height = h;
         gl.viewport(0, 0, w, h);
         gl.uniform2f(loc.res, cssW, cssH);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         dirty = true;
+        return true;
     }
 
     function draw() {
@@ -290,12 +314,39 @@
     watchMedia(coarsePointer);
     watchMedia(noHover);
 
-    if (typeof ResizeObserver === 'function') {
-        new ResizeObserver(function () { resize(); requestDraw(); }).observe(surface);
-    } else {
-        window.addEventListener('resize', function () { resize(); requestDraw(); });
+    function resizeAndPaint() {
+        resize();
+        // Paint this turn. A rAF later is a black (or empty) bottom on the
+        // frame the cloth grew.
+        if (dirty) draw();
+        else requestDraw();
     }
 
-    resize();
-    requestDraw();
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(resizeAndPaint).observe(surface);
+    } else {
+        window.addEventListener('resize', resizeAndPaint);
+    }
+
+    resizeAndPaint();
+
+    // The visible opening of the mat, copied into a 2-d context. Coordinates
+    // are in the surface's CSS pixels — the same space chips and cards live
+    // in — so the caller can crop to #felt without knowing the drawing
+    // buffer's own size. Returns false if there is nothing to copy yet.
+    window.Felt = {
+        blit: function (dest, sx, sy, sw, sh, dx, dy, dw, dh) {
+            if (!dest || !canvas.width || !cssW || !cssH) return false;
+            if (!(sw > 0 && sh > 0 && dw > 0 && dh > 0)) return false;
+            dest.drawImage(
+                canvas,
+                sx * (canvas.width / cssW),
+                sy * (canvas.height / cssH),
+                sw * (canvas.width / cssW),
+                sh * (canvas.height / cssH),
+                dx, dy, dw, dh
+            );
+            return true;
+        },
+    };
 })();

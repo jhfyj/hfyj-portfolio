@@ -21,8 +21,8 @@ let currentTheme = getStoredTheme();
 document.documentElement.setAttribute('data-theme', currentTheme);
 
 // Light-mode paper stock for every card drawn in code — faces and backs alike;
-// the dark stock lives in THEME_COLORS below. Card 8 (the sketchbook scan) is a
-// flat image, so it carries its own background and stays out of this entirely.
+// the dark stock lives in THEME_COLORS below. Card 8 (playground) is a
+// still of the table, so its face does not follow the stock.
 const CARD_BG = '#F7F5F5';
 
 // The ink values mirror the site's --t1/--t2 text scale in style.css. Each
@@ -901,13 +901,10 @@ const COMING_SOON_INDICES = new Set([6, 7]);
 // does without one — which is also what happens on a typed URL, a reload, or
 // under prefers-reduced-motion.
 const HANDOFF_KEY = 'hfyj:card-transition';
-// The same geometry, kept for the trip back. The arrival stash above is
-// consumed on use — it describes one gesture and must not outlive it — but
-// leaving a page for home needs to know where the card is *now*, which is a
-// standing fact about the carousel rather than a one-shot. The carousel
-// restores its rotation on a return visit, so the card the reader opened is
-// still the one facing them, still in this box.
-const CARD_ORIGIN_KEY = 'hfyj:card-origin';
+// Nothing is stashed for the trip back. The same geometry used to be kept
+// under a second key so a case page could shrink its hero into the card it
+// came out of; going home is a plain fade now, which needs to know nothing
+// about where the card is.
 
 // Every project card face is drawn into the same 1059×1449 design frame (see
 // TEMPLATE_CARD and PUREGYM_DESIGN, which agree), so the photo well and the
@@ -922,9 +919,21 @@ const CARD_FACE_LAYOUT = {
     title: { x: 54 / 1059, baseline: 960 / 1449, size: 96 / 1449 },
 };
 
-// Only the five project cards. Card 0 (about me) and card 8 (playground) are
-// laid out differently and their pages do not open on a hero at all.
+// The five project cards fly a photo well into a case-page hero. Card 8
+// (playground) flies that same well into the live table on sketchbook.
+// Card 0 still has no hand-off: About Me does not open on a hero either.
 const HANDOFF_INDICES = new Set([1, 2, 3, 4, 5]);
+const PLAYGROUND_INDEX = 8;
+// The About Me photo mask, as fractions of the face: nearly the whole
+// card, with the folded corner and the pill shelf sitting on top of it.
+// The inner felt well: below the #0000 fold and above the pill shelf,
+// so the live cloth does not cover the stock chrome. The flight starts
+// from this same box.
+const PLAYGROUND_FACE_LAYOUT = {
+    // The grass opening on the cover still — where the live table grows
+    // from when the card opens.
+    photo: { x: 21 / 1059, y: 20 / 1449, w: 1017 / 1059, h: 1332 / 1449 },
+};
 
 // Both halves have to name the destination the same way, and they only share a
 // URL. Last path segment, minus any .html — so "puregym.html" here and
@@ -957,43 +966,49 @@ function projectCardFaceRect(group) {
 }
 
 function stashCardHandoff(index, url) {
-    if (!HANDOFF_INDICES.has(index)) return;
+    const isFelt = index === PLAYGROUND_INDEX;
+    if (!HANDOFF_INDICES.has(index) && !isFelt) return;
     const group = cards[index];
     if (!group || !group.children.length) return;
-
-    const map = group.children[0].material && group.children[0].material.map;
-    const face = map && map.image;      // every card face is a CanvasTexture
-    if (!face || !face.width) return;
 
     const rect = projectCardFaceRect(group);
     if (!(rect.w > 1 && rect.h > 1)) return;
 
-    const L = CARD_FACE_LAYOUT;
-    let image;
-    try {
-        // Only the photo well travels, not the whole face: the photo is the
-        // part that becomes the hero, and cropping it here saves the
-        // destination any background-position arithmetic. 900px across is well
-        // past the size it is ever painted at, and keeps the base64 inside
-        // sessionStorage's budget — which is spent in UTF-16, so every
-        // character of it costs two bytes.
-        const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
-        const sw = L.photo.w * face.width, sh = L.photo.h * face.height;
-        const k = Math.min(1, 900 / sw);
-        const out = document.createElement('canvas');
-        out.width = Math.round(sw * k);
-        out.height = Math.round(sh * k);
-        out.getContext('2d').drawImage(face, sx, sy, sw, sh, 0, 0, out.width, out.height);
-        image = out.toDataURL('image/jpeg', 0.86);
-    } catch (err) {
-        // A tainted canvas throws here rather than returning anything. With no
-        // pixels to fly there is nothing to hand over, so let the case page
-        // open the way it always has.
-        return;
+    const L = isFelt ? PLAYGROUND_FACE_LAYOUT : CARD_FACE_LAYOUT;
+    let image = null;
+    if (!isFelt) {
+        const map = group.children[0].material && group.children[0].material.map;
+        const face = map && map.image;
+        if (!face || !face.width) return;
+        try {
+            // Only the photo well travels, not the whole face: the photo is the
+            // part that becomes the hero, and cropping it here saves the
+            // destination any background-position arithmetic. 900px across is well
+            // past the size it is ever painted at, and keeps the base64 inside
+            // sessionStorage's budget — which is spent in UTF-16, so every
+            // character of it costs two bytes.
+            const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
+            const sw = L.photo.w * face.width, sh = L.photo.h * face.height;
+            const k = Math.min(1, 900 / sw);
+            const out = document.createElement('canvas');
+            out.width = Math.round(sw * k);
+            out.height = Math.round(sh * k);
+            out.getContext('2d').drawImage(face, sx, sy, sw, sh, 0, 0, out.width, out.height);
+            image = out.toDataURL('image/jpeg', 0.86);
+        } catch (err) {
+            return;
+        }
     }
 
+    const photo = {
+        x: rect.x + L.photo.x * rect.w,
+        y: rect.y + L.photo.y * rect.h,
+        w: L.photo.w * rect.w,
+        h: L.photo.h * rect.h,
+    };
+
     try {
-        sessionStorage.setItem(HANDOFF_KEY, JSON.stringify({
+        const stash = {
             t: Date.now(),
             slug: handoffSlug(url),
             text: group.userData.cardTitle || '',
@@ -1002,46 +1017,21 @@ function stashCardHandoff(index, url) {
             // Where the photo well and the title's baseline actually were, in
             // this page's own CSS pixels. The destination FLIPs from exactly
             // these, which is why nothing here is per-page geometry.
-            photo: {
-                x: rect.x + L.photo.x * rect.w,
-                y: rect.y + L.photo.y * rect.h,
-                w: L.photo.w * rect.w,
-                h: L.photo.h * rect.h,
-            },
-            title: {
+            photo: photo,
+        };
+        if (isFelt) {
+            stash.kind = 'felt';
+            delete stash.image;
+        }
+        else {
+            stash.title = {
                 x: rect.x + L.title.x * rect.w,
                 baseline: rect.y + L.title.baseline * rect.h,
                 size: L.title.size * rect.h,
-            },
-        }));
+            };
+        }
+        sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(stash));
     } catch (err) { /* private mode, or no room — the case page copes either way */ }
-
-    try {
-        // No image: the way out shrinks the page's own hero rather than a
-        // stand-in, because by then the media has long since settled and there
-        // is nothing left that a transform could catch mid-load.
-        //
-        // The viewport goes with it. These are screen coordinates for one
-        // particular window, and a reader who resizes while reading has moved
-        // the card out from under them — better to skip the flight than to
-        // send the hero somewhere the card no longer is.
-        sessionStorage.setItem(CARD_ORIGIN_KEY, JSON.stringify({
-            slug: handoffSlug(url),
-            vw: window.innerWidth,
-            vh: window.innerHeight,
-            photo: {
-                x: rect.x + L.photo.x * rect.w,
-                y: rect.y + L.photo.y * rect.h,
-                w: L.photo.w * rect.w,
-                h: L.photo.h * rect.h,
-            },
-            title: {
-                x: rect.x + L.title.x * rect.w,
-                baseline: rect.y + L.title.baseline * rect.h,
-                size: L.title.size * rect.h,
-            },
-        }));
-    } catch (err) { /* the case page falls back to a plain link */ }
 }
 
 // The one place a card actually opens its page. Both the click and the
@@ -2210,19 +2200,661 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     };
 }
 
+// ── Card 8 — Playground cover ────────────────────────────────────────────────
+//
+// Frame 4988's layout, drawn with the pieces that actually live on the
+// table: the HFYJ back, the accent chips, a stock die. The live cloth
+// still lives on sketchbook.html; this is a still so the carousel is
+// not keeping a second scene glued to a turning card.
+const PLAYGROUND_PILLS = ['PLAYGROUND', 'CONCEPT'];
+// Where the pieces sit, in the face's own design px. The cloth texture
+// draws what they cast; the pieces themselves are geometry standing on
+// top of the face, so turning the carousel shows their sides.
+const PLAYGROUND_PROPS = {
+    // The lower back sits clear of the pill shelf so the stock lip
+    // cannot clip it.
+    backs: [
+        { x: 340, y: 300, w: 300, rot: -3 },
+        { x: 730, y: 1020, w: 300, rot: 2 },
+    ],
+    chips: [
+        { x: 800, y: 330, d: 108, spin: 18 },
+        { x: 410, y: 1040, d: 104, spin: -28 },
+    ],
+    // Square with the card, no roll. A few degrees of lean is how a die
+    // comes to rest in dice.js, but there the die is drawn flat against
+    // the page; here it is a cube standing on a card you can turn, and
+    // its own edges are the only straight lines to read its pose off.
+    // Rolled, the top face stops being parallel to anything and the cube
+    // reads as tipped over rather than sat down.
+    dice: [
+        { x: 250, y: 800, size: 100, value: 3 },
+        { x: 886, y: 212, size: 92, value: 5 },
+    ],
+};
+// Which cells carry a pip, as [column, row] — the same table dice.js uses.
+const PLAYGROUND_PIPS = {
+    1: [[1, 1]],
+    2: [[0, 0], [2, 2]],
+    3: [[0, 0], [1, 1], [2, 2]],
+    4: [[0, 0], [2, 0], [0, 2], [2, 2]],
+    5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+    6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]],
+};
+
 function loadCard8() {
-    texLoader.load("https://jhfyj.github.io/New-Website-Code/Cards/SKETCH.jpg", (texture) => {
+    // This face is a table of small pieces. The shared card scale tops
+    // out at 2 and often lands on 1; at 1 the backs, chips and die
+    // soften the moment the carousel card is larger than the texture.
+    const s = Math.max(2, ABOUTME_SCALE);
+    const canvas = document.createElement('canvas');
+    canvas.width = ABOUTME_DESIGN.w * s;
+    canvas.height = ABOUTME_DESIGN.h * s;
+    const ctx = canvas.getContext('2d');
+    const FELT = '#2a4528';
+
+    function loadImage(src) {
+        return new Promise((resolve, reject) => {
+            const im = new Image();
+            im.onload = () => resolve(im);
+            im.onerror = reject;
+            im.src = src;
+        });
+    }
+
+    Promise.all([
+        hfyjMarkReady,
+        loadImage('assets/sketchbook/felt/albedo.jpg'),
+        document.fonts.ready,
+        document.fonts.load(`400 ${144 * s}px "DM Sans"`),
+        document.fonts.load(`400 ${46 * s}px "Mynerve"`),
+        document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
+        document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
+    ]).then(([, albedo]) => {
+        const r = 36 * s;
+        const tile = document.createElement('canvas');
+        tile.width = tile.height = Math.round(520 * s);
+        const tctx = tile.getContext('2d');
+        // The live mat is lit; a raw albedo tile reads a shade too dark.
+        tctx.filter = 'brightness(1.32) saturate(0.95)';
+        tctx.drawImage(albedo, 0, 0, tile.width, tile.height);
+        tctx.filter = 'none';
+
+        function drawBoxedText(text, x, y, w, h, align) {
+            const m = ctx.measureText(text);
+            ctx.textAlign = align;
+            ctx.textBaseline = 'alphabetic';
+            const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+            const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
+            const tx = align === 'center' ? x + w / 2 : x;
+            ctx.fillText(text, tx, baseline);
+        }
+
+        // Only what a chip leaves on the cloth. The chip itself is a
+        // cylinder standing on the face — see buildProps below.
+        function drawChipCast(cx, cy, d) {
+            ctx.save();
+            ctx.filter = `blur(${Math.max(1, d * 0.03)}px)`;
+            ctx.beginPath();
+            ctx.arc(cx + d * 0.12, cy + d * 0.16, d / 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.50)';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Same cube the playground page casts: rotateX(52) rotateY(36),
+        // slid 12/17 of a 46px die, faces at --cast. A 2D squash read as
+        // an oval; this is the second cube lying on the cloth.
+        function projectCast(x, y, z, half) {
+            const yaw = 36 * Math.PI / 180, lie = 52 * Math.PI / 180;
+            let X = x * Math.cos(yaw) + z * Math.sin(yaw);
+            let Z = -x * Math.sin(yaw) + z * Math.cos(yaw);
+            let Y = y;
+            const Y2 = Y * Math.cos(lie) - Z * Math.sin(lie);
+            Z = Y * Math.sin(lie) + Z * Math.cos(lie);
+            Y = Y2;
+            const persp = (520 / 46) * half * 2;
+            const k = persp / (persp - Z);
+            return { x: X * k, y: Y * k, z: Z };
+        }
+
+        function drawDieCast(size) {
+            const h = size / 2;
+            const corners = [];
+            for (let i = 0; i < 8; i++) {
+                corners.push(projectCast(
+                    (i & 1) ? h : -h,
+                    (i & 2) ? h : -h,
+                    (i & 4) ? h : -h,
+                    h,
+                ));
+            }
+            const faces = [
+                [0, 2, 3, 1], [4, 5, 7, 6],
+                [0, 1, 5, 4], [2, 6, 7, 3],
+                [0, 4, 6, 2], [1, 3, 7, 5],
+            ];
+            const drawn = [];
+            for (let f = 0; f < faces.length; f++) {
+                const id = faces[f];
+                const a = corners[id[0]], b = corners[id[1]], c = corners[id[2]];
+                const nz = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+                if (nz <= 0) continue;
+                drawn.push({
+                    z: (a.z + b.z + c.z + corners[id[3]].z) / 4,
+                    id,
+                });
+            }
+            drawn.sort((p, q) => p.z - q.z);
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.shadowColor = 'rgba(0,0,0,0.34)';
+            ctx.shadowBlur = Math.max(2, size * 0.15);
+            for (let i = 0; i < drawn.length; i++) {
+                const id = drawn[i].id;
+                ctx.beginPath();
+                ctx.moveTo(corners[id[0]].x, corners[id[0]].y);
+                ctx.lineTo(corners[id[1]].x, corners[id[1]].y);
+                ctx.lineTo(corners[id[2]].x, corners[id[2]].y);
+                ctx.lineTo(corners[id[3]].x, corners[id[3]].y);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // The die's own shadow, offset the way dice.js rests it (12/17 of
+        // a 46px die). The cube above it is geometry, not paint.
+        function drawDieCastAt(cx, cy, size) {
+            ctx.save();
+            ctx.translate(cx + size * (12 / 46), cy + size * (17 / 46));
+            drawDieCast(size);
+            ctx.restore();
+        }
+
+        const coverBack = document.createElement('canvas');
+        const coverBackCtx = coverBack.getContext('2d');
+        function paintCoverBack(theme) {
+            const w = CARD_BACK_DESIGN.w * s, h = CARD_BACK_DESIGN.h * s;
+            coverBack.width = w;
+            coverBack.height = h;
+            const { cardBg, accent } = THEME_COLORS[theme];
+            coverBackCtx.setTransform(1, 0, 0, 1, 0, 0);
+            coverBackCtx.clearRect(0, 0, w, h);
+            coverBackCtx.save();
+            coverBackCtx.beginPath();
+            coverBackCtx.roundRect(0, 0, w, h, 36 * s);
+            coverBackCtx.clip();
+            coverBackCtx.fillStyle = cardBg;
+            coverBackCtx.fillRect(0, 0, w, h);
+            coverBackCtx.restore();
+            coverBackCtx.beginPath();
+            coverBackCtx.roundRect(0.5 * s, 0.5 * s, w - s, h - s, 36 * s);
+            coverBackCtx.lineWidth = s;
+            coverBackCtx.strokeStyle = '#000';
+            coverBackCtx.stroke();
+            const borderW = 25 * s, inset = 23 * s + borderW / 2;
+            coverBackCtx.beginPath();
+            coverBackCtx.roundRect(inset, inset, w - inset * 2, h - inset * 2, 24 * s);
+            coverBackCtx.lineWidth = borderW;
+            coverBackCtx.strokeStyle = accent;
+            coverBackCtx.stroke();
+            const logoSize = 437 * s;
+            const logo = tintedImage(hfyjMarkImg, logoSize, logoSize, accent);
+            coverBackCtx.drawImage(logo, (w - logoSize) / 2, (h - logoSize) / 2);
+        }
+
+        // What a back leaves on the cloth. The card above it is a slab of
+        // its own — see buildBack below.
+        function drawBackCast(cx, cy, w, rot) {
+            const h = w * (CARD_BACK_DESIGN.h / CARD_BACK_DESIGN.w);
+            ctx.save();
+            ctx.translate(cx + 3 * s, cy + 8 * s);
+            // A canvas turns the opposite way to a mesh, and the slab this
+            // belongs to is a mesh.
+            ctx.rotate(rot * Math.PI / 180);
+            ctx.filter = `blur(${6 * s}px)`;
+            ctx.fillStyle = 'rgba(0,0,0,0.32)';
+            ctx.beginPath();
+            ctx.roundRect(-w / 2, -h / 2, w, h, 36 * (w / CARD_BACK_DESIGN.w));
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function paint(theme) {
+            paintCoverBack(theme);
+            const { cardBg, ink, accent } = THEME_COLORS[theme];
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.fillStyle = cardBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const maskPath = new Path2D();
+            maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
+            ctx.save();
+            ctx.clip(maskPath);
+            ctx.fillStyle = ctx.createPattern(tile, 'repeat');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Everything the scatter leaves on the grass. The pieces that
+            // cast these stand on the face as geometry, at Frame 4988's
+            // relative sizes: a back ~28% of the card, a chip or die ~10%.
+            PLAYGROUND_PROPS.backs.forEach(
+                (b) => drawBackCast(b.x * s, b.y * s, b.w * s, b.rot),
+            );
+            PLAYGROUND_PROPS.dice.forEach(
+                (d) => drawDieCastAt(d.x * s, d.y * s, d.size * s),
+            );
+            PLAYGROUND_PROPS.chips.forEach(
+                (c) => drawChipCast(c.x * s, c.y * s, c.d * s),
+            );
+
+            const titlePx = 144 * s, tagPx = 46 * s, gap = 16 * s;
+            const block = titlePx + gap + tagPx;
+            const midX = canvas.width / 2;
+            // Optical middle of the grass, the same band Frame 4988 uses —
+            // dead canvas-center would sit the word on the lower props.
+            const midY = 640 * s;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.fillStyle = '#5a5a5a';
+            ctx.letterSpacing = '-0.02em';
+            ctx.font = `400 ${titlePx}px "DM Sans", sans-serif`;
+            ctx.fillText('Playground', midX, midY - block / 2 + titlePx);
+            ctx.letterSpacing = '0.01em';
+            ctx.font = `400 ${tagPx}px "Mynerve", cursive`;
+            ctx.fillText('where you can actually play', midX, midY + block / 2);
+            ctx.letterSpacing = '0';
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+
+            ctx.strokeStyle = ink;
+            ctx.lineWidth = s;
+            ctx.stroke(maskPath);
+
+            // Same hug as tmplDrawPill: width is the label plus 40px of pad
+            // each side, then the row is right-aligned to the photo inset.
+            const pillY = ABOUTME_PILL_Y * s, pillH = ABOUTME_PILL_H * s;
+            const pillK = (40 * s) / ABOUTME_PILL_FONT_PX;
+            const pillGap = 12 * s;
+            ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
+            const pillWidths = PLAYGROUND_PILLS.map(
+                (label) => ctx.measureText(label).width * pillK + 80 * s,
+            );
+            const rowW = pillWidths.reduce((a, b) => a + b, 0)
+                + pillGap * (PLAYGROUND_PILLS.length - 1);
+            const rowX = canvas.width - 21 * s - rowW;
+
+            // Same Vector 15 as About Me — right-corner clipping stays
+            // intact. Only the long-arm x values move, so the notch
+            // rides with the two pills instead of a hard clip.
+            const farX = Math.max(480, 1058 - (rowX / s - 56));
+            const shift = 837 - farX;
+            const cutD = ABOUTME_BOTTOM_CUT.replace(
+                /837|802\.751|784\.763|768\.188|754\.411|728\.41|700\.134|556\.671/g,
+                (m) => String(parseFloat(m) - shift),
+            );
+            const cutPath = new Path2D();
+            cutPath.addPath(new Path2D(cutD), ABOUTME_CUT_MATRIX(s));
+            ctx.fillStyle = cardBg;
+            ctx.fill(cutPath);
+            ctx.restore();
+
+            ctx.fillStyle = ink;
+            ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
+            drawBoxedText('#0000', 48 * s, 24 * s, 118 * s, 44 * s, 'center');
+
+            function drawPill(label, x, w) {
+                const lw = ABOUTME_PILL_STROKE * s, inset = lw / 2;
+                ctx.beginPath();
+                ctx.roundRect(x + inset, pillY + inset, w - lw, pillH - lw, pillH / 2 - inset);
+                ctx.lineWidth = lw;
+                ctx.strokeStyle = ink;
+                ctx.stroke();
+                ctx.fillStyle = ink;
+                ctx.save();
+                ctx.scale(pillK, pillK);
+                ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
+                drawBoxedText(label, x / pillK, pillY / pillK, w / pillK, pillH / pillK, 'center');
+                ctx.restore();
+            }
+            let pillX = rowX;
+            PLAYGROUND_PILLS.forEach((label, i) => {
+                drawPill(label, pillX, pillWidths[i]);
+                pillX += pillWidths[i] + pillGap;
+            });
+        }
+
+        paint(currentTheme);
+
+        const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
-        const aspect = texture.image.naturalWidth / texture.image.naturalHeight || 1.586;
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
         const cardH = 1.7, cardW = cardH * aspect;
         const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
         const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
-        const mesh  = new THREE.Mesh(geometry, frontMat);
+        const mesh = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = 8;
+        group.userData.cardTitle = 'Playground';
         group.add(mesh);
+
+        // ── The chips and the die are real things on the card ────────────
+        //
+        // Painted, they were a picture of a table; turning the carousel
+        // slid a flat sticker past the camera. As geometry standing on
+        // the face they keep their own sides, so the swing round to the
+        // card shows the die's other numbers and the chip's edge.
+        //
+        // The scene carries one ambient light, so a lit material would
+        // come back evenly bright on all six sides — the whole point
+        // being lost. The shading is baked per face instead, which is
+        // also what every other card in the deck does: one unlit
+        // material, everything in the texture.
+        const U = cardW / ABOUTME_DESIGN.w;      // design px → world units
+        const designX = (px) => (px - ABOUTME_DESIGN.w / 2) * U;
+        const designY = (py) => (ABOUTME_DESIGN.h / 2 - py) * U;
+        // Clear of the cloth by a hair, so the piece and the shadow it
+        // casts are never the same depth.
+        const LIFT = 0.0008;
+
+        function propTexture(px, draw) {
+            const c = document.createElement('canvas');
+            c.width = c.height = px;
+            draw(c.getContext('2d'), px);
+            const t = new THREE.CanvasTexture(c);
+            t.colorSpace = THREE.SRGBColorSpace;
+            t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return t;
+        }
+
+        // The deck is lit by one ambient light, so a face's brightness has
+        // to be in its own pixels.
+        function shade(g, w, h, lit) {
+            if (lit >= 1) return;
+            g.fillStyle = `rgba(0,0,0,${(1 - lit).toFixed(3)})`;
+            g.fillRect(0, 0, w, h);
+        }
+
+        // One face of the cube: stock, ink pips on the 3×3 grid dice.css
+        // lays out (15% padding, 5% gaps), and the stock's own edge line.
+        // The corners are rounded the same 22% the live die is, and left
+        // clear — the core behind shows through them as the bevel.
+        function dieFace(value, lit, stock, ink) {
+            return propTexture(256, (g, px) => {
+                g.fillStyle = stock;
+                g.beginPath();
+                g.roundRect(0, 0, px, px, px * 0.22);
+                g.fill();
+                g.clip();
+                const pad = px * 0.15, gap = px * 0.05;
+                const cell = (px - pad * 2 - gap * 2) / 3;
+                g.fillStyle = ink;
+                PLAYGROUND_PIPS[value].forEach(([col, row]) => {
+                    g.beginPath();
+                    g.arc(
+                        pad + col * (cell + gap) + cell / 2,
+                        pad + row * (cell + gap) + cell / 2,
+                        cell * 0.38, 0, Math.PI * 2,
+                    );
+                    g.fill();
+                });
+                g.strokeStyle = 'rgba(0,0,0,0.14)';
+                g.lineWidth = 6;
+                g.beginPath();
+                g.roundRect(0, 0, px, px, px * 0.22);
+                g.stroke();
+                shade(g, px, px, lit);
+            });
+        }
+
+        // The chip, drawn off the same four circles as the live SVG.
+        function chipFace(lit, accent) {
+            return propTexture(256, (g, px) => {
+                const k = px / 100;
+                // A cap's UVs only ever sample the inscribed circle, but
+                // the disc stops a hair inside it — so the stock goes
+                // down first and no sliver of it can come back empty.
+                g.fillStyle = accent;
+                g.fillRect(0, 0, px, px);
+                g.translate(px / 2, px / 2);
+                function circle(r, fill, stroke, width, dash, alpha) {
+                    g.globalAlpha = alpha === undefined ? 1 : alpha;
+                    g.beginPath();
+                    g.arc(0, 0, r * k, 0, Math.PI * 2);
+                    if (fill) { g.fillStyle = fill; g.fill(); }
+                    if (stroke) {
+                        g.strokeStyle = stroke;
+                        g.lineWidth = width * k;
+                        g.setLineDash(dash ? dash.map((v) => v * k) : []);
+                        g.stroke();
+                        g.setLineDash([]);
+                    }
+                    g.globalAlpha = 1;
+                }
+                circle(49, accent);
+                circle(43, null, FELT, 12, [19, 26.03]);
+                circle(33, null, FELT, 2, null, 0.5);
+                circle(17, FELT, null, null, null, 0.92);
+                g.setTransform(1, 0, 0, 1, 0, 0);
+                shade(g, px, px, lit);
+            });
+        }
+
+        // The rim. Six felt bands, one per dash on the face, so the edge
+        // you see when the card turns belongs to the chip on top of it.
+        function chipEdge(accent) {
+            const w = 768, h = 96;
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const g = c.getContext('2d');
+            g.fillStyle = accent;
+            g.fillRect(0, 0, w, h);
+            const band = w / 6;
+            g.fillStyle = FELT;
+            for (let i = 0; i < 6; i++) {
+                g.fillRect(i * band + band * 0.29, 0, band * 0.42, h);
+            }
+            // A rim is never as bright as the face looking at the light.
+            g.fillStyle = 'rgba(0,0,0,0.18)';
+            g.fillRect(0, 0, w, h);
+            const t = new THREE.CanvasTexture(c);
+            t.colorSpace = THREE.SRGBColorSpace;
+            t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return t;
+        }
+
+        // The faces in +x, −x, +y, −y, +z, −z order, and a die is only a
+        // die if opposite ones come to seven. +z is the number Frame 4988
+        // shows; the rest follow from that. The brightnesses are close
+        // together on purpose: far apart, a small cube stops reading as
+        // one object and starts reading as two flat shapes meeting.
+        const DIE_FACES = [
+            { value: 1, lit: 0.90 },
+            { value: 6, lit: 0.84 },
+            { value: 5, lit: 0.96 },
+            { value: 2, lit: 0.80 },
+            { value: 3, lit: 1.00 },
+            { value: 4, lit: 0.86 },
+        ];
+
+        const dieMats = DIE_FACES.map(() => new THREE.MeshBasicMaterial({
+            transparent: true,
+        }));
+        // What you see through the rounded corners.
+        const dieCoreMat = new THREE.MeshBasicMaterial();
+        // Side, top cap, bottom cap — CylinderGeometry's own order. The
+        // bottom is face down on the cloth and never seen, so it shares
+        // the top's art rather than paying for a second canvas.
+        const chipMats = [
+            new THREE.MeshBasicMaterial(),
+            new THREE.MeshBasicMaterial(),
+            new THREE.MeshBasicMaterial(),
+        ];
+        // The back's printed side, off the same canvas the cover used to
+        // blit, and the paper it is printed on.
+        const backTex = new THREE.CanvasTexture(coverBack);
+        backTex.colorSpace = THREE.SRGBColorSpace;
+        backTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const backFaceMat = new THREE.MeshBasicMaterial({
+            map: backTex, transparent: true,
+        });
+        const backEdgeMat = new THREE.MeshBasicMaterial();
+
+        function dressProps(theme) {
+            const { cardBg, ink, accent } = THEME_COLORS[theme];
+            dieCoreMat.color.set(cardBg).multiplyScalar(0.78);
+            // paint() has already redrawn coverBack in this theme.
+            backTex.needsUpdate = true;
+            backEdgeMat.color.set(cardBg).multiplyScalar(0.86);
+            dieMats.forEach((mat, i) => {
+                if (mat.map) mat.map.dispose();
+                mat.map = dieFace(DIE_FACES[i].value, DIE_FACES[i].lit, cardBg, ink);
+                mat.needsUpdate = true;
+            });
+            const faces = [chipEdge(accent), chipFace(1, accent), chipFace(0.8, accent)];
+            chipMats.forEach((mat, i) => {
+                if (mat.map) mat.map.dispose();
+                mat.map = faces[i];
+                mat.needsUpdate = true;
+            });
+        }
+
+        dressProps(currentTheme);
+
+        // A cube of six faces on a core, which is how dice.css builds one
+        // too: six divs with a 22% radius, planted a half-width out. A box
+        // geometry cannot round its corners and a rounded box cannot take
+        // a different texture per side, so the faces go on as planes and
+        // the core fills the gap where they meet — that gap, read at a
+        // glance, is the bevel.
+        function buildCube(size) {
+            const cube = new THREE.Group();
+            const core = new THREE.Mesh(
+                new THREE.BoxGeometry(size * 0.96, size * 0.96, size * 0.96),
+                dieCoreMat,
+            );
+            cube.add(core);
+            const half = size / 2;
+            const geo = new THREE.PlaneGeometry(size, size);
+            const rx = Math.PI / 2, ry = Math.PI / 2;
+            [
+                { p: [half, 0, 0], r: [0, ry, 0] },
+                { p: [-half, 0, 0], r: [0, -ry, 0] },
+                { p: [0, half, 0], r: [-rx, 0, 0] },
+                { p: [0, -half, 0], r: [rx, 0, 0] },
+                { p: [0, 0, half], r: [0, 0, 0] },
+                { p: [0, 0, -half], r: [0, Math.PI, 0] },
+            ].forEach((face, i) => {
+                const m = new THREE.Mesh(geo, dieMats[i]);
+                m.position.set(face.p[0], face.p[1], face.p[2]);
+                m.rotation.set(face.r[0], face.r[1], face.r[2]);
+                cube.add(m);
+            });
+            return cube;
+        }
+
+        // Which quarter turn brings a number round to the front. Same
+        // trick as SIDES in dice.js: the number a die shows is a rotation
+        // of one cube, never a second set of faces, so the two dice on the
+        // card cannot end up disagreeing about which pips go where.
+        const DIE_FORWARD = {
+            1: [0, -Math.PI / 2, 0],
+            2: [-Math.PI / 2, 0, 0],
+            3: [0, 0, 0],
+            4: [0, Math.PI, 0],
+            5: [Math.PI / 2, 0, 0],
+            6: [0, Math.PI / 2, 0],
+        };
+
+        PLAYGROUND_PROPS.dice.forEach((spec) => {
+            const size = spec.size * U;
+            // Two nested turns: the pose on the table outside, the number
+            // being shown inside. Keeping them apart is what lets both
+            // dice sit the same way up while showing different faces.
+            const die = new THREE.Group();
+            const cube = buildCube(size);
+            cube.rotation.set(...DIE_FORWARD[spec.value]);
+            die.add(cube);
+            // Flat on its face, and that is the whole pose. Tipping it off
+            // the cloth to show a second face stands the cube on one
+            // corner, which lifts three quarters of its width clear of the
+            // table: it reads as a die hovering over the card rather than
+            // lying on it. The sides come round with the carousel anyway.
+            die.position.set(designX(spec.x), designY(spec.y), size / 2 + LIFT);
+            group.add(die);
+        });
+
+        // A card is a slab: the printed side on top, the paper's own edge
+        // round it. The edge is the whole point of doing it in geometry —
+        // painted, two backs on a table are two rectangles, and a rectangle
+        // has no thickness to catch.
+        PLAYGROUND_PROPS.backs.forEach((spec) => {
+            const w = spec.w * U;
+            const h = w * (CARD_BACK_DESIGN.h / CARD_BACK_DESIGN.w);
+            // Card stock, exaggerated the way the chip's rim is: a real
+            // card is a quarter of a millimetre and would vanish here.
+            const thick = w * 0.022;
+            const back = new THREE.Group();
+            // Inside the printed corners' radius, so no square corner of
+            // paper pokes out past the round one on top of it — and a
+            // shade thinner than the slab, so the printed side is not
+            // sitting in the same plane as the paper's own top face.
+            // Coplanar with it, the two take turns winning the depth test
+            // and the card flickers as the carousel moves.
+            back.add(new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.975, h * 0.982, thick * 0.86),
+                backEdgeMat,
+            ));
+            const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), backFaceMat);
+            face.position.z = thick / 2;
+            back.add(face);
+            back.rotation.z = THREE.MathUtils.degToRad(-spec.rot);
+            back.position.set(designX(spec.x), designY(spec.y), thick / 2 + LIFT);
+            group.add(back);
+        });
+
+        PLAYGROUND_PROPS.chips.forEach((spec) => {
+            const d = spec.d * U;
+            // Thicker than a real chip. At a twelfth of its width the rim
+            // is under a pixel here, and a chip whose edge you cannot see
+            // is the flat sticker this was meant to stop being.
+            const thick = d * 0.17;
+            const chip = new THREE.Mesh(
+                new THREE.CylinderGeometry(d / 2, d / 2, thick, 56, 1, false),
+                chipMats,
+            );
+            // Cylinders stand up the y axis; the card's face looks down z.
+            chip.rotation.set(
+                Math.PI / 2,
+                THREE.MathUtils.degToRad(spec.spin),
+                0,
+            );
+            chip.position.set(designX(spec.x), designY(spec.y), thick / 2 + LIFT);
+            group.add(chip);
+        });
+
+        cardFaceRepaints.push({
+            index: 8,
+            repaint: (theme) => {
+                paint(theme);
+                texture.needsUpdate = true;
+                dressProps(theme);
+            },
+        });
+
         _placeCard(8, group);
-    });
+    }).catch((err) => console.error('[playground]', err));
 }
 
 loadCard0();
@@ -3009,15 +3641,16 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
 // <html>, currentTheme, the fog and every card texture are all still the theme
 // this page was left in. A reader who pressed the toggle on a case page and
 // came back arrives here with a stored choice this page has never seen, which
-// is precisely the trip flyHome() in card-transition.js makes: it calls
+// is precisely the trip card-transition.js makes on the way home: it calls
 // history.back() so the carousel does not have to be rebuilt, and a restore is
 // the common way home. Re-read the choice and catch the whole page up.
 //
 // site.js does the same thing for every other page, for the same reason.
 window.addEventListener('pageshow', (e) => {
-    if (!e.persisted) return;
-    const theme = getStoredTheme();
-    if (theme !== currentTheme) applyTheme(theme, false);
+    if (e.persisted) {
+        const theme = getStoredTheme();
+        if (theme !== currentTheme) applyTheme(theme, false);
+    }
 });
 
 // Nothing stored means the page is still mirroring the OS, so it should keep

@@ -480,7 +480,11 @@
 
     // A phone, and only a phone — same test as felt.js. iOS will report a
     // mouse after a tap, so the UA is what actually puts the wash out there.
+    // The home Playground card is the other exception: a lamp there would
+    // restyle every cube on every move, on top of the carousel.
+    var onHomeCard = !tableEl;
     function lampShouldBeEven() {
+        if (onHomeCard) return true;
         var ua = navigator.userAgent || '';
         if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
         if (/iPhone|iPod/i.test(ua)) return true;
@@ -640,11 +644,32 @@
     // planted outside it are dice the reader has to go looking for, which is
     // how a table with three of them can photograph as one.
     function visibleBand() {
+        var pad = DIE_W;
+        // Home card: the well is matrix3d-warped onto the mesh. Screen
+        // rects are the AABB of that quad, and dice planted from them
+        // land outside the opening. Use the untransformed opening.
+        if (!tableEl) {
+            var feltW = felt.clientWidth;
+            var feltH = felt.clientHeight;
+            var well = felt.parentElement;
+            var wellW = well && well.clientWidth > 0 ? well.clientWidth : feltW;
+            var wellH = well && well.clientHeight > 0 ? well.clientHeight : feltH;
+            var sc = feltH ? wellH / feltH : 1;
+            var visW = sc ? wellW / sc : feltW;
+            var x0 = (feltW - visW) / 2;
+            var px = parseFloat(surface.style.getPropertyValue('--px')) || 0;
+            var py = parseFloat(surface.style.getPropertyValue('--py')) || 0;
+            return {
+                x: -px + x0 + pad,
+                y: -py + pad,
+                w: Math.max(DIE_W, visW - pad * 2),
+                h: Math.max(DIE_W * 2, feltH - pad * 2)
+            };
+        }
         var f = felt.getBoundingClientRect();
         var sr = surface.getBoundingClientRect();
         var viewX = f.left - sr.left, viewY = f.top - sr.top;
         var fanTop = fanEl.getBoundingClientRect().top - sr.top;
-        var pad = DIE_W;
         return {
             x: viewX + pad,
             y: viewY + pad,
@@ -691,6 +716,25 @@
         return best;
     }
 
+    function layDie(x, y, face, rz) {
+        var die = buildDie();
+        die.style.left = Math.round(x) + 'px';
+        die.style.top = Math.round(y) + 'px';
+        settle(die, face, rz);
+        wire(die);
+        surface.insertBefore(die, playedEl);
+        return die;
+    }
+
+    function placeSavedDice(list) {
+        if (!list || !list.length) return false;
+        for (var i = 0; i < list.length; i++) {
+            var s = list[i];
+            layDie(s.x, s.y, s.face || 1, s.rz || 0);
+        }
+        return true;
+    }
+
     function scatterDice() {
         status = document.createElement('p');
         status.id = 'dice-status';
@@ -698,6 +742,12 @@
         status.setAttribute('role', 'status');
         status.setAttribute('aria-live', 'polite');
         (tableEl || document.body).appendChild(status);
+
+        var saved = window.__playgroundScene;
+        if (saved && placeSavedDice(saved.dice)) {
+            setEvenLight(evenLight);
+            return;
+        }
 
         var taken = chipSpots();
         var band = visibleBand();
@@ -713,19 +763,11 @@
             // third only goes down if it can have room of its own.
             if (!s.clear && i >= 2) break;
 
-            var die = buildDie();
-            die.style.left = Math.round(s.x) + 'px';
-            die.style.top = Math.round(s.y) + 'px';
             // Square-on, with only a few degrees of roll in the picture plane.
             // The cube-shaped shadow is what stops it reading as a pip card,
             // and the roll is what stops three of them looking like one drawing
             // repeated.
-            settle(die, 1 + Math.floor(Math.random() * 6), rand(-6, 6));
-            wire(die);
-            // Ahead of #played in the document, same as the chips. What puts a
-            // die above a card — dragged or not — is z-index, not this order:
-            // see --die-z on #surface.
-            surface.insertBefore(die, playedEl);
+            layDie(s.x, s.y, 1 + Math.floor(Math.random() * 6), rand(-6, 6));
             taken.push({ x: s.x + DIE_HALF, y: s.y + DIE_HALF, r: DIE_REACH });
         }
         setEvenLight(evenLight);
@@ -742,9 +784,18 @@
     // a frame loop running for the life of the page.
     var frames = 0;
     function whenMatIsSet() {
-        var ready = surface.querySelectorAll(':scope > .chip').length >= 2
-            && surface.style.getPropertyValue('--px') !== '';
-        if (ready || frames > 240) { scatterDice(); return; }
+        var ready = window.__playgroundMatReady
+            || (!onHomeCard && surface.querySelectorAll(':scope > .chip').length >= 2
+                && surface.style.getPropertyValue('--px') !== '');
+        if (ready) { scatterDice(); return; }
+        // The home cover parks the well off-screen until the card faces
+        // the camera. Scattering on a 240-frame cap planted the cubes
+        // in that empty box, and they never moved. Wait for the mat.
+        if (onHomeCard) {
+            setTimeout(whenMatIsSet, 250);
+            return;
+        }
+        if (frames > 240) { scatterDice(); return; }
         frames++;
         requestAnimationFrame(whenMatIsSet);
     }

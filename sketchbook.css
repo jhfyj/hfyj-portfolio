@@ -65,6 +65,19 @@
      are repeated here so the one control that fills with the accent has ink
      that passes on both palettes. */
   --accent-ink: #10131C;
+  /* How far the cloth has been pulled open over the window. 0 is the
+     ordinary table strip; 1 is the whole viewport. Driven by scroll-up
+     at the top of the page, in sketchbook.js. */
+  --felt-expand: 0;
+}
+
+/* So --felt-expand can ease. Without this the number jumps and the cloth
+   pops; with it, scroll-up and Escape both interpolate the same value that
+   drives the height, the overlap of the bar, and the chrome fade. */
+@property --felt-expand {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
 }
 
 :root[data-theme="dark"] {
@@ -120,9 +133,15 @@
   position: relative;
   /* Tall enough that a card can land well clear of the fan and still have the
      grid below it visible on a laptop. The floor keeps that true when the
-     viewport is short — below it there is no room to play a card into. */
-  height: 64vh;
-  min-height: 460px;
+     viewport is short — below it there is no room to play a card into.
+     --felt-expand interpolates that strip toward the window: more scroll-up
+     at the top of the page opens the cloth until it is the whole view. */
+  --felt-base: max(64vh, 460px);
+  height: calc(var(--felt-base) + (100vh - var(--felt-base)) * var(--felt-expand));
+  height: calc(var(--felt-base) + (100dvh - var(--felt-base)) * var(--felt-expand));
+  /* Grows up over the 63px bar as well as down, so 1 is genuinely fullscreen
+     and not a 100vh block that still sits under the crumb. */
+  margin-top: calc(-63px * var(--felt-expand));
   /* Edge to edge, so the corners and the side rule would sit off-screen. Only
      the two edges that are actually on the page are drawn. */
   border-radius: 0;
@@ -132,6 +151,60 @@
   /* The cards inside are dragged with the pointer; without this a drag on a
      touch screen scrolls the page out from under the card instead. */
   touch-action: none;
+  /* Follow the custom property only. Transitioning height as well as the
+     variable that drives it double-eases the box, and the lag at the
+     bottom is an empty strip of --felt before the nap is there. */
+  transition: --felt-expand 90ms linear;
+}
+
+/* The bar is sticky above the cloth. While the cloth is opening it has to
+   paint over that bar and the bar has to stop catching clicks, or the top
+   63px of the mat would be an invisible hole. */
+html.felt-covering {
+  overscroll-behavior-y: none;
+}
+html.felt-covering #felt {
+  z-index: 11;
+  will-change: height;
+}
+html.felt-covering #topbar {
+  opacity: calc(1 - var(--felt-expand));
+  transform: translateY(calc(-10px * var(--felt-expand)));
+  pointer-events: none;
+  /* The bar's own hide-on-scroll transition would trail the gesture. */
+  transition: none;
+}
+html.felt-covering #table-hint,
+html.felt-covering #upcoming {
+  opacity: calc(1 - var(--felt-expand));
+  pointer-events: none;
+}
+html.felt-fullscreen { overflow: hidden; }
+html.felt-snapping #felt {
+  transition: --felt-expand 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.felt-covering.felt-snapping #topbar {
+  transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.felt-snapping #table-hint {
+  transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Phones never open the cloth over the window. A coarse pointer is a
+   drag of the table, not a scroll-up. */
+@media (pointer: coarse), (hover: none), (max-width: 700px) {
+  :root { --felt-expand: 0 !important; }
+  html.felt-covering #felt { z-index: auto; }
+  html.felt-covering #topbar {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    transition: transform 0.35s ease, opacity 0.35s ease;
+  }
+  html.felt-covering #table-hint,
+  html.felt-covering #upcoming { opacity: 1; pointer-events: auto; }
+  html.felt-fullscreen { overflow: visible; }
 }
 
 /* The table itself, which is larger than the opening you see it through and
@@ -157,6 +230,7 @@
   height: 150%;
   min-width: 1920px;
   min-height: 720px;
+  min-height: max(720px, 150vh);
   --px: 0px;
   --py: 0px;
   transform: translate3d(var(--px), var(--py), 0);
@@ -199,6 +273,7 @@
   left: 0;
   top: 0;
   z-index: 1;
+  width: max-content;
   margin: 0;
   padding: 0;
   pointer-events: none;
@@ -335,6 +410,66 @@
 /* The light on the mat follows a mouse. A phone has none, so the clause
    that tells you to move one is not shown there. Same test as the cursor. */
 html.no-mat-lamp .hint-light { display: none; }
+
+/* ---------- card → table transition ---------- */
+
+/* Same overlay the case pages use. The flight is measured in
+   card-transition.js; these rules only give it a place to sit and hold
+   the real cloth back until the stand-in has become it. */
+#card-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+#card-transition > * {
+  position: fixed;
+  margin: 0;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+}
+.ct-media {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+/* The felt itself is the flight — grass, name and rim pieces stay on
+   it. The hand, the bar, the rack and any cards already played wait. */
+:root.card-transition #felt > #fan,
+:root.card-transition #felt #played {
+  opacity: 0;
+}
+:root.card-transition #topbar,
+:root.card-transition #table-hint,
+:root.card-transition #upcoming {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* After the cloth has opened: chrome comes in, not the table. */
+:root.felt-arrive #played,
+:root.felt-arrive #fan,
+:root.felt-arrive #table-hint,
+:root.felt-arrive #upcoming,
+:root.felt-arrive #topbar {
+  animation: felt-piece-in 480ms cubic-bezier(.22, .61, .36, 1) both;
+}
+:root.felt-arrive #topbar { animation-delay: 40ms; }
+:root.felt-arrive #played { animation-delay: 70ms; }
+:root.felt-arrive #fan { animation-delay: 130ms; }
+:root.felt-arrive #table-hint { animation-delay: 180ms; }
+:root.felt-arrive #upcoming { animation-delay: 220ms; }
+
+@keyframes felt-piece-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes felt-piece-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @media (hover: none), (pointer: coarse) {
   .hint-light { display: none; }
@@ -476,9 +611,14 @@ html.no-mat-lamp .hint-light { display: none; }
 }
 /* The expand sits on the wrapper, not on the turning inner, so it would hang
    in the original corner while the card left it. Hidden for the lift — it
-   cannot be used mid-turn anyway. */
+   cannot be used mid-turn anyway — and hidden on the back: expanding is a
+   look at the work, and the back is not one. */
 .card.is-flipping > .card-expand,
-.card.is-flipping:hover > .card-expand {
+.card.is-flipping:hover > .card-expand,
+.card.is-flipped > .card-expand,
+.card.is-flipped:hover > .card-expand,
+.card.is-flipped > .card-expand:focus,
+.card.is-flipped > .card-expand:focus-visible {
   opacity: 0;
   pointer-events: none;
 }
@@ -1171,7 +1311,7 @@ body.modal-open { overflow: hidden; }
        two places saying how much room the modal keeps is two places to drift. */
     --modal-pad: 16px;
   }
-  #felt { height: 56vh; min-height: 380px; }
+  #felt { --felt-base: max(56vh, 380px); }
   #table-heading .mat-title { font-size: clamp(36px, 12vw, 72px); }
   #table-heading .mat-tag { font-size: clamp(16px, 4.4vw, 28px); }
   /* The caps, not the padding: the shorthand above is a min() against the card's
@@ -1209,4 +1349,6 @@ body.modal-open { overflow: hidden; }
   #modal-card > .card,
   .modal-scrim { animation-duration: 0.001s; }
   #mat { transition-duration: 0.001s; }
+  #felt,
+  html.felt-snapping #felt { transition-duration: 0.001s; }
 }

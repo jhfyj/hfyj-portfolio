@@ -519,26 +519,10 @@ main { padding-bottom: 0; }
 :root.card-transition .case > :first-child,
 :root.card-transition .case-head h1 { opacity: 0; }
 
-/* Going the other way. The hero and the title shrink back into the card they
-   came from, so everything else clears out ahead of them — otherwise two
-   elements fly across a page that is otherwise sitting perfectly still, which
-   reads as those two elements misbehaving rather than as the page closing.
-
-   The two that fly are excluded by hand rather than by a class, because they
-   are the same two the arrival owns and naming them twice the same way is what
-   keeps the directions in step. Note the order: .case-head is caught by the
-   first rule and handed back by the second, so only its lede and meta go. */
-:root.card-exit .case > *,
-:root.card-exit #toc,
-:root.card-exit .next { transition: opacity 200ms linear; opacity: 0; }
-:root.card-exit .case > :first-child,
-:root.card-exit .case-head { opacity: 1; }
-:root.card-exit .case-head > *:not(h1) { transition: opacity 200ms linear; opacity: 0; }
-
-/* Nothing new may start revealing itself while the page is leaving: the scroll
-   reveal in site.js is still watching, and an element fading in underneath a
-   page that is collapsing is the one thing guaranteed to look broken. */
-:root.card-exit .case * { animation-play-state: paused; }
+/* Going the other way needs nothing here. The hero and the title used to
+   shrink back into the card they came from, with everything else clearing out
+   ahead of them; leaving is a short fade of the whole page now, which
+   card-transition.js does on the <body> itself. */
 
 /* The hero and the title are the two things that flew in from the card, so
    they are also the way back to it. On the home page they could not be links —

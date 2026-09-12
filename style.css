@@ -43,6 +43,13 @@
      script.js, which is what the carousel paints its own card backs with — the
      footer's cards and the ring's cards are the same deck and have to agree. */
   --card-stock: #F7F5F5;
+  --felt: #2a4528;
+  --cast: rgba(0, 0, 0, 0.55);
+  /* Dice on the live Playground felt. Same names sketchbook.css uses, so
+     dice.css can load here without a second copy of its palette. */
+  --ink: rgb(var(--ink-rgb));
+  --back-stock: #F7F5F5;
+  --stock-edge: rgba(0, 0, 0, 0.12);
 }
 
 :root[data-theme="dark"] {
@@ -60,6 +67,10 @@
   --accent-tint: #6b6a2c;
   --accent-ink: #16160A;   /* the yellow wants its own, warmer */
   --card-stock: #373737;
+  --cast: rgba(0, 0, 0, 0.62);
+  --ink: rgb(var(--ink-rgb));
+  --back-stock: #373737;
+  --stock-edge: rgba(255, 255, 255, 0.14);
 }
 
 body {
@@ -744,13 +755,11 @@ html[data-intro-done] #loader {
   display: none;
 }
 
-/* Coming back from a case page that shrank itself into the card. The page it
-   collapsed into is this one, so this one has to arrive rather than appear:
-   the whole page comes up together over roughly the time the shrink took to
-   end, which is what turns two animations into one movement. The artwork is
-   still opaque and sitting on the card's exact box when the swap happens, so
-   what this fades up is the same picture in the same place — a dissolve
-   between two frames that already agree, rather than a page switching on.
+/* Coming back from a case page, which fades itself out as it goes. This is the
+   other half of that fade: the page comes up rather than switching on, quickly,
+   because by this point the reader has pressed Home and is waiting on it. It
+   used to run for 460ms to cover the tail of a flight that shrank the artwork
+   into the card; there is no flight to cover any more.
 
    The whole page rather than a staged, per-element arrival, and deliberately:
    the nav, the panels, the hint, the scrubber and the grid each already own
@@ -765,7 +774,7 @@ html[data-intro-done] #loader {
    does or does not happen, and `both` holds the first frame at zero so nothing
    flashes before it starts. */
 html[data-card-return] body {
-  animation: card-return-in 460ms cubic-bezier(.22, .61, .36, 1) both;
+  animation: card-return-in 180ms linear both;
 }
 @keyframes card-return-in {
   from { opacity: 0; }
@@ -970,6 +979,30 @@ html[data-card-return] body {
   background: var(--surface);
   color: rgba(var(--ink-rgb), 0.7);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Dark: 0.35–0.6 white on the panel fails the 3:1 icon contrast the light
+   palette gets for free. Same buttons, brighter ink, a slightly lighter
+   active chip so the selected view still reads as selected. */
+:root[data-theme="dark"] #theme-toggle {
+  color: rgba(var(--ink-rgb), 0.88);
+  border-color: rgba(var(--ink-rgb), 0.16);
+}
+:root[data-theme="dark"] #theme-toggle:hover {
+  color: rgb(var(--ink-rgb));
+}
+:root[data-theme="dark"] #view-toggle {
+  border-color: rgba(var(--ink-rgb), 0.16);
+}
+:root[data-theme="dark"] .toggle-btn {
+  color: rgba(var(--ink-rgb), 0.72);
+}
+:root[data-theme="dark"] .toggle-btn:hover {
+  color: rgba(var(--ink-rgb), 0.92);
+}
+:root[data-theme="dark"] .toggle-btn.active {
+  color: rgb(var(--ink-rgb));
+  background: #3d3d3d;
 }
 
 /* Card icon fan-out on hover and active */

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>playground — HFYJ</title>
+    <title>Playground — HFYJ</title>
     <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
     <script>
         // Settle the theme before anything paints. site.js runs at the end of
@@ -31,6 +31,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&family=Mynerve&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: if this page was opened from its
+         carousel card, the cloth is held back until the card's face can
+         expand into it. With no such hand-off waiting it does nothing. -->
+    <script src="card-transition.js"></script>
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="skeleton.css">
     <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
@@ -48,7 +52,7 @@
         <!-- #cards tells the home page the intro has already played -->
         <a href="index.html#cards">Home</a>
         <span class="sep">/</span>
-        <span class="here">playground</span>
+        <span class="here">Playground</span>
     </div>
     <div class="topbar-right">
         <span>Brainstorm</span>
@@ -106,8 +110,8 @@
                      the albedo tiled in sketchbook.css is what shows through. -->
                 <canvas id="mat" aria-hidden="true"></canvas>
                 <!-- Printed into the felt, the way a poker desk wears its name.
-                     sketchbook.js sits it in the opening you first see; it then
-                     travels with the cloth. -->
+                     sketchbook.js sits it in the middle of the cloth; it then
+                     travels with the table when you drag. -->
                 <h1 id="table-heading">
                     <span class="mat-title">Playground</span>
                     <span class="mat-tag">where you can actually play</span>

@@ -63,6 +63,11 @@
     var pipOf = {};      // id -> which playing card that work is
     var resetting = false;
 
+    // The home page contains this table live. Coming back has to put the
+    // pieces where they were or that cloth would open onto a different
+    // mat. The scene is the compact description this page restores from.
+    var SCENE_KEY = 'hfyj:playground-scene';
+
     /* A work is in exactly one place at a time: in your hand, in the rack, or
        played onto the table. There is no separate deck behind the rack - the
        rack IS the deck, and the hand draws off the front of it, which is what
@@ -603,8 +608,14 @@
     var tableH = 0;
 
     function sizeSurface() {
-        var w = Math.max(Math.round(felt.clientWidth * 1.5), TABLE_MIN_W);
-        var h = Math.max(Math.round(felt.clientHeight * 1.5), TABLE_MIN_H);
+        // The opening can grow to the window. Size the cloth for that now,
+        // not in the middle of the snap — a surface shorter than #felt
+        // leaves an empty strip at the bottom while WebGL and the pan
+        // catch up, which is the flash.
+        var openingW = Math.max(felt.clientWidth, window.innerWidth);
+        var openingH = Math.max(felt.clientHeight, window.innerHeight);
+        var w = Math.max(Math.round(openingW * 1.5), TABLE_MIN_W);
+        var h = Math.max(Math.round(openingH * 1.5), TABLE_MIN_H);
         // Never shrink: pieces already on the table keep the coordinates they
         // were given, and a smaller opening just means more cloth to pan.
         tableW = Math.max(tableW, w);
@@ -673,6 +684,214 @@
     }
     felt.addEventListener('pointerup', endPan);
     felt.addEventListener('pointercancel', endPan);
+
+    /* ---------------- opening the cloth to the window ---------------- */
+
+    /* At the top of the page, more scroll-up is not wasted rubber-band: it
+       opens the felt. Wheel and trackpad only — a mouse drag is a pan of
+       the table, and a phone never opens the cloth this way. The wheel is
+       followed while it is moving; when it settles, or when the pull has
+       gone far enough, the cloth snaps open. Escape snaps it back. */
+
+    var expand = 0;
+    var EXPAND_SPAN = 360;
+    var EXPAND_SNAP = 0.38;
+    var EXPAND_COMMIT = 0.72;
+    var expandRaf = 0;
+    var expandDirty = false;
+    var expandVel = 0;
+    var settleTimer = 0;
+    var snapTimer = 0;
+    var snappingTo = null;
+
+    function pageAtTop() {
+        return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+    }
+
+    function modalOpen() {
+        var modal = document.getElementById('card-modal');
+        return !!(modal && !modal.hasAttribute('hidden'));
+    }
+
+    function expandOnPhone() {
+        var ua = navigator.userAgent || '';
+        if (navigator.userAgentData && navigator.userAgentData.mobile) return true;
+        if (/iPhone|iPod/i.test(ua)) return true;
+        if (/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
+        if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+        if (window.matchMedia && window.matchMedia('(hover: none)').matches) return true;
+        if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches) return true;
+        return false;
+    }
+
+    function expandBlocked() {
+        if (expandOnPhone()) return true;
+        if (modalOpen()) return true;
+        if (document.documentElement.classList.contains('card-transition')) return true;
+        if (panDrag) return true;
+        return false;
+    }
+
+    function visualExpand() {
+        var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--felt-expand'));
+        return isFinite(v) ? v : expand;
+    }
+
+    function syncExpandChrome(keepCovering) {
+        var root = document.documentElement;
+        root.classList.toggle('felt-covering', keepCovering || expand > 0.001);
+        // Overflow is locked only once the cloth has actually filled the
+        // window. Doing it when the snap starts clips the still-growing
+        // bottom and flashes the hint through.
+        root.classList.toggle('felt-fullscreen', expand >= 0.999 && snappingTo === null);
+    }
+
+    function setExpand(next) {
+        next = Math.max(0, Math.min(1, next));
+        if (next === expand && snappingTo === null) return false;
+        // Grow the cloth before the opening, so the new bottom is already
+        // grass rather than a hole that fills a frame later.
+        sizeSurface();
+        expand = next;
+        document.documentElement.style.setProperty('--felt-expand', String(expand));
+        syncExpandChrome(snappingTo === 0);
+        if (!expandDirty) {
+            expandDirty = true;
+            expandRaf = requestAnimationFrame(function () {
+                expandDirty = false;
+                expandRaf = 0;
+                applyPan();
+            });
+        }
+        return true;
+    }
+
+    function finishSnap() {
+        var root = document.documentElement;
+        root.classList.remove('felt-snapping');
+        snappingTo = null;
+        if (snapTimer) { clearTimeout(snapTimer); snapTimer = 0; }
+        syncExpandChrome(false);
+        sizeSurface();
+        applyPan();
+    }
+
+    function snapExpand(to) {
+        to = to >= 1 ? 1 : 0;
+        if (settleTimer) { clearTimeout(settleTimer); settleTimer = 0; }
+        var from = visualExpand();
+        var root = document.documentElement;
+        root.classList.remove('felt-snapping');
+        expand = from;
+        root.style.setProperty('--felt-expand', String(from));
+        void felt.offsetWidth;
+        snappingTo = to;
+        root.classList.add('felt-snapping');
+        setExpand(to);
+        if (snapTimer) clearTimeout(snapTimer);
+        snapTimer = setTimeout(finishSnap, 560);
+    }
+
+    felt.addEventListener('transitionend', function (e) {
+        if (e.target !== felt) return;
+        // Height is what the reader sees. --felt-expand can fire at once if
+        // the custom property never interpolates, and that would cut the
+        // close short.
+        if (e.propertyName !== '--felt-expand' && e.propertyName !== 'height') return;
+        if (snappingTo === null) return;
+        expand = snappingTo;
+        finishSnap();
+    });
+
+    function interruptSnap() {
+        if (snappingTo === null) return;
+        var v = visualExpand();
+        document.documentElement.classList.remove('felt-snapping');
+        snappingTo = null;
+        if (snapTimer) { clearTimeout(snapTimer); snapTimer = 0; }
+        expand = v;
+        document.documentElement.style.setProperty('--felt-expand', String(v));
+        void felt.offsetWidth;
+        syncExpandChrome(false);
+    }
+
+    function settleExpand() {
+        if (settleTimer) { clearTimeout(settleTimer); settleTimer = 0; }
+        if (snappingTo !== null) return;
+        if (expand <= 0.001) { setExpand(0); return; }
+        if (expand >= 0.999) { setExpand(1); return; }
+        var open = expand >= EXPAND_SNAP;
+        // A single wheel tick is not a flick. Only a hard throw, and only
+        // once the cloth has actually moved, may override the settle point.
+        if (expandVel > 0.45 && expand > 0.18) open = true;
+        if (expandVel < -0.45 && expand < 0.82) open = false;
+        snapExpand(open ? 1 : 0);
+        expandVel = 0;
+    }
+
+    function consumeExpand(deltaY) {
+        if (expandBlocked()) return false;
+        interruptSnap();
+        if (deltaY < 0) {
+            if (!pageAtTop() && expand <= 0) return false;
+            if (expand >= 1) return true;
+            expandVel = -deltaY / EXPAND_SPAN;
+            setExpand(expand - deltaY / EXPAND_SPAN);
+            if (expand >= EXPAND_COMMIT) { snapExpand(1); return true; }
+            return true;
+        }
+        if (deltaY > 0 && expand > 0) {
+            expandVel = -deltaY / EXPAND_SPAN;
+            setExpand(expand - deltaY / EXPAND_SPAN);
+            if (expand <= 1 - EXPAND_COMMIT) { snapExpand(0); return true; }
+            return true;
+        }
+        return false;
+    }
+
+    function wheelPixels(e) {
+        if (e.deltaMode === 1) return e.deltaY * 16;
+        if (e.deltaMode === 2) return e.deltaY * window.innerHeight;
+        return e.deltaY;
+    }
+
+    window.addEventListener('wheel', function (e) {
+        if (e.ctrlKey) return;
+        if (!consumeExpand(wheelPixels(e))) return;
+        e.preventDefault();
+        if (snappingTo !== null) return;
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(settleExpand, 140);
+    }, { passive: false });
+
+    function killExpandOnPhone() {
+        if (!expandOnPhone()) return;
+        if (expand <= 0 && snappingTo === null) return;
+        interruptSnap();
+        expand = 0;
+        document.documentElement.style.setProperty('--felt-expand', '0');
+        document.documentElement.classList.remove('felt-covering', 'felt-fullscreen', 'felt-snapping');
+    }
+    if (window.matchMedia) {
+        var coarse = window.matchMedia('(pointer: coarse)');
+        var noHover = window.matchMedia('(hover: none)');
+        var onPhoneChange = function () { killExpandOnPhone(); };
+        if (coarse.addEventListener) coarse.addEventListener('change', onPhoneChange);
+        else if (coarse.addListener) coarse.addListener(onPhoneChange);
+        if (noHover.addEventListener) noHover.addEventListener('change', onPhoneChange);
+        else if (noHover.addListener) noHover.addListener(onPhoneChange);
+        var narrow = window.matchMedia('(max-width: 700px)');
+        if (narrow.addEventListener) narrow.addEventListener('change', onPhoneChange);
+        else if (narrow.addListener) narrow.addListener(onPhoneChange);
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (modalOpen()) return;
+        if (expand <= 0.001 && snappingTo !== 1 && visualExpand() <= 0.001) return;
+        e.preventDefault();
+        snapExpand(0);
+    });
 
     /* ---------------- playing a card ---------------- */
 
@@ -937,27 +1156,22 @@
     /* ---------------- what else is on the table ---------------- */
 
     /* The printed name on the cloth. Surface coordinates, after the opening
-       pan, so it sits in the middle of what you can see and then travels with
-       the felt — dyed in, not a caption that stays glued to the window. */
+       pan, so it sits in the middle of the felt and then travels with it —
+       dyed in, not a caption that stays glued to the window. */
     function placeMatMark() {
         var mark = document.getElementById('table-heading');
         if (!mark) return;
-        var f = felt.getBoundingClientRect();
-        var sr = surface.getBoundingClientRect();
-        var viewX = f.left - sr.left, viewY = f.top - sr.top;
-        var fanTop = fanEl.getBoundingClientRect().top - sr.top;
-        var cx = viewX + f.width / 2;
-        var cy = viewY + (fanTop - viewY) * 0.46;
-        // Top-left, not a centred transform: the grass tile in the letters is
-        // aligned to the cloth from this corner, and a translate(-50%) would
-        // shift the nap out from under the dye.
+        // Middle of the whole cloth, not the window onto it. A leftover
+        // that used the opening (-pan + felt/2) followed the camera, so a
+        // drag or a restored pan left the name off the table's centre.
+        var w = tableW || surface.offsetWidth;
+        var h = tableH || surface.offsetHeight;
+        if (!(w > 0 && h > 0)) return;
+        var cx = w / 2;
+        var cy = h / 2;
         mark.classList.add('is-placed');
-        mark.style.left = '0px';
-        mark.style.top = '0px';
-        var x = Math.round(cx - mark.offsetWidth / 2);
-        var y = Math.round(cy - mark.offsetHeight / 2);
-        mark.style.left = x + 'px';
-        mark.style.top = y + 'px';
+        mark.style.left = Math.round(cx - mark.offsetWidth / 2) + 'px';
+        mark.style.top = Math.round(cy - mark.offsetHeight / 2) + 'px';
         // Each span clips the albedo itself. Its tile origin has to be the
         // surface's, not the span's, or the nap in the letters is a different
         // patch of grass from the cloth they sit on.
@@ -2032,13 +2246,346 @@
         setTimeout(riffle, cards.length ? GATHER_MS : 0);
     }
 
+    /* ---------------- the scene the home felt restores ---------------- */
+
+    /* The home card contains this table live. What it needs when you leave
+       is only where everything sat, so the same cloth opens onto the same
+       pieces. There is no photograph. First visit has no list: chips and
+       dice land on the rim the way they always have. */
+
+    function readStore(key) {
+        try {
+            var raw = localStorage.getItem(key);
+            if (!raw) return null;
+            var o = JSON.parse(raw);
+            return o && typeof o === 'object' ? o : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeStore(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); }
+        catch (err) { /* private mode, or the picture was too large */ }
+    }
+
+    var savedScene = readStore(SCENE_KEY);
+    if (savedScene && savedScene.v !== 1) savedScene = null;
+    // dice.js reads this before it scatters, so a return visit puts the
+    // dice back instead of rolling a new rim. Set even when there is
+    // nothing to restore: that script also waits on __playgroundMatReady,
+    // and a missing scene must not look like a scene that has not arrived.
+    window.__playgroundScene = savedScene;
+
+    function collectChips() {
+        var out = [];
+        var chips = surface.querySelectorAll(':scope > .chip');
+        for (var i = 0; i < chips.length; i++) {
+            out.push({
+                x: parseFloat(chips[i].style.left) || 0,
+                y: parseFloat(chips[i].style.top) || 0,
+                rot: parseFloat(chips[i].style.getPropertyValue('--chip-rot')) || 0,
+            });
+        }
+        return out;
+    }
+
+    function collectDice() {
+        var out = [];
+        var dice = surface.querySelectorAll(':scope > .die');
+        for (var i = 0; i < dice.length; i++) {
+            var d = dice[i];
+            out.push({
+                x: parseFloat(d.style.left) || 0,
+                y: parseFloat(d.style.top) || 0,
+                face: d.__value || parseInt(d.getAttribute('data-value'), 10) || 1,
+                rz: (d.__angles && d.__angles.z) || 0,
+            });
+        }
+        return out;
+    }
+
+    function collectCards() {
+        var out = [];
+        var kids = playedEl.children;
+        for (var i = 0; i < kids.length; i++) {
+            var el = kids[i];
+            if (!el.classList || !el.classList.contains('card') || !el.dataset.id) continue;
+            out.push({
+                id: el.dataset.id,
+                x: readVar(el, '--x'),
+                y: readVar(el, '--y'),
+                rot: readVar(el, '--rot'),
+                flipped: el.classList.contains('is-flipped'),
+                z: parseInt(el.style.zIndex, 10) || i + 1,
+            });
+        }
+        return out;
+    }
+
+    function collectTitle() {
+        var mark = document.getElementById('table-heading');
+        if (!mark || !mark.classList.contains('is-placed')) return null;
+        return {
+            x: parseFloat(mark.style.left) || 0,
+            y: parseFloat(mark.style.top) || 0,
+        };
+    }
+
+    function collectScene() {
+        return {
+            v: 1,
+            t: Date.now(),
+            // No pan. Entering centres the cloth whatever is stored, so
+            // keeping the old viewport would only be a value nothing reads.
+            // Every position below is the surface's own, not the window's,
+            // so none of them care where the table was scrolled to.
+            title: collectTitle(),
+            chips: collectChips(),
+            dice: collectDice(),
+            cards: collectCards(),
+        };
+    }
+
+    function relativeBox(el, origin) {
+        var r = el.getBoundingClientRect();
+        return {
+            x: r.left - origin.left,
+            y: r.top - origin.top,
+            w: r.width,
+            h: r.height,
+        };
+    }
+
+    function drawDyedText(ctx, el, origin, scale) {
+        if (!el) return;
+        var cs = getComputedStyle(el);
+        var box = relativeBox(el, origin);
+        var px = parseFloat(cs.fontSize) * scale;
+        if (!(px > 0) || !el.textContent) return;
+        ctx.save();
+        ctx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + px + 'px ' + cs.fontFamily;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // The live title is the nap, clipped and multiplied with a grey.
+        // Here the stand-in is a dark wash in the same letters: close
+        // enough that the cross-fade does not flash a different word.
+        ctx.fillStyle = 'rgba(36, 36, 36, 0.40)';
+        ctx.fillText(
+            el.textContent,
+            (box.x + box.w / 2) * scale,
+            (box.y + box.h / 2) * scale
+        );
+        ctx.restore();
+    }
+
+    function drawChipSnap(ctx, el, origin, scale) {
+        var box = relativeBox(el, origin);
+        var w = box.w;
+        if (!(w > 2)) return;
+        var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#5E81E2';
+        var feltCol = getComputedStyle(document.documentElement).getPropertyValue('--felt').trim() || '#2a4528';
+        var rot = (parseFloat(el.style.getPropertyValue('--chip-rot')) || 0) * Math.PI / 180;
+        ctx.save();
+        ctx.translate((box.x + w / 2) * scale, (box.y + box.h / 2) * scale);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.50)';
+        ctx.beginPath();
+        ctx.arc(w * 0.12, w * 0.16, w / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.rotate(rot);
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, w / 2 - 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = feltCol;
+        ctx.lineWidth = w * 0.12;
+        ctx.setLineDash([w * 0.19, w * 0.2603]);
+        ctx.beginPath();
+        ctx.arc(0, 0, w * 0.43, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = feltCol;
+        ctx.beginPath();
+        ctx.arc(0, 0, w * 0.17, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    var SNAP_PIPS = {
+        1: [[1, 1]],
+        2: [[0, 0], [2, 2]],
+        3: [[0, 0], [1, 1], [2, 2]],
+        4: [[0, 0], [2, 0], [0, 2], [2, 2]],
+        5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+        6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]],
+    };
+
+    function drawDieSnap(ctx, el, origin, scale) {
+        var box = relativeBox(el, origin);
+        var w = box.w;
+        if (!(w > 2)) return;
+        var face = el.__value || parseInt(el.getAttribute('data-value'), 10) || 1;
+        var rz = ((el.__angles && el.__angles.z) || 0) * Math.PI / 180;
+        var stock = getComputedStyle(document.documentElement).getPropertyValue('--back-stock').trim() || '#F7F5F5';
+        var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#111';
+        ctx.save();
+        ctx.translate((box.x + w / 2) * scale, (box.y + box.h / 2) * scale);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.48)';
+        ctx.beginPath();
+        ctx.roundRect(w * 0.18, w * 0.22, w, w, w * 0.12);
+        ctx.fill();
+        ctx.rotate(rz);
+        ctx.fillStyle = stock;
+        ctx.beginPath();
+        ctx.roundRect(-w / 2, -w / 2, w, w, w * 0.12);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        var pips = SNAP_PIPS[face] || SNAP_PIPS[1];
+        var cell = w * 0.22;
+        ctx.fillStyle = ink;
+        for (var i = 0; i < pips.length; i++) {
+            ctx.beginPath();
+            ctx.arc((pips[i][0] - 1) * cell, (pips[i][1] - 1) * cell, w * 0.075, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function drawCardSnap(ctx, el, origin, scale) {
+        var box = relativeBox(el, origin);
+        if (!(box.w > 4 && box.h > 4)) return;
+        var img = el.querySelector('.card-face--front img');
+        var flipped = el.classList.contains('is-flipped');
+        var rot = (readVar(el, '--rot') || 0) * Math.PI / 180;
+        ctx.save();
+        ctx.translate((box.x + box.w / 2) * scale, (box.y + box.h / 2) * scale);
+        ctx.rotate(rot);
+        ctx.scale(scale, scale);
+        var w = box.w, h = box.h, r = 8;
+        ctx.beginPath();
+        ctx.roundRect(-w / 2, -h / 2, w, h, r);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stock').trim() || '#fff';
+        ctx.fill();
+        if (!flipped && img && img.naturalWidth) {
+            ctx.save();
+            ctx.clip();
+            var inset = Math.max(2, w * 0.02);
+            ctx.drawImage(img, -w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2 - 18);
+            ctx.restore();
+        } else {
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--back-stock').trim() || '#F7F5F5';
+            ctx.fill();
+        }
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+
+    function persistScene() {
+        writeStore(SCENE_KEY, collectScene());
+    }
+
+    function placeSavedChips(list) {
+        if (!list || !list.length) return false;
+        for (var i = 0; i < list.length; i++) {
+            var chip = buildChip();
+            chip.style.left = Math.round(list[i].x) + 'px';
+            chip.style.top = Math.round(list[i].y) + 'px';
+            chip.style.setProperty('--chip-rot', Math.round(list[i].rot || 0) + 'deg');
+            surface.insertBefore(chip, playedEl);
+            makeDraggableChip(chip);
+        }
+        return true;
+    }
+
+    function seatPlayedEl(el, saved) {
+        playedEl.appendChild(el);
+        el.className = 'card';
+        var z = saved.z || ++topZ;
+        if (z > topZ) topZ = z;
+        el.style.zIndex = String(z);
+        if (el.flipBtn) {
+            el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
+            el.flipBtn.setAttribute('aria-pressed', saved.flipped ? 'true' : 'false');
+        }
+        place(el, saved.x, saved.y, saved.rot);
+        if (saved.flipped) el.classList.add('is-flipped');
+        makePlayable(el);
+        addExpand(el);
+    }
+
+    function restorePlayed(list) {
+        if (!list || !list.length) return;
+        var want = {};
+        for (var i = 0; i < list.length; i++) want[list[i].id] = list[i];
+
+        var fromRack = [];
+        for (var r = rack.length - 1; r >= 0; r--) {
+            var s = want[rack[r].id];
+            if (!s) continue;
+            var tile = tileOf[rack[r].id];
+            if (tile && tile.parentNode) tile.parentNode.removeChild(tile);
+            delete tileOf[rack[r].id];
+            fromRack.push({ work: rack[r], saved: s });
+            rack.splice(r, 1);
+            delete want[s.id];
+        }
+        if (fromRack.length) fillRack(null);
+
+        for (var h = hand.length - 1; h >= 0; h--) {
+            var saved = want[hand[h].dataset.id];
+            if (!saved) continue;
+            var el = hand[h];
+            el.removeEventListener('click', el.__play);
+            el.__play = null;
+            hand.splice(h, 1);
+            seatPlayedEl(el, saved);
+            delete want[saved.id];
+        }
+
+        for (var k = 0; k < fromRack.length; k++) {
+            seatPlayedEl(buildCard(fromRack[k].work, { interactive: true }), fromRack[k].saved);
+        }
+
+        // Quiet refill: takeFromRack would shrink the tile it is taking,
+        // and this is a restore, not a play. Pull the work off the rack
+        // and rebuild the slots once at the end.
+        var pulled = false;
+        while (hand.length < HAND && rack.length) {
+            var work = rack.shift();
+            var tile = tileOf[work.id];
+            if (tile && tile.parentNode) tile.parentNode.removeChild(tile);
+            delete tileOf[work.id];
+            addToHand(work, false);
+            pulled = true;
+        }
+        if (pulled) fillRack(null);
+        layOutFan();
+        updateCount();
+    }
+
+    window.PlaygroundCover = { save: persistScene };
+
     /* ---------------- start ---------------- */
 
     sizeSurface();
+    // Always the middle of the cloth, never where the table was left. The
+    // name is dyed into the centre of the mat, so an arrival on a restored
+    // pan is an arrival on a table whose title is off to one side or
+    // scrolled away entirely — and the first thing a visitor should see is
+    // what the page is called. Where the pieces lie is saved; which part of
+    // the cloth you are looking at is not worth keeping at that price.
     centrePan();
     placeMatMark();
     if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(placeMatMark).catch(function () {});
+        document.fonts.ready.then(function () { placeMatMark(); }).catch(function () {});
     }
 
     fetch(MANIFEST)
@@ -2057,11 +2604,19 @@
             // the top of it.
             buildGrid();
             sizeSurface();
+            // Again, because the grid has just changed how big the cloth is
+            // and the middle has moved with it.
             centrePan();
             placeMatMark();
-            // After centrePan, which is what decides which part of the table is
-            // the visible part a chip has to land in.
-            scatterChips();
+            // After the pan, which is what decides which part of the table is
+            // the visible part a chip has to land in. A saved rim is put
+            // back; a first visit scatters the way it always has.
+            if (!savedScene || !placeSavedChips(savedScene.chips)) scatterChips();
+            if (savedScene) restorePlayed(savedScene.cards);
+            window.__playgroundMatReady = true;
+            requestAnimationFrame(function () {
+                requestAnimationFrame(persistScene);
+            });
         })
         .catch(function (err) {
             // The catalogue is the page; without it there is nothing to show,
@@ -2070,7 +2625,14 @@
             if (emptyEl) emptyEl.hidden = false;
             if (countEl) countEl.textContent = '';
             console.error('[sketchbook]', err);
+            window.__playgroundMatReady = true;
         });
+
+    function onLeave() { persistScene(); }
+    window.addEventListener('pagehide', onLeave);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') persistScene();
+    });
 
     // The fan is placed in pixels off its own measured width, so a resize that
     // crosses the breakpoint has to re-lay it out.
@@ -2083,6 +2645,7 @@
             // applyPan then keeps the current view inside the new limits.
             sizeSurface();
             applyPan();
+            placeMatMark();
         }, 120);
     });
 })();

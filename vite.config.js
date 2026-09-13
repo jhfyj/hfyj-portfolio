@@ -51,7 +51,7 @@ const CLASSIC_SCRIPTS = [
 // rewrite the references it can see, so none of these survive on their own;
 // they are copied through at their real paths so the strings in the JavaScript
 // keep meaning what they say.
-const RUNTIME_ASSET_DIRS = ['assets', 'Cards'];
+const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo'];
 
 function copyStaticFiles() {
     return {
@@ -76,6 +76,11 @@ export default defineConfig({
             input: Object.fromEntries(
                 Object.entries(PAGES).map(([name, file]) => [name, resolve(__dirname, file)]),
             ),
+            output: {
+                manualChunks(id) {
+                    if (id.includes('node_modules/three')) return 'three';
+                },
+            },
         },
     },
 });

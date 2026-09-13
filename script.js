@@ -56,19 +56,14 @@ let snapSpeed = 0.1;
 const cardCount = 9;
 let scrollTimeout = null;
 let currentView = 'cards';
-// The loader's denominator. Every card reaches the ring through _placeCard and
-// nothing else does, so this is the card count by construction. Written that
-// way rather than as a second literal because the two disagreeing fails in
-// silence and fails completely: a denominator higher than the number of cards
-// is one loadedModels can never reach, so the bar stops short of full and
-// startIntro is never called at all.
-let totalModels = cardCount;
+// How many faces have sat down. The loader no longer waits on this — it
+// only needs About Me — but the count is still the ring's own tally.
 let loadedModels = 0;
 
 // Loader
 // Null on a return visit, which is what turns the loading screen off: the
 // progress block below and the fade-out that follows it are both gated on
-// loaderEl, and the "models all loaded" branch starts the carousel directly
+// loaderEl, and About Me sitting down starts the carousel directly
 // when there is no loader to wait for. Hiding the element in CSS alone would
 // leave this reference truthy and the carousel would never start.
 // index.html decides this before first paint; see window.__introDone there.
@@ -80,7 +75,7 @@ if (introSkipped) {
 }
 const loaderProgressEl = document.getElementById('loader-progress-bar');
 const loaderStart = performance.now();
-const LOADER_MIN_MS = 3000; // keep the shuffle on screen even on fast loads
+const LOADER_MIN_MS = 1200; // a beat of shuffle, not a three-second hold
 let loaderTarget  = 0;   // jumps to each step as models arrive
 let loaderDisplay = 0;   // lerps smoothly toward loaderTarget
 let loaderDone    = false;
@@ -271,16 +266,23 @@ function playWhooshThrottled() {
     if (now - lastWhooshMs > 320) { sfx.whoosh(); lastWhooshMs = now; }
 }
 
-// Eagerly create the audio context — construction doesn't require a user
-// gesture, only playback does — so the paper-rustle recording has time to
-// decode before the first hover, instead of starting the fetch on demand.
-ensureAudio();
+// The rustle is off with the rest of sfx, so this stays cold until
+// playPaperSample() is actually called — the wav is a third-party fetch
+// that was racing the cards for no reason.
 let paperBuffer = null;
-fetch('https://jhfyj.github.io/New-Website-Code/sounds/paper-rustle.wav')
-    .then(r => r.arrayBuffer())
-    .then(buf => audioCtx.decodeAudioData(buf))
-    .then(decoded => { paperBuffer = decoded; })
-    .catch(() => {}); // missing/blocked file just means no paper sound, not a crash
+let paperFetch = null;
+function ensurePaper() {
+    if (paperBuffer || paperFetch) return paperFetch;
+    paperFetch = fetch('https://jhfyj.github.io/New-Website-Code/sounds/paper-rustle.wav')
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+            const ctx = ensureAudio();
+            return ctx ? ctx.decodeAudioData(buf) : null;
+        })
+        .then(decoded => { paperBuffer = decoded; })
+        .catch(() => {}); // missing/blocked file just means no paper sound
+    return paperFetch;
+}
 
 // Plays a short snippet from a random point in the recording. The source
 // clip's loudness varies a lot from one moment to the next (it's a real
@@ -289,8 +291,12 @@ fetch('https://jhfyj.github.io/New-Website-Code/sounds/paper-rustle.wav')
 // slice we're about to play and scale gain to hit a consistent target level,
 // clamped so a near-silent slice doesn't get amplified into audible hiss.
 function playPaperSample() {
+    if (!paperBuffer) {
+        ensurePaper();
+        return;
+    }
     const ctx = ensureAudio();
-    if (!ctx || !paperBuffer) return;
+    if (!ctx) return;
     if (ctx.state !== 'running') {
         const requestedAt = performance.now();
         ctx.resume().then(() => {
@@ -1137,6 +1143,23 @@ cardShadowTex.minFilter = THREE.LinearFilter;
 cardShadowTex.magFilter = THREE.LinearFilter;
 cardShadowTex.generateMipmaps = false;
 
+// BMW and Nenos are not open yet. A hole in the opacity is how they sit
+// behind the rest of the deck — still in colour, clearly not a page you
+// can walk into.
+function applyComingSoonMaterial(mat, isShadow) {
+    if (!mat) return;
+    mat.transparent = true;
+    mat.opacity = isShadow ? 0.28 : 0.68;
+    mat.needsUpdate = true;
+}
+
+function applyComingSoonLook(group) {
+    group.traverse((obj) => {
+        if (!obj.isMesh || !obj.material) return;
+        applyComingSoonMaterial(obj.material, obj.userData.baseY !== undefined);
+    });
+}
+
 // Helper — place & register a finished card group into the carousel
 function _placeCard(i, group) {
     const s = getCardScale();
@@ -1190,15 +1213,26 @@ function _placeCard(i, group) {
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -0.001;
         group.add(backMesh);
+        if (COMING_SOON_INDICES.has(i)) applyComingSoonMaterial(mat);
     });
+
+    if (COMING_SOON_INDICES.has(i)) {
+        group.userData.comingSoon = true;
+        applyComingSoonLook(group);
+    }
 
     cards[i] = group;
     cardgroup.add(group);
     loadedModels++;
-    loaderTarget = (loadedModels / totalModels) * 100;
-    if (loadedModels === totalModels && !loaderEl) {
-        document.body.classList.add('gradient-visible');
-        startIntro();
+    // The intro only needs About Me. The other eight keep loading while
+    // the visitor reads the panels; waiting on Playground's nap was the
+    // pause after a cached photo.
+    if (i === 0) {
+        loaderTarget = 100;
+        if (!loaderEl) {
+            document.body.classList.add('gradient-visible');
+            startIntro();
+        }
     }
 }
 
@@ -2267,10 +2301,12 @@ const PLAYGROUND_PIPS = {
 };
 
 function loadCard8() {
-    // This face is a table of small pieces. The shared card scale tops
-    // out at 2 and often lands on 1; at 1 the backs, chips and die
-    // soften the moment the carousel card is larger than the texture.
-    const s = Math.max(2, ABOUTME_SCALE);
+    // Same scale as the rest of the deck. This used to force 2× even when
+    // the other eight faces sat at 1×, so the playground was four times
+    // the pixels of About Me for a card the same size on screen. The
+    // pieces that needed that extra resolution — dice, chips, backs —
+    // are geometry now; the cloth is a repeating tile and does not.
+    const s = ABOUTME_SCALE;
     const canvas = document.createElement('canvas');
     canvas.width = ABOUTME_DESIGN.w * s;
     canvas.height = ABOUTME_DESIGN.h * s;
@@ -2302,47 +2338,57 @@ function loadCard8() {
         _placeCard(8, group);
     }
 
-    if (introSkipped) {
-        ctx.fillStyle = FELT;
-        ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, 36 * s);
-        ctx.fill();
-        placeNow();
-    }
+    ctx.fillStyle = FELT;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, canvas.width, canvas.height, 36 * s);
+    ctx.fill();
+    placeNow();
 
     function loadImage(src) {
-        return new Promise((resolve, reject) => {
-            const im = new Image();
-            im.onload = () => resolve(im);
-            im.onerror = reject;
-            im.src = src;
+        // Decode off the main thread when the browser will. Image()
+        // otherwise holds the card's turn until the whole 200KB tile
+        // has been unpacked, which is the hitch after the stand-in.
+        return fetch(src).then((r) => {
+            if (!r.ok) throw new Error(src + ': HTTP ' + r.status);
+            return r.blob();
+        }).then((blob) => {
+            if (typeof createImageBitmap === 'function') return createImageBitmap(blob);
+            return new Promise((resolve, reject) => {
+                const im = new Image();
+                im.onload = () => resolve(im);
+                im.onerror = reject;
+                im.src = URL.createObjectURL(blob);
+            });
         });
     }
 
-    // fonts.ready waits for every face the document asked for, including
-    // Play and the rest of the carousel's type. This card only draws the
-    // four loads below, and on a return those are already cached — the
-    // extra wait was just the pause.
-    Promise.all([
+    // Kick the nap and the four faces off now, not when we come to paint.
+    // Waiting until idle to even start the request was the pause: the
+    // stand-in was up, and then nothing happened for up to 800ms while
+    // the tile had not been asked for. About Me still wins the pipe —
+    // its photo is a high-priority preload; this one is not.
+    const detailReady = Promise.all([
         hfyjMarkReady,
-        loadImage('assets/sketchbook/felt/albedo.jpg'),
+        loadImage('assets/sketchbook/felt/albedo.webp'),
         document.fonts.load(`400 ${144 * s}px "DM Sans"`),
         document.fonts.load(`400 ${46 * s}px "Mynerve"`),
         document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
         document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
-    ]).then(async ([, albedo]) => {
-        // The stand-in is already on the ring. Give it a frame to paint
-        // before this thread spends itself tiling the nap and dressing
-        // the props — otherwise a warm cache finishes the Promise in the
-        // same turn and the placeholder never makes it to the screen.
-        if (introSkipped && group) {
-            await new Promise((resolve) => {
-                requestAnimationFrame(() => requestAnimationFrame(resolve));
-            });
+    ]);
+
+    function paintDetail() {
+    return detailReady.then(async ([, albedo]) => {
+        // One frame so the stand-in is on the GPU before this thread
+        // spends itself tiling. Two was a frame of nothing.
+        if (group) {
+            await new Promise((resolve) => requestAnimationFrame(resolve));
         }
         const r = 36 * s;
+        // A repeating stamp, not a portrait. 256 covers the nap at the
+        // size this card is seen; 520×s was a second megapixel texture
+        // uploaded for grass you cannot resolve.
         const tile = document.createElement('canvas');
-        tile.width = tile.height = Math.round(520 * s);
+        tile.width = tile.height = 256;
         const tctx = tile.getContext('2d');
         // The live mat is lit; a raw albedo tile reads a shade too dark.
         tctx.filter = 'brightness(1.32) saturate(0.95)';
@@ -2608,6 +2654,10 @@ function loadCard8() {
         const alreadyOut = !!group;
         placeNow();
         if (alreadyOut) texture.needsUpdate = true;
+        // The cloth is on the card. The props are a second job — six die
+        // faces, two chips, two slabs — and holding the swap for them
+        // kept the grass off screen until every canvas was uploaded.
+        await new Promise((resolve) => requestAnimationFrame(resolve));
 
         // ── The chips and the die are real things on the card ────────────
         //
@@ -2634,7 +2684,6 @@ function loadCard8() {
             draw(c.getContext('2d'), px);
             const t = new THREE.CanvasTexture(c);
             t.colorSpace = THREE.SRGBColorSpace;
-            t.anisotropy = renderer.capabilities.getMaxAnisotropy();
             return t;
         }
 
@@ -2651,7 +2700,7 @@ function loadCard8() {
         // The corners are rounded the same 22% the live die is, and left
         // clear — the core behind shows through them as the bevel.
         function dieFace(value, lit, stock, ink) {
-            return propTexture(256, (g, px) => {
+            return propTexture(128, (g, px) => {
                 g.fillStyle = stock;
                 g.beginPath();
                 g.roundRect(0, 0, px, px, px * 0.22);
@@ -2670,7 +2719,7 @@ function loadCard8() {
                     g.fill();
                 });
                 g.strokeStyle = 'rgba(0,0,0,0.14)';
-                g.lineWidth = 6;
+                g.lineWidth = 3;
                 g.beginPath();
                 g.roundRect(0, 0, px, px, px * 0.22);
                 g.stroke();
@@ -2680,7 +2729,7 @@ function loadCard8() {
 
         // The chip, drawn off the same four circles as the live SVG.
         function chipFace(lit, accent) {
-            return propTexture(256, (g, px) => {
+            return propTexture(128, (g, px) => {
                 const k = px / 100;
                 // A cap's UVs only ever sample the inscribed circle, but
                 // the disc stops a hair inside it — so the stock goes
@@ -2714,7 +2763,7 @@ function loadCard8() {
         // The rim. Six felt bands, one per dash on the face, so the edge
         // you see when the card turns belongs to the chip on top of it.
         function chipEdge(accent) {
-            const w = 768, h = 96;
+            const w = 384, h = 48;
             const c = document.createElement('canvas');
             c.width = w;
             c.height = h;
@@ -2731,7 +2780,6 @@ function loadCard8() {
             g.fillRect(0, 0, w, h);
             const t = new THREE.CanvasTexture(c);
             t.colorSpace = THREE.SRGBColorSpace;
-            t.anisotropy = renderer.capabilities.getMaxAnisotropy();
             return t;
         }
 
@@ -2892,7 +2940,7 @@ function loadCard8() {
             // is the flat sticker this was meant to stop being.
             const thick = d * 0.17;
             const chip = new THREE.Mesh(
-                new THREE.CylinderGeometry(d / 2, d / 2, thick, 56, 1, false),
+                new THREE.CylinderGeometry(d / 2, d / 2, thick, 24, 1, false),
                 chipMats,
             );
             // Cylinders stand up the y axis; the card's face looks down z.
@@ -2914,6 +2962,14 @@ function loadCard8() {
             },
         });
     }).catch((err) => console.error('[playground]', err));
+    }
+    if (introSkipped) {
+        paintDetail();
+    } else if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(paintDetail, { timeout: 280 });
+    } else {
+        setTimeout(paintDetail, 80);
+    }
 }
 
 loadCard0();
@@ -3412,7 +3468,7 @@ const renderloop = (now = 0) => {
     carouselSettled = !isDragging && !isFlinging && targetRotation === null && stillFrames >= STILL_FRAMES_NEEDED;
 
     // Loader progress — lerps toward the loaded target; fade-out also waits
-    // for LOADER_MIN_MS so the shuffle plays a few seconds on fast loads
+    // for LOADER_MIN_MS so the shuffle is seen, then About Me can come up.
     if (loaderEl && !loaderDone) {
         loaderDisplay += (loaderTarget - loaderDisplay) * 0.06;
         // Bar fill is capped by elapsed-time-toward-minimum too, so on a fast
@@ -3910,7 +3966,11 @@ async function _gfSetLastUpdated() {
         el.textContent = `Last updated ${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
     }
 }
-_gfSetLastUpdated();
+if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(() => { _gfSetLastUpdated(); }, { timeout: 4000 });
+} else {
+    setTimeout(_gfSetLastUpdated, 1500);
+}
 
 // Live clocks for the three city columns
 const _gfTimes = document.querySelectorAll('#grid-footer .gf-time-value');

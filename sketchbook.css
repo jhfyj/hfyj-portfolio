@@ -250,7 +250,7 @@ html.felt-snapping #upcoming {
      paints the same maps with lighting over the top; both live on the surface
      so the nap moves with the cards when the table is dragged. */
   background-color: var(--felt);
-  background-image: url(assets/sketchbook/felt/albedo.jpg);
+  background-image: url(assets/sketchbook/felt/albedo.webp);
   background-size: 520px 520px;
   cursor: grab;
 }

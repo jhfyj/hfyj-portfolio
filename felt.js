@@ -5,9 +5,10 @@
    assets/sketchbook/felt/ so the nap catches the light the way a playing mat
    does.
 
-   Maps are Grass 003 from ambientCG (CC0): albedo, OpenGL normal, roughness,
-   ambient occlusion, displacement. Lighting is a fill from above plus a key
-   that follows the pointer — a wash, not a spotlight, so the nap moves without
+   Maps are Grass 003 from ambientCG (CC0), kept as 1024 WebP: albedo, OpenGL
+   normal, roughness, ambient occlusion, displacement. Lighting is a fill from
+   above plus a key that follows the pointer — a wash, not a spotlight, so the
+   nap moves without
    bleaching a disc out of the cloth. A phone has no mouse, so there the key stands
    still overhead-left (the same side the chips' shadows already fall from)
    and the tracking is not wired up at all. Safari on iPhone has been known
@@ -235,7 +236,7 @@
 
     var loaded = 0;
 
-    function load(src, unit) {
+    function load(src, unit, onReady) {
         var img = new Image();
         img.decoding = 'async';
         img.onload = function () {
@@ -252,16 +253,30 @@
             loaded += 1;
             dirty = true;
             requestDraw();
+            if (onReady) onReady();
         };
-        img.onerror = function () { console.error('[felt] missing', src); };
+        img.onerror = function () {
+            var jpg = src.replace(/\.webp$/, '.jpg');
+            if (jpg !== src) {
+                img.onerror = function () { console.error('[felt] missing', src); };
+                img.src = jpg;
+                return;
+            }
+            console.error('[felt] missing', src);
+        };
         img.src = src;
     }
 
-    load(MAP + 'albedo.jpg', units.albedo);
-    load(MAP + 'normal.jpg', units.normal);
-    load(MAP + 'roughness.jpg', units.rough);
-    load(MAP + 'ao.jpg', units.ao);
-    load(MAP + 'height.jpg', units.height);
+    // Albedo first so the CSS tile can give way the moment cloth exists.
+    // The other four maps are lighting; they ride in after, not in front
+    // of the hand's pictures.
+    load(MAP + 'albedo.webp', units.albedo, function () {
+        canvas.classList.add('is-lit');
+        load(MAP + 'normal.webp', units.normal);
+        load(MAP + 'roughness.webp', units.rough);
+        load(MAP + 'ao.webp', units.ao);
+        load(MAP + 'height.webp', units.height);
+    });
 
     var cssW = 0, cssH = 0;
     // Same green as --felt, so a newly allocated buffer is cloth and not a
@@ -290,7 +305,7 @@
         dirty = false;
         gl.uniform2f(loc.light, light[0], light[1]);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        if (loaded >= 5) canvas.classList.add('is-lit');
+        if (loaded >= 1) canvas.classList.add('is-lit');
     }
 
     var pending = false;

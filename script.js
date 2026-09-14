@@ -2345,21 +2345,22 @@ function loadCard8() {
     placeNow();
 
     function loadImage(src) {
-        // Decode off the main thread when the browser will. Image()
-        // otherwise holds the card's turn until the whole 200KB tile
-        // has been unpacked, which is the hitch after the stand-in.
-        return fetch(src).then((r) => {
-            if (!r.ok) throw new Error(src + ': HTTP ' + r.status);
-            return r.blob();
-        }).then((blob) => {
-            if (typeof createImageBitmap === 'function') return createImageBitmap(blob);
-            return new Promise((resolve, reject) => {
-                const im = new Image();
-                im.onload = () => resolve(im);
-                im.onerror = reject;
-                im.src = URL.createObjectURL(blob);
-            });
+        return new Promise((resolve, reject) => {
+            const im = new Image();
+            im.onload = () => resolve(im);
+            im.onerror = () => reject(new Error(src));
+            im.src = src;
         });
+    }
+
+    // WebP is what we ship. The live site still has the older JPEGs from
+    // before that swap; a missing WebP used to throw here and leave the
+    // green stand-in up forever. Try the new file, then the old one, and
+    // if both are gone the face still paints — just on flat felt.
+    function loadFeltTile() {
+        return loadImage('assets/sketchbook/felt/albedo.webp')
+            .catch(function () { return loadImage('assets/sketchbook/felt/albedo.jpg'); })
+            .catch(function () { return null; });
     }
 
     // Kick the nap and the four faces off now, not when we come to paint.
@@ -2368,12 +2369,12 @@ function loadCard8() {
     // the tile had not been asked for. About Me still wins the pipe —
     // its photo is a high-priority preload; this one is not.
     const detailReady = Promise.all([
-        hfyjMarkReady,
-        loadImage('assets/sketchbook/felt/albedo.webp'),
-        document.fonts.load(`400 ${144 * s}px "DM Sans"`),
-        document.fonts.load(`400 ${46 * s}px "Mynerve"`),
-        document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
-        document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
+        hfyjMarkReady.catch(function () { return null; }),
+        loadFeltTile(),
+        document.fonts.load(`400 ${144 * s}px "DM Sans"`).catch(function () {}),
+        document.fonts.load(`400 ${46 * s}px "Mynerve"`).catch(function () {}),
+        document.fonts.load(`italic 400 ${36 * s}px "Inter"`).catch(function () {}),
+        document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`).catch(function () {}),
     ]);
 
     function paintDetail() {
@@ -2390,10 +2391,15 @@ function loadCard8() {
         const tile = document.createElement('canvas');
         tile.width = tile.height = 256;
         const tctx = tile.getContext('2d');
-        // The live mat is lit; a raw albedo tile reads a shade too dark.
-        tctx.filter = 'brightness(1.32) saturate(0.95)';
-        tctx.drawImage(albedo, 0, 0, tile.width, tile.height);
-        tctx.filter = 'none';
+        if (albedo) {
+            // The live mat is lit; a raw albedo tile reads a shade too dark.
+            tctx.filter = 'brightness(1.32) saturate(0.95)';
+            tctx.drawImage(albedo, 0, 0, tile.width, tile.height);
+            tctx.filter = 'none';
+        } else {
+            tctx.fillStyle = FELT;
+            tctx.fillRect(0, 0, tile.width, tile.height);
+        }
 
         function drawBoxedText(text, x, y, w, h, align) {
             const m = ctx.measureText(text);

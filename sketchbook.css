@@ -794,6 +794,9 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
      crop into it rather than letterbox. */
   object-fit: cover;
 }
+/* Unless the work asks otherwise: see work.fit in sketchbook.js. */
+.card-well.is-contain { background-color: var(--fit-bg, #000); }
+.card-well.is-contain img { object-fit: contain; }
 
 /* The opened YouTube work. The player fills the well; the poster sits
    behind it in case the iframe is slow or blocked, and the name is off —

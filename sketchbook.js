@@ -252,6 +252,14 @@
             well.appendChild(embed);
         }
 
+        // A work that only reads whole - a screen recording, say - can ask to
+        // be letterboxed instead of cropped into the card's 5:7. The bars are
+        // the well's own colour, set to match the edge of the work.
+        if (work.fit === 'contain') {
+            well.classList.add('is-contain');
+            if (work.fitBg) well.style.setProperty('--fit-bg', work.fitBg);
+        }
+
         var img = document.createElement('img');
         var file = (still && work.poster) ? work.poster : work.file;
         img.src = 'assets/sketchbook/' + file;

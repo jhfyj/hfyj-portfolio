@@ -262,7 +262,9 @@
       "width": 426,
       "height": 220,
       "animated": true,
-      "poster": "griddialkit-poster.jpg"
+      "poster": "griddialkit-poster.jpg",
+      "fit": "contain",
+      "fitBg": "#171717"
     }
   ]
 }

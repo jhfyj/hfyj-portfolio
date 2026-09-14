@@ -480,6 +480,40 @@ body.modal-open { overflow: hidden; }
 }
 .faq-item.is-open .faq-a > p { padding-bottom: 26px; }
 
+/* An answer with more than a paragraph in it. The wrapper is the grid row, so
+   it takes the overflow the lone <p> takes above. */
+.faq-a > .faq-a-body {
+  overflow: hidden;
+  min-height: 0;
+  padding-left: 80px;
+}
+.faq-a-body > p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.faq-item.is-open .faq-a-body { padding-bottom: 26px; }
+
+.faq-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+.faq-photos[hidden] { display: none; }
+.faq-photos .polaroid {
+  width: 160px;
+  cursor: pointer;
+}
+.faq-photos .polaroid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
 /* ---------- guitar ---------- */
 
 /* The copy points at the deck. Side-by-side the deck sits to the right of the
@@ -955,7 +989,9 @@ body.modal-open { overflow: hidden; }
   .sundays-photos { max-width: 460px; margin: 0 auto; }
   .faq-q { grid-template-columns: 42px minmax(0, 1fr) 20px; gap: 12px; }
   .faq-text, .faq-num { font-size: 19px; }
-  .faq-a > p { padding-left: 54px; }
+  .faq-a > p,
+  .faq-a > .faq-a-body { padding-left: 54px; }
+  .faq-photos .polaroid { width: calc(50% - 6px); max-width: 160px; }
 }
 
 /* Below this the date can no longer hold its own column without squeezing the

@@ -1,6 +1,19 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
-import { copyFileSync, cpSync } from 'node:fs';
+import { copyFileSync, cpSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
+
+// The About page's "outside of design" photos: drop images into this folder
+// and they show up. A static page cannot list a directory, so the list is
+// written here - into dist at build, and answered live by the dev server.
+const OUTSIDE_DIR = 'assets/about/outside';
+const OUTSIDE_LIST = OUTSIDE_DIR + '/photos.json';
+function outsidePhotos() {
+    const dir = resolve(__dirname, OUTSIDE_DIR);
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir)
+        .filter((f) => /\.(jpe?g|png|webp|gif|avif)$/i.test(f) && !f.startsWith('.'))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
 
 // Every page the site actually serves, listed by hand.
 //
@@ -58,6 +71,12 @@ const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo'];
 function copyStaticFiles() {
     return {
         name: 'copy-static-files',
+        configureServer(server) {
+            server.middlewares.use('/' + OUTSIDE_LIST, (req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(outsidePhotos()));
+            });
+        },
         // After the bundle is written, so nothing here can be overwritten by it.
         closeBundle() {
             for (const f of CLASSIC_SCRIPTS) {
@@ -66,6 +85,7 @@ function copyStaticFiles() {
             for (const d of RUNTIME_ASSET_DIRS) {
                 cpSync(resolve(__dirname, d), resolve(__dirname, 'dist', d), { recursive: true });
             }
+            writeFileSync(resolve(__dirname, 'dist', OUTSIDE_LIST), JSON.stringify(outsidePhotos()));
         },
     };
 }

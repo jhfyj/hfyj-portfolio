@@ -394,15 +394,52 @@
         photoOpener = null;
     }
 
-    if (photoModal) {
-        document.querySelectorAll('.polaroid, .strip').forEach(function (el) {
-            el.addEventListener('click', function (e) { openPhoto(el, e); });
-            el.addEventListener('keydown', function (e) {
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
-                openPhoto(el, null);
-            });
+    function bindPhoto(el) {
+        if (!photoModal) return;
+        el.addEventListener('click', function (e) { openPhoto(el, e); });
+        el.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            openPhoto(el, null);
         });
+    }
+
+    // ------------------------------------------------------- outside photos
+
+    // Whatever is in assets/about/outside/, in filename order. There is no
+    // listing a folder from a static page, so vite.config.js writes
+    // photos.json from the folder at build time (and serves it in dev).
+    // Nothing in the folder, or no list at all, and the answer stays text.
+    document.querySelectorAll('.faq-photos[data-photos]').forEach(function (row) {
+        const list = row.getAttribute('data-photos');
+        const dir = list.slice(0, list.lastIndexOf('/') + 1);
+        fetch(list, { cache: 'no-cache' })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (files) {
+                if (!Array.isArray(files) || !files.length) return;
+                files.forEach(function (file, i) {
+                    const tile = document.createElement('div');
+                    tile.className = 'polaroid';
+                    tile.setAttribute('role', 'button');
+                    tile.setAttribute('tabindex', '0');
+                    tile.setAttribute('aria-label', 'Outside of design, photo ' + (i + 1));
+                    const img = document.createElement('img');
+                    img.src = dir + encodeURIComponent(file);
+                    img.alt = '';
+                    img.loading = 'lazy';
+                    img.decoding = 'async';
+                    img.setAttribute('data-skel', '');
+                    tile.appendChild(img);
+                    row.appendChild(tile);
+                    bindPhoto(tile);
+                });
+                row.hidden = false;
+            })
+            .catch(function () {});
+    });
+
+    if (photoModal) {
+        document.querySelectorAll('.polaroid, .strip').forEach(bindPhoto);
 
         // Keep the pointer current during the rise so the first lean is toward
         // where the mouse is now, not where the click was 600ms ago.

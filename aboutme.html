@@ -228,7 +228,7 @@
                     <span class="faq-text">What types of art did you do before design?</span>
                     <span class="faq-chevron" aria-hidden="true"></span>
                 </button>
-                <div class="faq-a"><p>I created everything from watercolor to color pencil, charcoal, and graphite, but my favorite medium will always be oil painting. Check out the playground page to learn more!</p></div>
+                <div class="faq-a"><p>I created everything from watercolor to color pencil, charcoal, and graphite, but my favorite medium will always be oil painting. Check out the <a class="accent" href="playground.html">playground page</a> to learn more!</p></div>
             </li>
             <li class="faq-item">
                 <button class="faq-q" aria-expanded="false">
@@ -236,7 +236,15 @@
                     <span class="faq-text">What do you do outside of design?</span>
                     <span class="faq-chevron" aria-hidden="true"></span>
                 </button>
-                <div class="faq-a"><p>I like playing classical guitar, doing hip hop dance with friends, trying matcha places and good food around NYC.</p></div>
+                <div class="faq-a">
+                    <!-- One wrapper, because the open/close animation needs a
+                         single row to grow. The photos come from
+                         assets/about/outside/; aboutme.js lays them out. -->
+                    <div class="faq-a-body">
+                        <p>I like playing classical guitar, doing hip hop dance with friends, trying matcha places and good food around NYC.</p>
+                        <div class="faq-photos" data-photos="assets/about/outside/photos.json" hidden></div>
+                    </div>
+                </div>
             </li>
         </ul>
     </section>

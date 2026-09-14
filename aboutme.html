@@ -178,8 +178,8 @@
 
         <div class="people-grid">
             <div class="strips">
-                <img class="strip strip-a" src="assets/about/strip-astudio.webp" alt="A photobooth strip from AStudio events" data-skel width="345" height="1447">
-                <img class="strip strip-b" src="assets/about/strip-technyu.webp" alt="A photobooth strip from tech@nyu events" data-skel width="345" height="1447">
+                <img class="strip strip-a" src="assets/about/strip-astudio.webp" alt="A photobooth strip from AStudio events" data-skel width="345" height="1447" role="button" tabindex="0">
+                <img class="strip strip-b" src="assets/about/strip-technyu.webp" alt="A photobooth strip from tech@nyu events" data-skel width="345" height="1447" role="button" tabindex="0">
             </div>
 
             <div class="orgs">
@@ -203,10 +203,10 @@
                 <p class="body-copy">Got to meet some of the coolest people ever. Was so inspired everyday to keep making cool things :)</p>
             </div>
             <div class="sundays-photos">
-                <div class="polaroid sp1"><img src="assets/about/sundays-1.webp" alt="" data-skel width="992" height="1024"></div>
-                <div class="polaroid sp2"><img src="assets/about/sundays-2.webp" alt="" data-skel width="826" height="1024"></div>
-                <div class="polaroid sp3"><img src="assets/about/sundays-3.webp" alt="" data-skel width="989" height="1024"></div>
-                <div class="polaroid sp4"><img src="assets/about/sundays-4.webp" alt="" data-skel width="992" height="1024"></div>
+                <div class="polaroid sp1" role="button" tabindex="0" aria-label="Sundays photo 1"><img src="assets/about/sundays-1.webp" alt="" data-skel width="992" height="1024"></div>
+                <div class="polaroid sp2" role="button" tabindex="0" aria-label="Sundays photo 2"><img src="assets/about/sundays-2.webp" alt="" data-skel width="826" height="1024"></div>
+                <div class="polaroid sp3" role="button" tabindex="0" aria-label="Sundays photo 3"><img src="assets/about/sundays-3.webp" alt="" data-skel width="989" height="1024"></div>
+                <div class="polaroid sp4" role="button" tabindex="0" aria-label="Sundays photo 4"><img src="assets/about/sundays-4.webp" alt="" data-skel width="992" height="1024"></div>
             </div>
         </div>
     </section>
@@ -245,7 +245,7 @@
         <div class="guitar-copy">
             <p class="eyebrow">SOME CLASSICAL GUITAR I'VE BEEN PRACTICING</p>
             <p class="statement">Andante Largo, Op. 5, No.5 by Fernando Sor</p>
-            <p class="body-copy">Hear a section of it below!</p>
+            <p class="body-copy">Hear a section of it <span class="guitar-place"><span class="guitar-place-side">to the right</span><span class="guitar-place-stack">below</span></span>!</p>
         </div>
         <!-- The browser's own <audio controls> is a grey pill that belongs to no
              page in particular. This is the same element with its chrome taken
@@ -254,14 +254,31 @@
              length can be shown before anyone commits to pressing play. -->
         <div class="deck" data-deck>
             <div class="deck-plinth">
+                <span class="deck-well" aria-hidden="true"></span>
+                <span class="deck-pulley" aria-hidden="true"></span>
+                <span class="deck-rest" aria-hidden="true"></span>
                 <button class="deck-platter" type="button" aria-pressed="false"
                         aria-label="Play Andante Largo, Op. 5, No. 5">
                     <span class="deck-disc" aria-hidden="true">
                         <span class="deck-shine"></span>
+                        <span class="deck-label"></span>
                         <span class="deck-spindle"></span>
                     </span>
                 </button>
-                <span class="deck-arm" aria-hidden="true"><span class="deck-head"></span></span>
+                <span class="deck-arm" aria-hidden="true">
+                    <span class="deck-weight"></span>
+                    <span class="deck-bearing"></span>
+                    <span class="deck-cue"></span>
+                    <span class="deck-seg deck-seg-a">
+                        <span class="deck-seg deck-seg-b">
+                            <span class="deck-head">
+                                <span class="deck-shell"></span>
+                                <span class="deck-finger"></span>
+                                <span class="deck-cart"></span>
+                            </span>
+                        </span>
+                    </span>
+                </span>
                 <p class="deck-readout" aria-hidden="true">
                     <span class="deck-elapsed">0:00</span> / <span class="deck-total">--:--</span>
                 </p>
@@ -271,6 +288,15 @@
     </section>
 
 </main>
+
+<!-- Enlarged polaroid or photobooth strip. Hidden until a thumbnail is clicked;
+     aboutme.js fills #photo-modal-stage and takes it off `hidden`. -->
+<div id="photo-modal" hidden>
+    <div class="photo-modal-scrim"></div>
+    <div class="photo-modal-panel" role="dialog" aria-modal="true" tabindex="-1" aria-label="Photo">
+        <div id="photo-modal-stage"></div>
+    </div>
+</div>
 
 <script src="analytics.js" defer></script>
 <script src="site.js"></script>

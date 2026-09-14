@@ -1,5 +1,5 @@
-/* About Me page behaviour: the hero card fan and the FAQ accordion.
-   Top bar, cursor and the reveal helper come from site.js.
+/* About Me page behaviour: the hero card fan, the photo viewer, and the FAQ
+   accordion. Top bar, cursor and the reveal helper come from site.js.
    Vanilla port of the Framer CardFan component — same geometry and timings,
    driven by the Web Animations API instead of framer-motion. */
 
@@ -39,12 +39,26 @@
     if (fan && hero) {
         let scale = 1;
         let dealing = false;
+        // First deal starts from the leaning deck. After that, a click has to
+        // gather from wherever the cards actually are, or the stack looks like
+        // a jump.
+        let hasDealt = false;
+
+        // A short range and a small shrink — the fan should recede a little as
+        // you leave the hero, then grow back the moment you are at the top.
+        const SCROLL_RANGE = 320;
+        const SCROLL_SCALE = 0.90;
+
+        // Pre-deal: one leaning deck at the anchor.
+        const TILTED = 'translate(0px, 0px) rotate(-8deg)';
+        const STACKED = 'translate(0px, 0px) rotate(0deg)';
 
         const els = CARDS.map(function (card, i) {
             const el = document.createElement('div');
             el.className = 'fan-card';
             el.style.zIndex = String(i);
             el.style.background = GREYS[i];
+            el.style.transform = TILTED;
 
             const photo = document.createElement('div');
             photo.className = 'fan-photo';
@@ -86,10 +100,6 @@
             return 'translate(' + x + 'px, ' + y + 'px) rotate(' + angleAt(i) + 'deg)';
         }
 
-        // Pre-deal: one leaning deck at the anchor.
-        const TILTED = 'translate(0px, 0px) rotate(-8deg)';
-        const STACKED = 'translate(0px, 0px) rotate(0deg)';
-
         function layout() {
             scale = Math.min(hero.clientWidth / 560, 1.8);
             const w = BASE_W * scale;
@@ -106,7 +116,7 @@
                 c.photo.style.right = pad + 'px';
                 c.photo.style.top = pad + 'px';
                 c.photo.style.bottom = foot + 'px';
-                if (!dealing && !c.el.classList.contains('is-hover')) {
+                if (hasDealt && !dealing && !c.el.classList.contains('is-hover')) {
                     c.el.style.transform = transformFor(i, false);
                 }
             });
@@ -121,20 +131,35 @@
 
         function deal() {
             if (dealing) return;
-            if (reduceMotion) { layout(); return; }
+            if (reduceMotion) {
+                hasDealt = true;
+                layout();
+                return;
+            }
             dealing = true;
 
+            const replay = hasDealt;
+            hasDealt = true;
+
             els.forEach(function (c, i) {
+                const lifted = c.el.classList.contains('is-hover');
+                // Keep the authored translate/rotate string. A computed matrix
+                // will not interpolate cleanly into STACKED.
+                const from = replay
+                    ? (c.el.style.transform || transformFor(i, lifted))
+                    : TILTED;
+
                 c.el.classList.remove('is-hover');
                 c.el.style.zIndex = String(i);
                 c.el.style.transition = 'none';
                 c.el.getAnimations().forEach(function (a) { a.cancel(); });
-                c.el.style.transform = TILTED;
+                c.el.style.transform = from;
 
-                // Gather into a square stack, pause, then deal out along the arc.
+                // From the fan (or the leaning deck on first load) into a
+                // square stack, then deal back out along the arc.
                 c.el.animate(
-                    [{ transform: TILTED }, { transform: STACKED }],
-                    { duration: 520, easing: EASE_STACK, fill: 'forwards' }
+                    [{ transform: from }, { transform: STACKED }],
+                    { duration: replay ? 580 : 520, easing: EASE_STACK, fill: 'forwards' }
                 ).finished.then(function () {
                     return c.el.animate(
                         [{ transform: STACKED }, { transform: transformFor(i, false) }],
@@ -147,8 +172,19 @@
             });
         }
 
+        function syncScrollScale() {
+            if (reduceMotion) {
+                fan.style.setProperty('--fan-scroll', '1');
+                return;
+            }
+            const t = Math.min(1, Math.max(0, window.scrollY) / SCROLL_RANGE);
+            const s = 1 - (1 - SCROLL_SCALE) * t;
+            fan.style.setProperty('--fan-scroll', s.toFixed(4));
+        }
+
         layout();
         deal();
+        syncScrollScale();
 
         hero.addEventListener('click', function () {
             if (!dealing) deal();
@@ -159,6 +195,16 @@
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(layout, 120);
         });
+
+        let scrollTick = false;
+        window.addEventListener('scroll', function () {
+            if (scrollTick) return;
+            scrollTick = true;
+            requestAnimationFrame(function () {
+                scrollTick = false;
+                syncScrollScale();
+            });
+        }, { passive: true });
     }
 
     // ------------------------------------------------------------ load-in
@@ -249,4 +295,136 @@
             }
         });
     });
+
+    // ---------------------------------------------------------- photo viewer
+
+    // The photobooth strips and the Sundays polaroids open over a blurred page.
+    // The print in there is built fresh on every open and thrown away on close:
+    // there is then never a second copy of a photo sitting in the document, and
+    // the rise always has a new element to play on.
+    const photoModal = document.getElementById('photo-modal');
+    const photoStage = document.getElementById('photo-modal-stage');
+    const photoPanel = photoModal && photoModal.querySelector('[role="dialog"]');
+    let photoOpener = null;
+    let photoCard = null;
+    let photoTiltTimer = null;
+    let photoPointer = { x: 0, y: 0 };
+
+    function photoName(source) {
+        return source.getAttribute('aria-label') || source.alt || 'Photo';
+    }
+
+    function tiltFromPointer(card) {
+        const r = card.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        let px = (photoPointer.x - r.left) / r.width - 0.5;
+        let py = (photoPointer.y - r.top) / r.height - 0.5;
+        px = Math.max(-0.65, Math.min(0.65, px));
+        py = Math.max(-0.65, Math.min(0.65, py));
+        card.style.setProperty('--tilt-x', (-py * 7).toFixed(2) + 'deg');
+        card.style.setProperty('--tilt-y', (px * 9).toFixed(2) + 'deg');
+    }
+
+    function openPhoto(source, pointer) {
+        if (!photoModal || !photoStage || !source) return;
+        if (photoTiltTimer) {
+            window.clearTimeout(photoTiltTimer);
+            photoTiltTimer = null;
+        }
+        photoStage.innerHTML = '';
+        photoCard = null;
+        photoOpener = source;
+        if (pointer) {
+            photoPointer.x = pointer.clientX;
+            photoPointer.y = pointer.clientY;
+        }
+
+        const isStrip = source.classList.contains('strip');
+        const srcImg = source.tagName === 'IMG' ? source : source.querySelector('img');
+        if (!srcImg) return;
+
+        const rise = document.createElement('div');
+        rise.className = 'photo-modal-rise';
+
+        const card = document.createElement('div');
+        card.className = 'photo-modal-card ' + (isStrip ? 'is-strip' : 'is-polaroid');
+
+        const img = document.createElement('img');
+        img.src = srcImg.currentSrc || srcImg.src;
+        img.alt = srcImg.alt || photoName(source);
+        card.appendChild(img);
+        rise.appendChild(card);
+        photoStage.appendChild(rise);
+        photoCard = card;
+
+        if (photoPanel) photoPanel.setAttribute('aria-label', photoName(source));
+        photoModal.removeAttribute('hidden');
+        document.body.classList.add('modal-open');
+        if (photoPanel) photoPanel.focus();
+
+        if (reduceMotion) return;
+
+        let started = false;
+        const beginTilt = function () {
+            if (started || photoCard !== card || !document.contains(card)) return;
+            started = true;
+            card.classList.add('is-tilting');
+            tiltFromPointer(card);
+        };
+        rise.addEventListener('animationend', function (e) {
+            if (e.target === rise) beginTilt();
+        });
+        // animationend is easy to miss if the node is hidden mid-flight, and
+        // a print that never leans looks broken rather than reduced. 700ms is
+        // a hair past the 620ms rise.
+        photoTiltTimer = window.setTimeout(beginTilt, 700);
+    }
+
+    function closePhoto() {
+        if (!photoModal || photoModal.hasAttribute('hidden')) return;
+        if (photoTiltTimer) {
+            window.clearTimeout(photoTiltTimer);
+            photoTiltTimer = null;
+        }
+        photoCard = null;
+        photoModal.setAttribute('hidden', '');
+        document.body.classList.remove('modal-open');
+        photoStage.innerHTML = '';
+        if (photoOpener && document.contains(photoOpener)) photoOpener.focus();
+        photoOpener = null;
+    }
+
+    if (photoModal) {
+        document.querySelectorAll('.polaroid, .strip').forEach(function (el) {
+            el.addEventListener('click', function (e) { openPhoto(el, e); });
+            el.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                openPhoto(el, null);
+            });
+        });
+
+        // Keep the pointer current during the rise so the first lean is toward
+        // where the mouse is now, not where the click was 600ms ago.
+        photoModal.addEventListener('pointermove', function (e) {
+            if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+            photoPointer.x = e.clientX;
+            photoPointer.y = e.clientY;
+            if (photoCard && photoCard.classList.contains('is-tilting')) tiltFromPointer(photoCard);
+        });
+
+        photoModal.addEventListener('click', function (e) {
+            if (!photoStage.contains(e.target)) closePhoto();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (photoModal.hasAttribute('hidden')) return;
+            if (e.key === 'Escape') { closePhoto(); return; }
+            if (e.key !== 'Tab') return;
+            // The dialog itself is the only focusable thing in here, so Tab
+            // has nowhere to go without walking onto the blurred page.
+            e.preventDefault();
+            if (photoPanel) photoPanel.focus();
+        });
+    }
 })();

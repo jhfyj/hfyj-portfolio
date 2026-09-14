@@ -16,6 +16,8 @@ const PAGES = {
     puregym: 'puregym.html',
     techatnyu: 'techatnyu.html',
     thedial: 'the-dial.html',
+    playground: 'playground.html',
+    // The page's old address, kept so existing links still land on the table.
     sketchbook: 'sketchbook.html',
 };
 

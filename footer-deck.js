@@ -243,9 +243,58 @@
         }
     }
 
+    // The hand lives in the grid footer. #grid-view is a full-screen overlay
+    // at opacity 0 on the carousel, so a viewport observer would still see
+    // it. Wait until the grid is actually up, then until the footer is near.
+    function gridIsOn() {
+        var grid = document.getElementById('grid-view');
+        if (!grid) return false;
+        return grid.classList.contains('visible')
+            || document.documentElement.hasAttribute('data-restore-view');
+    }
+
+    function startWhenSeen() {
+        var slots = document.querySelectorAll('[data-deck-hand]');
+        if (!slots.length) return;
+        var grid = document.getElementById('grid-view');
+
+        function arm() {
+            if (typeof IntersectionObserver !== 'function' || !grid) {
+                start();
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                for (var i = 0; i < entries.length; i++) {
+                    if (!entries[i].isIntersecting) continue;
+                    io.disconnect();
+                    start();
+                    return;
+                }
+            }, { root: grid, rootMargin: '240px 0px' });
+            for (var i = 0; i < slots.length; i++) io.observe(slots[i]);
+        }
+
+        if (gridIsOn()) { arm(); return; }
+        if (!grid || typeof MutationObserver !== 'function') {
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(start, { timeout: 8000 });
+            } else {
+                setTimeout(start, 4000);
+            }
+            return;
+        }
+        var mo = new MutationObserver(function () {
+            if (!gridIsOn()) return;
+            mo.disconnect();
+            arm();
+        });
+        mo.observe(grid, { attributes: true, attributeFilter: ['class'] });
+        mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-restore-view'] });
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start);
+        document.addEventListener('DOMContentLoaded', startWhenSeen);
     } else {
-        start();
+        startWhenSeen();
     }
 })();

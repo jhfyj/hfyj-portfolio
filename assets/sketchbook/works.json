@@ -223,6 +223,46 @@
       "width": 3498,
       "height": 2275,
       "src": "https://framerusercontent.com/images/UziYsl8DnbR0ycnjDg2e3PWuQ6U.png?scale-down-to=1024&width=3498&height=2275"
+    },
+    {
+      "id": "watch",
+      "title": "watch",
+      "category": "design exploration",
+      "file": "week4.gif",
+      "width": 426,
+      "height": 346,
+      "animated": true,
+      "poster": "week4-poster.jpg"
+    },
+    {
+      "id": "sundays-graphics",
+      "title": "Sundays Graphics",
+      "category": "branding/graphic",
+      "file": "sundays-showreel.gif",
+      "width": 344,
+      "height": 426,
+      "animated": true,
+      "poster": "sundays-showreel-poster.jpg"
+    },
+    {
+      "id": "ticket-rsvp",
+      "title": "Ticket RSVP",
+      "category": "design exploration",
+      "file": "ticket-rsvp.gif",
+      "width": 426,
+      "height": 222,
+      "animated": true,
+      "poster": "ticket-rsvp-poster.jpg"
+    },
+    {
+      "id": "grid-dial-kit",
+      "title": "Grid Dial Kit",
+      "category": "design exploration",
+      "file": "griddialkit.gif",
+      "width": 426,
+      "height": 220,
+      "animated": true,
+      "poster": "griddialkit-poster.jpg"
     }
   ]
 }

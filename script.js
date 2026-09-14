@@ -876,10 +876,10 @@ const CARD_URLS = [
     "the-dial.html",                       // 5 — The Dial
     "#",                                    // 6 — BMW Designworks (Coming Soon)
     "#",                                    // 7 — Nenos Inc. (Coming Soon)
-    // 8 — Playground. Local now: sketchbook.html is the built page, and it is
+    // 8 — Playground. Local now: playground.html is the built page, and it is
     // the one this site should be sending people to. It used to point at the
     // live Framer site because there was nothing here to point at.
-    "sketchbook.html",
+    "playground.html",
 ];
 
 // Cards with no real destination page yet — hovering shows "coming soon" and
@@ -2262,7 +2262,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
 //
 // Frame 4988's layout, drawn with the pieces that actually live on the
 // table: the HFYJ back, the accent chips, a stock die. The live cloth
-// still lives on sketchbook.html; this is a still so the carousel is
+// still lives on playground.html; this is a still so the carousel is
 // not keeping a second scene glued to a turning card.
 const PLAYGROUND_PILLS = ['PLAYGROUND', 'CONCEPT'];
 // Where the pieces sit, in the face's own design px. The cloth texture

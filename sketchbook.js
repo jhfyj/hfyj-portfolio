@@ -1595,7 +1595,7 @@
         // A YouTube work is 16:9 regardless of its poster. The live page plays
         // those as an embed, and a 5:7 well would letterbox the player into a
         // sliver. The box itself is also opened up on .is-embed, because the
-        // 280px card the stills fit in is too small to watch.
+        // 320px card the stills fit in is too small to watch.
         //
         // A work missing either number keeps the stylesheet's 5:7. The fit in
         // sketchbook.css divides by this ratio, and a card told to be 0 wide by

@@ -48,7 +48,7 @@
      ever bigger in any direction than the one that used to be there was tall —
      and the 5:7 card, fitted into that square, comes out at exactly this width
      again, at every window size, which is why it is still written here. */
-  --card-w-modal: min(280px, 64vw);
+  --card-w-modal: min(320px, 72vw);
   --card-box: calc(var(--card-w-modal) / (5 / 7));
   /* The room the modal keeps around whatever it is holding. Named rather than
      written into the padding alone, because the fit has to subtract it from the
@@ -495,7 +495,7 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 
      It scales rather than sitting at a fixed weight, because the index in the
      corner and the fold it sits in are the same geometry and those cannot be
-     fixed — a border held at 3px on the modal's 280px card while the fold
+     fixed — a border held at 3px on the modal's 320px card while the fold
      shrank with the card would stop being the about-me layout. The floor is
      there for one card only: at the table's 118px the ratio gives 2.3px, and on
      a phone's 84px card 1.7px, which straddles a device pixel and reads as a
@@ -1200,12 +1200,12 @@ body.modal-open { overflow: hidden; }
    the height is stopped by the window rather than by the box. Fitting to width
    alone is the version of this that looks right on a desk and pushes the card
    through the floor on a laptop turned sideways. */
-/* A YouTube work needs a bigger box than the stills. 280px is a playing
+/* A YouTube work needs a bigger box than the stills. 320px is a playing
    card; a player that size is a postage stamp. The square is still a square
    — the 16:9 ratio is written on the card as --card-ar — so this only
    raises the ceiling the fit reads. */
 #modal-card > .card.is-embed {
-  --card-box: min(860px, calc(100vw - var(--modal-pad) * 2),
+  --card-box: min(960px, calc(100vw - var(--modal-pad) * 2),
                   calc((100svh - var(--modal-pad) * 2) * 16 / 9));
 }
 

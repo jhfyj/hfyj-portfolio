@@ -54,6 +54,7 @@
     // arrive at is that fraction of however wide the well is on screen.
     const WELL_RADIUS = 24 / 1016.663;
     const HERO_WAIT = 1200;     // longest we will hold out for the hero's media
+    const MAT_WAIT = 700;       // longest the playground flight waits for its lit grass
     // The same curve the scroll-reveal in site.js uses, so the flight and the
     // page assembling around it read as one motion rather than two.
     const EASE = 'cubic-bezier(.22, .61, .36, 1)';
@@ -172,6 +173,7 @@
         window.CardTransition.active = false;
         root.classList.remove('card-transition');
         root.classList.remove('felt-landed');
+        root.classList.remove('felt-flying');
         if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
         layer = null;
     }
@@ -215,6 +217,21 @@
         // carry them; without them, the intrinsic size has to be asked for.
         if (media.getAttribute('width') && media.getAttribute('height')) return true;
         return media.tagName === 'IMG' ? media.naturalWidth > 0 : media.videoWidth > 0;
+    }
+
+    // The grass the page draws is not the flat tile CSS shows before WebGL
+    // has it, and swapping one for the other mid-flight is a visible change of
+    // cloth. So the flight waits for the lit mat - briefly: the albedo is
+    // preloaded and usually already there, and a table with no WebGL at all
+    // must not be held back for it.
+    function whenMatIsLit(done) {
+        const t0 = Date.now();
+        (function tick() {
+            const mat = document.getElementById('mat');
+            if (!mat || mat.classList.contains('is-lit') || mat.style.display === 'none') return done();
+            if (Date.now() - t0 > MAT_WAIT) return done();
+            requestAnimationFrame(tick);
+        })();
     }
 
     function whenHeroHasABox(hero, done) {
@@ -360,6 +377,8 @@
         };
         hero.style.transform = from.transform;
         hero.style.clipPath = from.clipPath;
+        // Only now, already shrunk into the card, does the cloth show.
+        root.classList.add('felt-flying');
 
         const opts = { duration: DURATION, easing: EASE, fill: 'forwards' };
         const flight = hero.animate([from, to], opts);
@@ -545,10 +564,12 @@
             if (stash.kind === 'felt') {
                 const felt = document.getElementById('felt');
                 if (!felt) return finish();
-                arm(HERO_WAIT + DURATION + CROSSFADE + 600);
+                arm(HERO_WAIT + MAT_WAIT + DURATION + CROSSFADE + 600);
                 whenHeroHasABox(felt, function (ok) {
                     if (!ok) return finish();
-                    try { playFelt(felt); } catch (err) { finish(); }
+                    whenMatIsLit(function () {
+                        try { playFelt(felt); } catch (err) { finish(); }
+                    });
                 });
                 return;
             }

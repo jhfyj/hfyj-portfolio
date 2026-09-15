@@ -439,6 +439,21 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   overflow: hidden;
 }
 
+/* Arriving from the home card, the cloth must not be seen at full size before
+   the flight has shrunk it into the card: that reads as the table appearing,
+   jumping back into the card, and opening out a second time. Until
+   card-transition.js starts the flight (felt-flying) the opening shimmers the
+   way an image does while it loads, and the cloth waits behind it. The shimmer
+   is skeleton.css's, so it matches every other loading picture on the site. */
+:root.card-transition:not(.felt-flying) #felt { visibility: hidden; }
+:root.card-transition:not(.felt-flying) #table {
+  background-image: linear-gradient(100deg,
+    var(--skel-base) 30%, var(--skel-sheen) 50%, var(--skel-base) 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skel-shimmer 1.5s ease-in-out infinite;
+}
+
 /* The felt itself is the flight — grass, name and rim pieces stay on
    it. The hand, the bar, the rack and any cards already played wait. */
 :root.card-transition #felt > #fan,
@@ -522,6 +537,11 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
      is hover's to write, and from --y, which is the slot's: three things move a
      card vertically and none of them should have to know about the others. */
   --enter: 0px;
+  /* Invert, after a shuffle: the opening five start on the pack and
+     deal into the fan. Composed into translate the same way --enter is,
+     so the existing transition on that property can carry them. */
+  --from-x: 0px;
+  --from-y: 0px;
   /* An extra few degrees while a card is being dragged, so picking one up is
      visible even before it has moved far. Composed into the same rotate as the
      card's own tilt rather than added as a second transform: two transforms on
@@ -550,7 +570,7 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
      rotation on the `rotate` property and the position in `transform` would
      rotate the offset vector before applying it, which does not lean the card:
      it carries it off across the table. */
-  translate: var(--x) calc(var(--y) + var(--lift) + var(--enter)) 0px;
+  translate: calc(var(--x) + var(--from-x)) calc(var(--y) + var(--lift) + var(--enter) + var(--from-y)) 0px;
   transform: rotate(calc(var(--rot) + var(--tilt))) scale(var(--pick));
   /* The card is a 3D box so the flip has a back to turn to. */
   perspective: 1000px;
@@ -911,6 +931,12 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 /* A card played leaves the hand and the rest close up; the new one comes in at
    the end, rising into the gap rather than appearing in it. */
 #fan .card.is-entering { --enter: 54px; opacity: 0; }
+/* Same invert as the rack tiles: from the pack, at the table's size, into
+   the fan. Longer than the hand's ordinary close-up so the throw reads. */
+#fan .card.is-dealing-in {
+  transition: translate 0.52s cubic-bezier(0.2, 0.75, 0.3, 1),
+              transform 0.52s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
 /* :focus-within, not :focus-visible — the thing that takes focus is the button
    inside the card, and the card is what lifts. */
 #fan .card:hover, #fan .card:focus-within { --lift: -16px; }
@@ -1384,6 +1410,7 @@ body.modal-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .card-inner,
   #fan .card,
+  #fan .card.is-dealing-in,
   #played .card,
   #grid .card.is-moving,
   #grid .card.is-leaving,

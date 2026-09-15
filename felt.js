@@ -270,12 +270,24 @@
     // Albedo first so the CSS tile can give way the moment cloth exists.
     // The other four maps are lighting; they ride in after, not in front
     // of the hand's pictures.
+    //
+    // Arriving from the home card, they also wait for the cloth to finish
+    // opening. Each one is a texture upload and a mipmap on the main thread,
+    // which is exactly where the flight's frames are drawn; landing four of
+    // them mid-flight is what made the table stutter open.
+    function afterFlight(fn) {
+        var ct = window.CardTransition;
+        if (!ct || !ct.active) return fn();
+        setTimeout(function () { afterFlight(fn); }, 100);
+    }
     load(MAP + 'albedo.webp', units.albedo, function () {
         canvas.classList.add('is-lit');
-        load(MAP + 'normal.webp', units.normal);
-        load(MAP + 'roughness.webp', units.rough);
-        load(MAP + 'ao.webp', units.ao);
-        load(MAP + 'height.webp', units.height);
+        afterFlight(function () {
+            load(MAP + 'normal.webp', units.normal);
+            load(MAP + 'roughness.webp', units.rough);
+            load(MAP + 'ao.webp', units.ao);
+            load(MAP + 'height.webp', units.height);
+        });
     });
 
     var cssW = 0, cssH = 0;

@@ -37,6 +37,7 @@
     var GATHER_MS = 560;
     var RIFFLE_MS = 240;
     var DEAL_STEP_MS = 42;      // between one card landing in the rack and the next
+    var HAND_DEAL_MS = 70;      // between one card leaving the pack for the fan and the next
 
     // A drag under this many pixels was someone clicking a card that happened
     // to wobble, not moving it. Above it the click is swallowed so a card is
@@ -1756,8 +1757,52 @@
         // width the reader actually has, still without easing.
         layOutFan();
         updateCount();
+        if (from) {
+            dealHandFrom(from);
+        } else {
+            void fanEl.offsetWidth;
+            fanEl.classList.remove('is-placing');
+        }
+    }
+
+    // After a riffle the opening five have to leave the pack and arrive in
+    // the fan. The first-load path writes them into their slots under
+    // is-placing, which is why they simply appear — and in fullscreen the
+    // rack's own flight is faded out with the catalogue, so that pop is
+    // the only thing you see. Invert them back onto the pack, then release
+    // one by one so they deal into the hand.
+    function dealHandFrom(from) {
+        var fw = fanCardW();
+        var scale = fw ? playedW() / fw : 0.68;
+        var rects = [];
+        for (var i = 0; i < hand.length; i++) {
+            rects.push(hand[i].getBoundingClientRect());
+        }
+        for (var i = 0; i < hand.length; i++) {
+            var r = rects[i];
+            var el = hand[i];
+            el.style.setProperty('--from-x', (from.x - (r.left + r.width / 2)) + 'px');
+            el.style.setProperty('--from-y', (from.y - (r.top + r.height / 2)) + 'px');
+            el.style.setProperty('--pick', String(scale));
+            el.style.setProperty('--rot', '0deg');
+            el.classList.add('is-dealing-in');
+        }
         void fanEl.offsetWidth;
         fanEl.classList.remove('is-placing');
+        for (var i = 0; i < hand.length; i++) {
+            (function (el, idx) {
+                setTimeout(function () {
+                    el.style.setProperty('--from-x', '0px');
+                    el.style.setProperty('--from-y', '0px');
+                    el.style.setProperty('--pick', '1');
+                    var s = fanSlot(idx, hand.length);
+                    place(el, s.x, s.y, s.rot);
+                    setTimeout(function () {
+                        el.classList.remove('is-dealing-in');
+                    }, 560);
+                }, idx * HAND_DEAL_MS);
+            })(hand[i], i);
+        }
     }
 
     /* ---------------- a rack tile that is being looked at ---------------- */

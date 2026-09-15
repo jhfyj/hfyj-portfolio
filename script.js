@@ -1143,22 +1143,10 @@ cardShadowTex.minFilter = THREE.LinearFilter;
 cardShadowTex.magFilter = THREE.LinearFilter;
 cardShadowTex.generateMipmaps = false;
 
-// BMW and Nenos are not open yet. A hole in the opacity is how they sit
-// behind the rest of the deck — still in colour, clearly not a page you
-// can walk into.
-function applyComingSoonMaterial(mat, isShadow) {
-    if (!mat) return;
-    mat.transparent = true;
-    mat.opacity = isShadow ? 0.28 : 0.68;
-    mat.needsUpdate = true;
-}
-
-function applyComingSoonLook(group) {
-    group.traverse((obj) => {
-        if (!obj.isMesh || !obj.material) return;
-        applyComingSoonMaterial(obj.material, obj.userData.baseY !== undefined);
-    });
-}
+// BMW and Nenos are not open yet. The card itself stays solid — same stock,
+// same shadow as the rest of the deck — and only what is printed on it is
+// faded, in buildTemplateCardTexture (see `comingSoon` there).
+const COMING_SOON_INK = 0.5;
 
 // Helper — place & register a finished card group into the carousel
 function _placeCard(i, group) {
@@ -1213,13 +1201,9 @@ function _placeCard(i, group) {
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -0.001;
         group.add(backMesh);
-        if (COMING_SOON_INDICES.has(i)) applyComingSoonMaterial(mat);
     });
 
-    if (COMING_SOON_INDICES.has(i)) {
-        group.userData.comingSoon = true;
-        applyComingSoonLook(group);
-    }
+    if (COMING_SOON_INDICES.has(i)) group.userData.comingSoon = true;
 
     cards[i] = group;
     cardgroup.add(group);
@@ -1995,7 +1979,7 @@ function tmplDrawPill(ctx, x, y, h, label, s, theme) {
     return w;
 }
 
-function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, description, pills }) {
+function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, description, pills, comingSoon }) {
     const s = TEMPLATE_CARD_SCALE;
     const canvas = document.createElement('canvas');
     canvas.width = TEMPLATE_CARD.w * s;
@@ -2084,6 +2068,20 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
                 px += tmplDrawPill(ctx, px, 1354 * s, pillH, label, s, theme) + gap;
             });
 
+            // Coming soon: wash the stock back over everything printed so far.
+            // Half the stock on top is the same as the ink at half strength,
+            // and the card underneath stays fully opaque.
+            if (comingSoon) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+                ctx.clip();
+                ctx.globalAlpha = 1 - COMING_SOON_INK;
+                ctx.fillStyle = cardBg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
             // Slight paper-grain overlay — see loadCard1 for why this is free.
             ctx.save();
             ctx.beginPath();
@@ -2102,6 +2100,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
 }
 
 function loadTemplateCard(index, opts) {
+    if (COMING_SOON_INDICES.has(index)) opts = Object.assign({ comingSoon: true }, opts);
     buildTemplateCardTexture(opts).then(({ canvas, paint }) => {
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;

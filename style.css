@@ -1637,12 +1637,13 @@ html.gh-handle-drag .gh-handle.br::before {
   transform: translateY(0);
 }
 
-/* BMW and Nenos: not a page yet. The fade lives on the picture and the
-   copy so .visible and the row's hover dim can still do their own work
-   on the card. Colour stays; only the opacity drops. */
-.grid-card[data-coming-soon] .grid-card-image,
+/* BMW and Nenos: not a page yet. The box stays solid — its fill and shadow
+   are untouched — and only what sits in it fades: the picture, the number and
+   the copy. On those rather than the card so .visible and the row's hover dim
+   can still do their own work. */
+.grid-card[data-coming-soon] .grid-card-image > *,
 .grid-card[data-coming-soon] .grid-card-info {
-  opacity: 0.68;
+  opacity: 0.5;
 }
 
 .grid-container:has(.grid-card:hover) .grid-card {
@@ -1838,9 +1839,9 @@ html.gh-handle-drag .gh-handle.br::before {
     opacity: 1;
     filter: none;
   }
-  .grid-container:has(.grid-card:hover) .grid-card[data-coming-soon] .grid-card-image,
+  .grid-container:has(.grid-card:hover) .grid-card[data-coming-soon] .grid-card-image > *,
   .grid-container:has(.grid-card:hover) .grid-card[data-coming-soon] .grid-card-info {
-    opacity: 0.68;
+    opacity: 0.5;
   }
 }
 

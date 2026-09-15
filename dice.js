@@ -107,15 +107,14 @@
         return { x: -s.rx, y: -s.ry };
     }
 
-    // The shadow's own transform. It is a second cube, the same size as the
-    // die, laid down on the paper so it reads as the shadow a cube casts on a
-    // table rather than as an oval smudge. CAST_LIE tips it onto the felt;
-    // CAST_YAW turns it enough that a second face shows, so at rest it is
-    // always a cube sitting on the table and never a dark square that happens
-    // to match whichever number the die is showing. The hop never lifts it —
-    // a shadow stays on the table — and only slides it further from the die,
-    // spreads it and lets it go, which is what height looks like when the
-    // light is coming from above and slightly to the left.
+    /* ---------------- the shadow ---------------- */
+
+    // The shadow at rest is a second cube, the same size as the die, laid down
+    // on the paper so it reads as the shadow a cube casts on a table rather
+    // than as an oval smudge. CAST_LIE tips it onto the felt; CAST_YAW turns it
+    // enough that a second face shows, so at rest it is always a cube sitting
+    // on the table and never a dark square that happens to match whichever
+    // number the die is showing.
     //
     // The rest offset (CAST_OX/OY) lives on the wrapper as --cast-dx/dy so
     // the lamp can nudge it without rewriting the cube's own turn. A few
@@ -126,53 +125,156 @@
     var CAST_OX = 12;
     var CAST_OY = 17;
     var CAST_LAMP = 6;
+    var PERSPECTIVE = 520;
 
-    // The turn is about one axis, and it has to be this one. Six dark faces
-    // read as a cube only while none of them faces the viewer squarely: look
-    // straight down any axis of a cube and all six project onto the same
-    // square, which on screen is a single flat plane — a sticker on the grass
-    // rather than a shadow. Turning on this axis cannot do that, because it is
-    // the axis the laid-down cube already points nearest the viewer along: it
-    // stays where CAST_LIE and CAST_YAW put it, and the other two sweep round
-    // in the plane across from it. The die's own tumble is free to use both
-    // axes; its faces are lit and their edges say which way it is going.
-    function castFrame(hopY, hopZ, rz, turn, opacity) {
-        var lift = Math.max(0, -hopY) + hopZ * 0.18;
-        var spread = 1 + lift / 40;
-        var ox = lift * 0.22;
-        var oy = lift * 0.36;
-        return {
-            transform: 'translate3d(' + ox + 'px, ' + oy + 'px, 0px)'
-                + ' rotateX(' + CAST_LIE + 'deg)'
-                + ' rotateY(' + CAST_YAW + 'deg)'
-                + ' scale(' + spread + ')'
-                + ' rotateZ(' + rz + 'deg)'
-                + ' rotateY(' + turn + 'deg)',
-            opacity: opacity == null ? Math.max(0.3, 1 - lift / 52) : opacity
-        };
-    }
-
-    function applyCast(el, hopY, hopZ, rz, turn, opacity) {
-        var c = castFrame(hopY, hopZ, rz, turn, opacity);
-        el.__castCube.style.transform = c.transform;
-        el.__castCube.style.opacity = String(c.opacity);
+    function restCastFrame(rz) {
+        return 'rotateX(' + CAST_LIE + 'deg) rotateY(' + CAST_YAW + 'deg) rotateZ(' + rz + 'deg)';
     }
 
     function restCast(el) {
+        el.__lx = CAST_OX;
+        el.__ly = CAST_OY;
         el.style.setProperty('--cast-dx', CAST_OX + 'px');
         el.style.setProperty('--cast-dy', CAST_OY + 'px');
     }
 
     // Shadow falls away from the lamp, a little. Rest is already down-right;
     // the cursor only slides that sliver, it does not throw it across the mat.
+    // A die also keeps the numbers, because a shadow in the air is drawn from
+    // them and not from the custom property.
     function aimCast(el, cx, cy, baseX, baseY, throwPx) {
         var r = el.getBoundingClientRect();
         var px = (r.left + r.width / 2 - cx) / LIGHT_REACH;
         var py = (r.top + r.height / 2 - cy) / LIGHT_REACH;
         if (px > 1) px = 1; else if (px < -1) px = -1;
         if (py > 1) py = 1; else if (py < -1) py = -1;
-        el.style.setProperty('--cast-dx', (baseX + px * throwPx).toFixed(1) + 'px');
-        el.style.setProperty('--cast-dy', (baseY + py * throwPx).toFixed(1) + 'px');
+        var dx = baseX + px * throwPx, dy = baseY + py * throwPx;
+        el.__lx = dx;
+        el.__ly = dy;
+        el.style.setProperty('--cast-dx', dx.toFixed(1) + 'px');
+        el.style.setProperty('--cast-dy', dy.toFixed(1) + 'px');
+    }
+
+    /* In the air the laid-down cube is the wrong picture. Turned with the die,
+       it is a dark solid seen from above, and every time one of its faces
+       comes square to the camera it is a flat slab lying next to the die —
+       which is what a tumble looked like. A shadow has no sides. It is the
+       outline of the cube pressed onto the cloth along the light, and for a box
+       that outline is exactly the convex hull of its eight corners, each slid
+       away from the lamp by its height. So for the length of a throw the cube
+       is hidden and that outline is computed from the die's own pose, every
+       frame, and painted as one clipped, blurred polygon: it turns corner for
+       corner with the die because it is read off the die, and it grows,
+       softens and fades with the hop.
+
+       It has to leave the resting shadow and come back to it without a jump.
+       The resting cube's outline is also a hull of eight projected corners —
+       the same corners, put through the lie-down and the camera instead of
+       the light — so both are computed and the throw moves each corner from
+       one to the other and back. At either end of a roll the die is square
+       and a cube turned by quarter turns is the same cube, so the blend lands
+       on precisely the silhouette the resting cube draws, and the swap back to
+       it is a swap between two pictures of the same shape.
+
+       Under the cast sits a contact shadow, the die's own outline with almost
+       no throw: dark where it comes down on the cloth mid-throw and gone a
+       finger's width up. It is never there at rest, which is unchanged. */
+    // Room round the die for a thrown, spread shadow and its blur. The clip
+    // polygon is in this box's pixels, so nothing can fall outside it.
+    var AIR_PAD = 80;
+    // The mat lies DIE_HALF behind the plane through the die's centre, so the
+    // camera draws the true shadow a touch smaller than the die.
+    var AIR_PERSP = PERSPECTIVE / (PERSPECTIVE + DIE_HALF);
+
+    // Andrew's monotone chain. Eight points; the sort is the whole cost.
+    function hull(pts) {
+        pts.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+        function cross(o, a, b) {
+            return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+        }
+        var lower = [], upper = [], i;
+        for (i = 0; i < pts.length; i++) {
+            while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], pts[i]) <= 0) lower.pop();
+            lower.push(pts[i]);
+        }
+        for (i = pts.length - 1; i >= 0; i--) {
+            while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], pts[i]) <= 0) upper.pop();
+            upper.push(pts[i]);
+        }
+        lower.pop();
+        upper.pop();
+        return lower.concat(upper);
+    }
+
+    function polygon(pts) {
+        var c = DIE_HALF + AIR_PAD;
+        var out = [];
+        for (var i = 0; i < pts.length; i++) {
+            out.push((pts[i][0] + c).toFixed(1) + 'px ' + (pts[i][1] + c).toFixed(1) + 'px');
+        }
+        return 'polygon(' + out.join(', ') + ')';
+    }
+
+    function smooth(e0, e1, x) {
+        var t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+        return t * t * (3 - 2 * t);
+    }
+
+    // One frame of the shadow in the air. `p` is how far through the throw
+    // this is, 0 to 1; the pose is whatever the cube is actually showing.
+    function airShadow(el, p) {
+        var t = getComputedStyle(el.__cube).transform;
+        var m = (t && t !== 'none') ? new DOMMatrix(t) : new DOMMatrix();
+        // The hop comes back out of the corners and goes in as height. The
+        // shadow stays on the table while the die jumps up the screen — that
+        // jump is how the page draws height — and the gap between them is
+        // what says how high it went.
+        // Whether a face is within a few degrees of square to the camera: the
+        // start and the last frames of every throw. The rim slices of the core
+        // stand down then, for the same reason they do at rest (CORE_DEPTHS).
+        var square = Math.max(Math.abs(m.m13), Math.abs(m.m23), Math.abs(m.m33)) > 0.9986;
+        el.classList.toggle('is-square', square);
+        var ty = m.m42, tz = m.m43;
+        m.m41 = 0; m.m42 = 0; m.m43 = 0;
+        var lift = Math.max(0, tz) + Math.max(0, -ty) * 0.6;
+        var lx = el.__lx == null ? CAST_OX : el.__lx;
+        var ly = el.__ly == null ? CAST_OY : el.__ly;
+        var kx = lx / DIE_W, ky = ly / DIE_W;
+        // The resting cube's own chain: the wrapper's offset, the lie-down,
+        // then this die's turn. rotateZ is already inside m.
+        var rest = new DOMMatrix('translate3d(' + lx + 'px, ' + ly + 'px, 0px)'
+            + ' rotateX(' + CAST_LIE + 'deg) rotateY(' + CAST_YAW + 'deg)').multiply(m);
+        // How far the shadow is from its resting picture. Held off for the
+        // first and last few frames of the throw, where the die is still close
+        // to square and the two pictures are close to the same shape.
+        var w = smooth(0, 0.14, p) * (1 - smooth(0.8, 1, p));
+
+        var cast = [], contact = [];
+        for (var i = 0; i < 8; i++) {
+            var cx = (i & 1) ? DIE_HALF : -DIE_HALF;
+            var cy = (i & 2) ? DIE_HALF : -DIE_HALF;
+            var cz = (i & 4) ? DIE_HALF : -DIE_HALF;
+            var q = m.transformPoint(new DOMPoint(cx, cy, cz));
+            var r = rest.transformPoint(new DOMPoint(cx, cy, cz));
+            var k = PERSPECTIVE / (PERSPECTIVE - r.z);
+            // Height over the cloth. A corner dipping below it half way
+            // through a turn is a die rocking on an edge, not sinking in.
+            var h = Math.max(0, q.z + DIE_HALF + lift);
+            var sx = (q.x + h * kx) * AIR_PERSP;
+            var sy = (q.y + h * ky) * AIR_PERSP;
+            cast.push([r.x * k + (sx - r.x * k) * w, r.y * k + (sy - r.y * k) * w]);
+            contact.push([q.x * AIR_PERSP + lift * kx, q.y * AIR_PERSP + lift * ky]);
+        }
+
+        // At the ends it matches the resting cube's tone and edge; up in the
+        // air it spreads and lets the light through.
+        var blur = 2 + w * lift * 0.08;
+        var alpha = 1 - w * Math.min(0.4, lift / 100);
+        el.__airCastShape.style.clipPath = polygon(hull(cast));
+        el.__airCast.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
+        el.__airCast.style.opacity = alpha.toFixed(3);
+        el.__airContactShape.style.clipPath = polygon(hull(contact));
+        el.__airContact.style.opacity = (w * Math.max(0, 1 - lift / 10)).toFixed(3);
     }
 
     function paintFaces(parent, withPips) {
@@ -201,6 +303,81 @@
         }
     }
 
+    /* The body behind the faces. Each face is a rounded square, which is what
+       makes the die's outline soft face-on — and what leaves a hole at every
+       corner once it turns: three faces each missing the same small corner,
+       and the grass showing through where a real die is solid. So inside the
+       six faces sit copies of each face's outline, parallel to it, further in.
+
+       The solid these faces actually bound is not a rounded cube. Its twelve
+       edges are sharp — a face runs straight to the edge everywhere except at
+       its four corners — so the body is three rounded-square prisms, one
+       through each pair of opposite faces, laid over each other. A slice of
+       a prism is just its outline again, so that is what these are: two per
+       face, one a hair behind it and one a little under a corner's depth
+       further in. Between the three axes they close every corner from any
+       side, including the case that shows it worst — a die nearly square on,
+       with only a sliver of its top and side, where the hole is at the very
+       front of the corner and a slice deep in the middle cannot reach it.
+       Face-on each slice is the face's own outline, hidden behind it, so a
+       die at rest looks exactly as it did.
+
+       They are painted after the faces, and that is not cosmetic. The
+       compositor sorts a 3D cube's planes by splitting them against one
+       another, starting from the first one painted, and a face that gets
+       split draws its cut as a hairline — straight across the pips, where a
+       slice's plane crosses them. With the faces first, every split is made
+       against a face plane, and no slice straddles one, so the faces are
+       never cut; only the slices are, and those sit behind opaque faces.
+       Each slice also stops a pixel short of the faces so none touches one. */
+    var CORNER_R = 0.22;   // Same fraction as .die-face's border-radius.
+    // How far in from the face each slice sits: most of the way to the inner
+    // end of a corner, and just behind the face (the rim). Two was the fewest
+    // that left no grass at any angle tried, corner-on included.
+    //
+    // The rim slices only exist while the die is off the table. Seen edge-on
+    // through a perspective camera, a plane that close to the side of the
+    // cube projects just outside the front face's rounded corner, and a die
+    // at rest drew square corners with a dark tick in each. A die at rest is
+    // square to its camera by construction (settle writes no tilt), and so is
+    // a die in the first and last frames of a throw; square on there is no
+    // notch for them to fill, so they are shown only once a throw has turned
+    // it more than about three degrees (airShadow decides, every frame). The
+    // deeper slices stay on in every state and sit inside the face's outline
+    // even edge-on.
+    var CORE_DEPTHS = [DIE_W * CORNER_R * 0.8, 0.7];
+    function paintCore(parent) {
+        var turns = ['', 'rotateY(90deg) ', 'rotateX(90deg) '];
+        for (var l = 0; l < CORE_DEPTHS.length; l++) {
+            var depth = DIE_HALF - CORE_DEPTHS[l];
+            for (var a = 0; a < 3; a++) {
+                for (var s = -1; s <= 1; s += 2) {
+                    var core = document.createElement('div');
+                    core.className = 'die-core';
+                    if (l === 1) core.setAttribute('data-rim', '');
+                    core.style.transform = turns[a] + 'translateZ(' + (s * depth).toFixed(2) + 'px)';
+                    parent.appendChild(core);
+                }
+            }
+        }
+    }
+
+    // One layer of the shadow in the air: a box that carries the blur and the
+    // fade, and inside it the clipped shape. Two elements, because clip-path
+    // on the same element as a filter is applied after it and would cut the
+    // blur off square.
+    function airLayer(el, part) {
+        var layer = document.createElement('div');
+        layer.className = 'die-air';
+        layer.setAttribute('data-part', part);
+        layer.style.inset = -AIR_PAD + 'px';
+        var shape = document.createElement('div');
+        shape.className = 'die-air-shape';
+        layer.appendChild(shape);
+        el.appendChild(layer);
+        return { layer: layer, shape: shape };
+    }
+
     function buildDie() {
         var el = document.createElement('button');
         el.type = 'button';
@@ -215,9 +392,19 @@
         cast.appendChild(castCube);
         el.appendChild(cast);
 
+        // Contact over cast, the die over both.
+        var airCast = airLayer(el, 'cast');
+        var airContact = airLayer(el, 'contact');
+        el.__airCast = airCast.layer;
+        el.__airCastShape = airCast.shape;
+        el.__airContact = airContact.layer;
+        el.__airContactShape = airContact.shape;
+
         var cube = document.createElement('div');
         cube.className = 'die-cube';
+        // Faces before the core — see paintCore for why the order matters.
         paintFaces(cube, true);
+        paintCore(cube);
         el.appendChild(cube);
         el.__cube = cube;
         el.__cast = cast;
@@ -274,7 +461,7 @@
         a.z = rz;
         el.__angles = a;
         el.__cube.style.transform = frame(0, 0, a.z, a.x, a.y);
-        applyCast(el, 0, 0, a.z, 0, 1);
+        el.__castCube.style.transform = restCastFrame(a.z);
         setValue(el, v);
     }
 
@@ -323,32 +510,18 @@
         // reads as a spinning top, which is the one thing it must not look like.
         var spinZ = wrap(to.z - from.z);
 
-        // The shadow cube lands on the same cube-on-the-table pose every time,
-        // so its turn is a whole revolution — the die's face-change is not its
-        // problem. One revolution, on the one axis castFrame can turn (see
-        // there for why), in whichever direction the die is going, so the two
-        // stay a pair on the way round rather than winding against each other.
-        var castSpin = 360 * (spinY < 0 ? -1 : 1);
-
         var keys = [];
-        var castKeys = [];
         for (var i = 0; i < ARC.length; i++) {
             var k = ARC[i];
-            var rz = from.z + spinZ * k.turned;
-            var rx = from.x + spinX * k.turned;
-            var ry = from.y + spinY * k.turned;
             var kf = {
                 offset: k.at,
-                transform: frame(k.y, k.z, rz, rx, ry)
+                transform: frame(k.y, k.z,
+                    from.z + spinZ * k.turned,
+                    from.x + spinX * k.turned,
+                    from.y + spinY * k.turned)
             };
-            var ck = castFrame(k.y, k.z, rz, castSpin * k.turned);
-            ck.offset = k.at;
-            if (k.ease) {
-                kf.easing = k.ease;
-                ck.easing = k.ease;
-            }
+            if (k.ease) kf.easing = k.ease;
             keys.push(kf);
-            castKeys.push(ck);
         }
 
         el.__rolling = true;
@@ -356,7 +529,6 @@
         // way a dragged card does it: a layer that is kept for a die sitting
         // still is a layer being paid for and not used.
         el.__cube.style.willChange = 'transform';
-        el.__castCube.style.willChange = 'transform, opacity';
 
         // Settled before it is animated, not after. The animation is left to
         // fill nothing, so when it lets go the die is already holding the pose
@@ -366,16 +538,27 @@
         announce(next);
 
         var anim = el.__cube.animate(keys, { duration: ROLL_MS, easing: 'linear' });
-        // The shadow cube turns with the die — a whole revolution, the same way
-        // round — so a tumble on the table is a turning silhouette rather than
-        // a smudge that merely grows. It does not hop: lift only pushes it
-        // further from the die, spreads it and lets more light in.
-        el.__castCube.animate(castKeys, { duration: ROLL_MS, easing: 'linear' });
+
+        // The shadow in the air is drawn from the cube's computed pose, so it
+        // is read after the animation has had its say for this frame and can
+        // never be a frame behind or a different ease. The first frame is
+        // drawn before the resting cube is hidden, so there is no frame with
+        // no shadow at all.
+        airShadow(el, 0);
+        el.classList.add('is-airborne');
+        function tick() {
+            if (!el.__rolling) return;
+            airShadow(el, Math.min(1, (anim.currentTime || 0) / ROLL_MS));
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
 
         anim.onfinish = function () {
             el.__cube.style.willChange = '';
-            el.__castCube.style.willChange = '';
             el.__rolling = false;
+            // Back to the resting cube, which the last frames have already
+            // been drawing the outline of.
+            el.classList.remove('is-airborne');
         };
     }
 

@@ -123,6 +123,30 @@ body.has-dot .die-pip { cursor: none; }
   gap: 5%;
 }
 
+/* The die's solid body — see paintCore in dice.js. The same rounded square as
+   a face, never lit by the lamp and a shade under the stock, so the little
+   of it that shows at a turned corner reads as the rounding going into
+   shadow rather than as a flat patch. Seen from both sides, unlike a face:
+   through a corner you are as likely to be looking at its back. */
+.die-core {
+  position: absolute;
+  /* The face's own outline, half a pixel in, so no slice's edge touches a
+     face's edge where the two meet at the cube's rim. */
+  inset: 0.5px;
+  border-radius: 22%;
+  background-color: var(--back-stock);
+  /* Black and not --stock-edge: on the dark table that edge is a light line,
+     and a corner in shade is darker on either stock. */
+  background-color: color-mix(in srgb, var(--back-stock) 93%, #000);
+  pointer-events: none;
+}
+
+/* The slices just behind each face — see CORE_DEPTHS in dice.js for why a
+   die square to the camera, at rest or at either end of a throw, leaves
+   them out. */
+.die:not(.is-airborne) .die-core[data-rim],
+.die.is-square .die-core[data-rim] { display: none; }
+
 /* The highlight is a mouse lamp. A phone has none, so this drops the wash
    there — and only there — so a stray inline --lit cannot paint one. */
 html.no-mat-lamp .die-face {
@@ -147,9 +171,9 @@ html.no-mat-lamp .die-face {
 /* What the die casts on the paper. A second cube, the same size, laid down
    on the table rather than an oval smudge: that is what sells a square-on
    die as a thing with volume, without showing a second face of the die
-   itself. dice.js writes its transform — the lie-down, the light's offset,
-   and the same tumble the die is doing — so a hop spreads it and a turn
-   turns it, and a keyframe cannot disagree with the pose it lands on.
+   itself. dice.js writes its transform — the lie-down and the die's small
+   roll in the picture plane — and the lamp slides it through --cast-dx/dy.
+   It is the resting shadow only; in the air it hands over to .die-air below.
 
    Softness is on the faces, not on this cube. A filter here would flatten
    the preserve-3d tree into a bitmap and the shadow would stop being a cube;
@@ -185,3 +209,28 @@ html.no-mat-lamp .die-face {
   box-shadow: var(--cast-glow, 0 0 7px 2px rgba(0, 0, 0, 0.34));
   pointer-events: none;
 }
+
+/* The shadow while the die is in the air. A laid-down cube turning with a
+   tumble shows a flat dark face whenever one comes square to the camera, so
+   for the length of a throw that cube steps aside and dice.js draws the
+   outline the die actually casts: a clip-path polygon, recomputed from the
+   cube's pose each frame, starting and ending on the resting cube's own
+   silhouette. Clip on the inner shape, blur and fade on the outer box — the
+   other way round the clip would cut the blur off square. Only these two
+   elements repaint while a die rolls, and only for the throw; at rest they
+   are hidden and cost nothing. dice.js sets the box's inset, the room it
+   leaves round the die for the throw and the blur. */
+.die-air {
+  position: absolute;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.die-air-shape {
+  position: absolute;
+  inset: 0;
+  background: var(--cast, rgba(0, 0, 0, 0.55));
+}
+
+.die.is-airborne .die-air { visibility: visible; }
+.die.is-airborne .die-cast { visibility: hidden; }

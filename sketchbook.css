@@ -645,6 +645,16 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   opacity: 0;
   pointer-events: none;
 }
+/* Same for the link: it belongs to the picture, and the back has none. */
+.card.is-flipping > .card-link,
+.card.is-flipping:hover > .card-link,
+.card.is-flipped > .card-link,
+.card.is-flipped:hover > .card-link,
+.card.is-flipped > .card-link:focus,
+.card.is-flipped > .card-link:focus-visible {
+  opacity: 0;
+  pointer-events: none;
+}
 
 .card-face {
   position: absolute;
@@ -916,6 +926,42 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 }
 .card-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
+/* A work's external link: the same square control, stacked under the expand,
+   and out of the way until you want it just like that one. In the modal there
+   is no expand above it, so it takes the corner itself and stays on. */
+.card-link {
+  position: absolute;
+  top: calc(var(--frame) + 3px + var(--expand) + 6px);
+  right: calc(var(--frame) + 3px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--expand);
+  height: var(--expand);
+  border-radius: 8px;
+  background: rgba(20, 20, 20, 0.55);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, background-color 0.18s ease;
+}
+.card-link svg { width: calc(var(--expand) * 0.5); height: calc(var(--expand) * 0.5); display: block; }
+.card-link:hover { background: rgba(20, 20, 20, 0.78); }
+.card:hover > .card-link,
+.card-link:focus,
+.card-link:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.card-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+#modal-card .card-link {
+  top: calc(var(--frame) + 3px);
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* ---------- cards in the fan ---------- */
 
 /* Only the top card of the fan responds; the rest are behind it. The lift is a
@@ -1113,6 +1159,7 @@ body.has-dot .card,
 body.has-dot #grid .card,
 body.has-dot .card-flip,
 body.has-dot .card-expand,
+body.has-dot .card-link,
 body.has-dot .chip { cursor: none; }
 
 /* No grab hand on a card, here or on the table. The hand belongs to the mat,
@@ -1419,6 +1466,7 @@ body.modal-open { overflow: hidden; }
   #played .card.is-dealing,
   #grid .card-face img,
   .card-expand,
+  .card-link,
   #grid .card-name { transition-duration: 0.001s; }
   .card.is-flipping .card-inner { animation-duration: 0.001s; }
   /* The rise and the scrim's fade are decoration over a modal that is just as

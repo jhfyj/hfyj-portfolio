@@ -265,6 +265,16 @@
       "poster": "griddialkit-poster.jpg",
       "fit": "contain",
       "fitBg": "#171717"
+    },
+    {
+      "id": "have-fun",
+      "title": "Playing Mat",
+      "category": "design exploration",
+      "file": "havefun.gif",
+      "width": 426,
+      "height": 426,
+      "animated": true,
+      "poster": "havefun-poster.jpg"
     }
   ]
 }

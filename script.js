@@ -1786,7 +1786,7 @@ function loadCard1() {
         const r = 36 * s;
 
         function paint(theme) {
-            const { cardBg, ink, inkSub, inkBody } = THEME_COLORS[theme];
+            const { cardBg, ink, inkBody } = THEME_COLORS[theme];
 
             // Card stock, clipped to the card's rounded corners
             ctx.save();
@@ -1808,6 +1808,7 @@ function loadCard1() {
             ctx.clip();
             tmplDrawImageCover(ctx, mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
             ctx.restore();
+            tmplPhotoInnerShadow(ctx, 21 * s, 20 * s, s);
 
             // "#003" — this card's position in the site's numbering (not Figma's placeholder number).
             // Sits in the folded-corner notch on bare stock, so it follows the theme's ink
@@ -1818,23 +1819,20 @@ function loadCard1() {
             ctx.textBaseline = 'top';
             ctx.fillText('#003', 100.5 * s, 24 * s);
 
-            // Title + date
+            // Title
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
             ctx.fillStyle = ink;
             ctx.font = `700 ${96 * s}px "Play", sans-serif`;
             ctx.fillText('Puregym Redesign', 54 * s, 960 * s);
-            ctx.fillStyle = inkSub;
-            ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
-            ctx.fillText('Winter 2025', 54 * s, 1050 * s);
 
-            // Description (wrapped to match the Figma column width)
+            // Description, on the same measure as every template card
             ctx.fillStyle = inkBody;
-            ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
+            ctx.font = `400 ${CARD_BODY.size * s}px "DM Sans", sans-serif`;
             puregymWrapText(
                 ctx,
                 'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
-                54 * s, 1150 * s, 901 * s, 58 * s
+                54 * s, CARD_BODY.y * s, CARD_BODY.width * s, CARD_BODY.lineHeight * s
             );
 
             // Tag pills
@@ -1890,6 +1888,10 @@ function loadCard1() {
 // WebP; the "#00X" tag and title/date/description/pills are drawn as vector
 // text on top.
 const TEMPLATE_CARD = { w: 1059, h: 1449 };
+// The copy under the title, in design px. There is no date line between the
+// two any more, so the description starts where that line used to sit and
+// takes the room it left at a size that reads from across the ring.
+const CARD_BODY = { y: 1062, size: 56, lineHeight: 70, width: 950 };
 const TEMPLATE_CARD_SCALE = CARD_TEXTURE_SCALE;
 
 function tmplWrapText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -1917,8 +1919,8 @@ function tmplWrapText(ctx, text, x, y, maxWidth, lineHeight) {
 // not a simple arc: the notch rises from the left edge, holds briefly flat
 // (the "equilibrium" plateau), then rises again into the diagonal and curves
 // into the top edge — a compound S-curve, not a single bulge.
-function tmplPhotoClipPath(ctx, x, y, s) {
-    ctx.beginPath();
+function tmplPhotoClipPath(ctx, x, y, s, keepPath) {
+    if (!keepPath) ctx.beginPath();
     ctx.moveTo(x + 992.662 * s, y);
     ctx.bezierCurveTo(x + 1005.92 * s, y, x + 1016.66 * s, y + 10.7452 * s, x + 1016.66 * s, y + 24 * s);
     ctx.lineTo(x + 1016.66 * s, y + 793 * s);
@@ -1932,6 +1934,26 @@ function tmplPhotoClipPath(ctx, x, y, s) {
     ctx.lineTo(x + 167.294 * s, y + 19.5 * s);
     ctx.bezierCurveTo(x + 167.294 * s, y + 19.5 * s, x + 182 * s, y, x + 210 * s, y);
     ctx.closePath();
+}
+
+// A soft shadow cast inward from the photo well's edge, so the picture reads as
+// set down into the stock rather than printed flat on it. The trick is a frame
+// that is only ever drawn outside the well - a big rectangle with the well cut
+// out of it - while the clip keeps the well: the frame itself never shows, and
+// the only thing that lands inside is its shadow.
+function tmplPhotoInnerShadow(ctx, x, y, s) {
+    ctx.save();
+    tmplPhotoClipPath(ctx, x, y, s);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.rect(x - 200 * s, y - 200 * s, 1416.66 * s, 1217 * s);
+    tmplPhotoClipPath(ctx, x, y, s, true);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.09)';
+    ctx.shadowBlur = 32 * s;
+    ctx.shadowOffsetY = 4 * s;
+    ctx.fillStyle = '#000';
+    ctx.fill('evenodd');
+    ctx.restore();
 }
 
 // drawImage's 5-arg form stretches the source to fill dw×dh, distorting any
@@ -1979,7 +2001,7 @@ function tmplDrawPill(ctx, x, y, h, label, s, theme) {
     return w;
 }
 
-function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, description, pills, comingSoon }) {
+function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, description, pills, comingSoon }) {
     const s = TEMPLATE_CARD_SCALE;
     const canvas = document.createElement('canvas');
     canvas.width = TEMPLATE_CARD.w * s;
@@ -2004,7 +2026,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
         const r = 36 * s;
 
         function paint(theme) {
-            const { cardBg, accent, ink, inkSub, inkBody, placeholder } = THEME_COLORS[theme];
+            const { cardBg, accent, ink, inkBody, placeholder } = THEME_COLORS[theme];
 
             ctx.save();
             ctx.beginPath();
@@ -2026,6 +2048,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
                 ctx.fillRect(21 * s, 20 * s, 1016.663 * s, 817 * s);
             }
             ctx.restore();
+            tmplPhotoInnerShadow(ctx, 21 * s, 20 * s, s);
 
             // Only draw the "#00X" tag ourselves when it isn't already baked
             // into the photo (see loadCard1 for the baked-in case).
@@ -2044,18 +2067,15 @@ function buildTemplateCardTexture({ imageSrc, tag, title, subtitle, accentLine, 
             ctx.fillStyle = ink;
             ctx.font = `700 ${96 * s}px "Play", sans-serif`;
             ctx.fillText(title, 54 * s, 960 * s);
-            ctx.fillStyle = inkSub;
-            ctx.font = `400 ${64 * s}px "DM Sans", sans-serif`;
-            ctx.fillText(subtitle, 54 * s, 1050 * s);
 
-            ctx.font = `400 ${46 * s}px "DM Sans", sans-serif`;
-            let y = 1150 * s;
+            ctx.font = `400 ${CARD_BODY.size * s}px "DM Sans", sans-serif`;
+            let y = CARD_BODY.y * s;
             if (accentLine) {
                 ctx.fillStyle = accent;
-                y = tmplWrapText(ctx, accentLine, 54 * s, y, 901 * s, 58 * s);
+                y = tmplWrapText(ctx, accentLine, 54 * s, y, CARD_BODY.width * s, CARD_BODY.lineHeight * s);
             }
             ctx.fillStyle = inkBody;
-            tmplWrapText(ctx, description, 54 * s, y, 901 * s, 58 * s);
+            tmplWrapText(ctx, description, 54 * s, y, CARD_BODY.width * s, CARD_BODY.lineHeight * s);
 
             const pillH = 68 * s, gap = 24 * s;
             const widths = pills.map((label) => {
@@ -2133,7 +2153,6 @@ function loadCard2() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/tech-mockups.webp',
         tag: '#001',
         title: 'tech@nyu',
-        subtitle: 'Summer 2025',
         description: "Rebranding and website design for tech@nyu, NYU’s oldest tech-focused club.",
         pills: ['2025', 'BRANDING', 'UIUX'],
     });
@@ -2145,7 +2164,6 @@ function loadCard3() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/clarus-mockups.webp',
         tag: '#002',
         title: 'CLARUS.AI',
-        subtitle: 'Fall 2025',
         description: 'Interactive installation focused on the question: what happens when using LLMs required more than just type and enter?',
         pills: ['2025', 'INSTALLATION', 'UIUX'],
     });
@@ -2157,7 +2175,6 @@ function loadCard4() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/povi-mockups.webp',
         tag: '#004',
         title: 'POVI',
-        subtitle: 'Figbuild 2026',
         description: "Speculative design focused on the question: How can we design for a technology that doesn’t exist yet?",
         pills: ['2026', 'COMPETITION', 'MOBILE'],
     });
@@ -2169,7 +2186,6 @@ function loadCard5() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/the-dial-mockups.webp',
         tag: '#005',
         title: 'The Dial',
-        subtitle: 'Summer 2026',
         accentLine: 'Open Doors x Framer 1st place winner',
         description: 'Interaction focused on the micro-details and what it means to express a moment',
         pills: ['2026', 'COMPETITION', 'INTERACTION'],
@@ -2182,7 +2198,6 @@ function loadCard6() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp',
         tag: '#006',
         title: 'BMW Designworks',
-        subtitle: 'Summer 2026',
         description: 'Product Design Internship across B2B, SAS, consumer, and more at BMW Designworks.',
         pills: ['2026', 'INTERNSHIP', 'UI/UX'],
     });
@@ -2194,7 +2209,6 @@ function loadCard7() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp',
         tag: '#007',
         title: 'Nenos Inc.',
-        subtitle: 'Summer 2026',
         description: 'Design Manager working with 7 designers to design the Places feature in a B2C product, from ideation to handoff.',
         pills: ['2026', 'INTERNSHIP', 'LEADERSHIP'],
     });

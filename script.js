@@ -3790,12 +3790,33 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
 // the five of them together used to be the bulk of the page's weight. Playing
 // them here is also what starts the download; pausing on the way out stops
 // five videos decoding behind a hidden panel.
+let gridMediaOn = false;
 function setGridMediaPlaying(playing) {
+    gridMediaOn = playing;
     document.querySelectorAll('#grid-view video.grid-card-media').forEach((v) => {
         if (playing) { const r = v.play(); if (r) r.catch(() => {}); }
         else v.pause();
     });
 }
+
+// Pointing at a card holds every other card's clip on its current frame, and
+// leaving it lets them all run again. Only where the grid has more than one
+// column and a real hover — the same conditions style.css dims the rest under.
+(function () {
+    const focusable = window.matchMedia('(hover: hover) and (min-width: 1161px)');
+    document.querySelectorAll('#grid-view .grid-card').forEach((card) => {
+        card.addEventListener('mouseenter', () => {
+            if (!gridMediaOn || !focusable.matches) return;
+            document.querySelectorAll('#grid-view video.grid-card-media').forEach((v) => {
+                if (card.contains(v)) { const r = v.play(); if (r) r.catch(() => {}); }
+                else v.pause();
+            });
+        });
+        card.addEventListener('mouseleave', () => {
+            if (gridMediaOn) setGridMediaPlaying(true);
+        });
+    });
+})();
 
 const toggleBtns = document.querySelectorAll('.toggle-btn');
 const gridView = document.getElementById('grid-view');

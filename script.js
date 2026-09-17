@@ -3801,7 +3801,7 @@ function setGridMediaPlaying(playing) {
 
 // Pointing at a card holds every other card's clip on its current frame, and
 // leaving it lets them all run again. Only where the grid has more than one
-// column and a real hover — the same conditions style.css dims the rest under.
+// column and a real hover: with one card per row there is nothing to single out.
 (function () {
     const focusable = window.matchMedia('(hover: hover) and (min-width: 1161px)');
     document.querySelectorAll('#grid-view .grid-card').forEach((card) => {

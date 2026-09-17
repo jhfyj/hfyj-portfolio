@@ -1646,15 +1646,9 @@ html.gh-handle-drag .gh-handle.br::before {
   opacity: 0.5;
 }
 
-/* The cards you are not pointing at dim, and script.js holds their clips on
-   the current frame. That stillness is the focus; a blur on top of it only
-   made the rest of the grid unreadable. */
-.grid-container:has(.grid-card:hover) .grid-card {
-  opacity: 0.5;
-}
-.grid-container:has(.grid-card:hover) .grid-card:hover {
-  opacity: 1;
-}
+/* Pointing at a card leaves the rest of the grid exactly as it is, except
+   that script.js holds their clips on the current frame. The stillness is
+   the focus. */
 
 .grid-card-arrow {
   display: inline-block;
@@ -1833,15 +1827,6 @@ html.gh-handle-drag .gh-handle.br::before {
 @media (max-width: 1160px) {
   .grid-container {
     grid-template-columns: 1fr;
-  }
-
-  /* One card per row — the dim-and-pause "focus" hover effect doesn't apply here */
-  .grid-container:has(.grid-card:hover) .grid-card {
-    opacity: 1;
-  }
-  .grid-container:has(.grid-card:hover) .grid-card[data-coming-soon] .grid-card-image > *,
-  .grid-container:has(.grid-card:hover) .grid-card[data-coming-soon] .grid-card-info {
-    opacity: 0.5;
   }
 }
 

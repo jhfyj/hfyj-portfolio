@@ -43,6 +43,14 @@
     // to wobble, not moving it. Above it the click is swallowed so a card is
     // never dropped and flipped by the same gesture.
     var DRAG_SLOP = 4;
+    // A fingertip is not a cursor. An ordinary tap on glass wanders several
+    // pixels between landing and lifting, and at four that wander read as a
+    // drag: the card shuffled a few pixels and the tap that was meant to open
+    // it did nothing. Ten is about where a tap stops and a pull begins.
+    var TOUCH_SLOP = 10;
+    function slopFor(e) {
+        return isTouchPointer(e) ? TOUCH_SLOP : DRAG_SLOP;
+    }
     // Upcoming tiles only. A finger on the rack is also how you scroll the
     // page, so those wait a beat before they come with it. A card on the
     // felt is already in play and moves the moment you pull it.
@@ -494,29 +502,6 @@
         // the expand control goes too.
         if (work.link) el.appendChild(buildLink(work));
         return el;
-    }
-
-    // Turning a card over. The pressed state goes on the button rather than on
-    // the wrapper, because the button is the control a screen reader is on.
-    function toggleFlip(el) {
-        el.classList.toggle('is-flipped');
-        var on = el.classList.contains('is-flipped');
-        if (el.flipBtn) el.flipBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        // A card in the air has to sit above its neighbours or the scale reads
-        // as it growing underneath them. Keyboard turns never went through
-        // pointerdown, which is the other place this is raised.
-        el.style.zIndex = String(++topZ);
-        // Restart even if a previous turn is still in the air: removing and
-        // adding in one frame is a no-op without the read in between.
-        el.classList.remove('is-flipping');
-        void el.offsetWidth;
-        el.classList.add('is-flipping');
-        if (!el.__liftBound) {
-            el.__liftBound = true;
-            el.addEventListener('animationend', function (e) {
-                if (e.animationName === 'card-lift') el.classList.remove('is-flipping');
-            });
-        }
     }
 
     // Carbon's `link` (32px), for a work that points somewhere off the site.
@@ -1115,8 +1100,8 @@
 
         el.className = 'card';
         el.style.zIndex = String(++topZ);
-        el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
-        el.flipBtn.setAttribute('aria-pressed', 'false');
+        el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to open, drag to move');
+        el.flipBtn.removeAttribute('aria-pressed');
         // It leaves the hand at the hand's size and arrives at the table's, so
         // the width has to start explicitly at the old value or there is
         // nothing for the transition to run from and the shrink is a snap at
@@ -1172,17 +1157,23 @@
     function makePlayable(el) {
         var drag = null;
         // Set when a gesture turned out to be a drag, so the click that follows
-        // it does not also flip the card over.
+        // it does not also open the card.
         var swallowClick = false;
 
         el.addEventListener('pointerdown', function (e) {
             if (e.button !== undefined && e.button !== 0) return;
+            // Every press starts undecided. The flag used to be cleared only by
+            // the click that follows a drag, and a touch drag on iOS often has
+            // no click after it at all - so the flag outlived its gesture and
+            // ate the next honest tap.
+            swallowClick = false;
             el.style.zIndex = String(++topZ);
             drag = {
                 id: e.pointerId,
                 px: e.clientX, py: e.clientY,
                 ox: readVar(el, '--x'), oy: readVar(el, '--y'),
                 moved: false,
+                slop: slopFor(e),
             };
             // Capture, so a fast drag that outruns the pointer keeps sending
             // moves here instead of to whatever is now underneath it.
@@ -1197,7 +1188,7 @@
         el.addEventListener('pointermove', function (e) {
             if (!drag || e.pointerId !== drag.id) return;
             var dx = e.clientX - drag.px, dy = e.clientY - drag.py;
-            if (!drag.moved && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+            if (!drag.moved && Math.abs(dx) + Math.abs(dy) < drag.slop) return;
             if (!drag.moved) {
                 drag.moved = true;
                 // Bounds for this card's own tilt — #felt clips, and the
@@ -1233,11 +1224,13 @@
         el.addEventListener('pointerup', end);
         el.addEventListener('pointercancel', end);
 
-        // Flipping is bound to click rather than to pointerup so that Enter and
-        // Space on a focused card turn it over too.
+        // A press that never cleared the slop is a tap, and a tap opens the
+        // card. Bound to click rather than to pointerup so that Enter and Space
+        // on the focused card open it too, and so a finger that the browser
+        // decided was scrolling - it cancels the click - never opens anything.
         el.addEventListener('click', function () {
             if (swallowClick) { swallowClick = false; return; }
-            toggleFlip(el);
+            openModal(el.__work, el.flipBtn || el);
         });
     }
 
@@ -1597,6 +1590,15 @@
     var modalPanel = modalEl && modalEl.querySelector('[role="dialog"]');
     var modalCardEl = document.getElementById('modal-card');
     var modalOpener = null;
+    // When the modal last opened. A card opens on a single click now, and
+    // someone who double-clicks out of habit lands the second click on the
+    // backdrop that has just appeared under the pointer - which closed the
+    // card they had just opened, a flash and nothing else. A click on the
+    // backdrop this soon after opening is the tail of the gesture that opened
+    // it, not a request to close. Just under the platforms' own double-click
+    // interval (500ms on Windows), so a deliberate click away still closes it.
+    var modalOpenedAt = 0;
+    var MODAL_SETTLE_MS = 450;
 
     function modalFocusable() {
         var all = modalEl.querySelectorAll('button, [href], input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])');
@@ -1608,6 +1610,7 @@
     function openModal(work, opener) {
         if (!modalEl || !modalCardEl || !work) return;
         modalOpener = opener || null;
+        modalOpenedAt = performance.now();
         modalCardEl.innerHTML = '';
 
         // Front only, for now: no indices, no fold, no turn-over. The
@@ -1714,7 +1717,9 @@
         // land on the panel and do nothing, which reads as the page having
         // ignored you.
         modalEl.addEventListener('click', function (e) {
-            if (!modalCardEl.contains(e.target)) closeModal();
+            if (modalCardEl.contains(e.target)) return;
+            if (performance.now() - modalOpenedAt < MODAL_SETTLE_MS) return;
+            closeModal();
         });
 
         document.addEventListener('keydown', function (e) {
@@ -2292,6 +2297,11 @@
         el.addEventListener('dragstart', function (e) { e.preventDefault(); });
 
         var holdTimer = 0;
+        // The same rule as a card on the table: a press that turned into a
+        // reorder - lifted by a pull, or by a finger's hold - does not also
+        // open the tile when it is let go of. Set by lift(), cleared by the
+        // next press.
+        var swallowClick = false;
 
         function clearHold() {
             if (holdTimer) {
@@ -2333,6 +2343,7 @@
                 }
             }
             if (rackIndex(work) === -1) return;
+            swallowClick = false;
             var touch = isTouchPointer(e);
             carry = {
                 el: el, work: work, id: e.pointerId,
@@ -2340,6 +2351,7 @@
                 from: rackIndex(work), to: rackIndex(work),
                 lifted: false, boxes: null, pin: null,
                 armed: !touch,
+                slop: slopFor(e),
             };
             window.addEventListener('pointerup', endDrag, true);
             window.addEventListener('pointercancel', endDrag, true);
@@ -2357,6 +2369,7 @@
         // shifting into it has somewhere to go while this one is still in hand.
         function lift() {
             carry.lifted = true;
+            swallowClick = true;
             var r = el.getBoundingClientRect();
             var gr = gridEl.getBoundingClientRect();
             // Every slot measured once, here. Slots are fixed for the life of
@@ -2390,8 +2403,10 @@
             if (resetting) { clearHold(); unbindWindow(); abandonCarry(); return; }
             var dx = e.clientX - carry.px, dy = e.clientY - carry.py;
             if (!carry.armed) {
-                if (Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
-                // The hold never finished: this finger is scrolling the page.
+                if (Math.abs(dx) + Math.abs(dy) < carry.slop) return;
+                // The hold never finished: this finger is scrolling the page,
+                // and a scroll is not a tap on whatever it started over.
+                swallowClick = true;
                 clearHold();
                 unbindWindow();
                 abandonCarry();
@@ -2400,7 +2415,7 @@
             // The same few pixels makePlayable() allows. A rack that threw a
             // tile out of its slot every time the page was touched would be
             // unusable on a phone, and unreadable with a mouse.
-            if (!carry.lifted && Math.abs(dx) + Math.abs(dy) < DRAG_SLOP) return;
+            if (!carry.lifted && Math.abs(dx) + Math.abs(dy) < carry.slop) return;
             if (!carry.lifted) lift();
             capturePtr(el, carry.id);
             var area = gridEl.getBoundingClientRect();
@@ -2445,9 +2460,23 @@
             if (carry && carry.el === el) e.preventDefault();
         });
 
+        // A tap on a tile opens it, the same as a card on the table. The
+        // expand control in the corner still works; it is simply no longer the
+        // only way in.
+        el.addEventListener('click', function () {
+            if (swallowClick) { swallowClick = false; return; }
+            if (resetting || rackIndex(work) === -1) return;
+            openModal(work, el);
+        });
+
         // The same reorder without a pointer. Left and right step one slot; up
         // and down step a row, whatever a row is at this width.
         el.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target === el) {
+                e.preventDefault();
+                if (!resetting && rackIndex(work) !== -1) openModal(work, el);
+                return;
+            }
             if (resetting || carry) return;
             var step = 0;
             if (e.key === 'ArrowRight') step = 1;
@@ -2867,11 +2896,13 @@
         if (z > topZ) topZ = z;
         el.style.zIndex = String(z);
         if (el.flipBtn) {
-            el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to turn over, drag to move');
-            el.flipBtn.setAttribute('aria-pressed', saved.flipped ? 'true' : 'false');
+            el.flipBtn.setAttribute('aria-label', el.dataset.title + ' — click to open, drag to move');
+            el.flipBtn.removeAttribute('aria-pressed');
         }
         place(el, saved.x, saved.y, saved.rot);
-        if (saved.flipped) el.classList.add('is-flipped');
+        // A card saved face down is restored face up. A click on the table
+        // opens a card now rather than turning it, so one brought back over
+        // would have no way back.
         makePlayable(el);
         addExpand(el);
     }

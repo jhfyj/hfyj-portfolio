@@ -451,12 +451,10 @@
         return d;
     }
 
-    // A card element. An interactive one is a wrapper holding two controls: the
-    // card's own face, which turns over, and the expand control addExpand()
-    // puts in its corner. They are two buttons and not one because a button
-    // cannot contain a button, and because turning a card over and opening it
-    // are different things that must not share a gesture. A grid tile is
-    // neither - it is a <figure> holding the same face and no behaviour.
+    // A card element. An interactive one is a wrapper around a button holding
+    // the card's face, and that button is the card: a tap on it opens the work,
+    // a drag moves it. A grid tile is a <figure> holding the same face, given
+    // its behaviour by makeSortable().
     // Nothing here carries data-cursor. The rest of the site labels a link
     // with a pill because there is one thing that link does; a card is
     // something you handle, and a caption that changed every time the pointer
@@ -509,9 +507,9 @@
         + '<path d="M29.25,6.76a6,6,0,0,0-8.5,0l1.42,1.42a4,4,0,1,1,5.67,5.67l-8,8a4,4,0,1,1-5.67-5.66l1.41-1.42-1.41-1.42-1.42,1.42a6,6,0,0,0,0,8.5A6,6,0,0,0,17,25a6,6,0,0,0,4.27-1.76l8-8A6,6,0,0,0,29.25,6.76Z"/>'
         + '<path d="M4.19,24.82a4,4,0,0,1,0-5.67l8-8a4,4,0,0,1,5.67,0A3.94,3.94,0,0,1,19,14a4,4,0,0,1-1.17,2.85L15.71,19l1.42,1.42,2.12-2.12a6,6,0,0,0-8.51-8.51l-8,8a6,6,0,0,0,0,8.51A6,6,0,0,0,7,28a6.07,6.07,0,0,0,4.28-1.76L9.86,24.82A4,4,0,0,1,4.19,24.82Z"/></svg>';
 
-    // The work's own link, a square control under the expand. It opens in a new
-    // tab and nothing else: a press on it must not start a drag, and a click
-    // must not also turn the card over or open the modal.
+    // The work's own link, a square control in the card's top-right corner. It
+    // opens in a new tab and nothing else: a press on it must not start a drag,
+    // and a click must not also open the card.
     function buildLink(work) {
         var a = document.createElement('a');
         a.className = 'card-link';
@@ -523,31 +521,6 @@
         a.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
         a.addEventListener('click', function (e) { e.stopPropagation(); });
         return a;
-    }
-
-    // Two corners pulling apart: the same idea the live sketchbook's card uses.
-    var EXPAND_SVG = '<svg viewBox="0 0 15 15" fill="none" aria-hidden="true">'
-        + '<path d="M9 1.5h4.5V6M6 13.5H1.5V9M13.5 1.5l-5 5M1.5 13.5l5-5" stroke="currentColor"'
-        + ' stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-    function addExpand(el) {
-        var b = document.createElement('button');
-        b.className = 'card-expand';
-        b.type = 'button';
-        b.setAttribute('aria-label', 'Expand ' + el.dataset.title);
-        b.innerHTML = EXPAND_SVG;
-        // The card underneath turns over on click and starts a drag on
-        // pointerdown, and both of those listeners are on the wrapper this
-        // button sits inside. Stopping here is what keeps the two gestures
-        // apart without the wrapper having to know what is in its corner.
-        b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-        b.addEventListener('click', function (e) {
-            e.stopPropagation();
-            openModal(el.__work, b);
-        });
-
-        el.appendChild(b);
-        return b;
     }
 
     function place(el, x, y, rot) {
@@ -1132,7 +1105,6 @@
         });
 
         makePlayable(el);
-        addExpand(el);
 
         // The gap closes immediately, from the front of the rack. Once the rack
         // is empty there is nothing to close it with and the hand simply gets
@@ -1971,13 +1943,6 @@
             slotEls[i].appendChild(card);
             tileOf[rack[i].id] = card;
             makeSortable(card, rack[i]);
-            // A tile is a card you have not played yet, and wanting to read
-            // about one before you decide to play it is the obvious thing to
-            // want. Same control, same corner, same modal - it appears on
-            // hover exactly as it does on the table, and its pointerdown is
-            // stopped inside addExpand, so reaching for it never starts the
-            // drag that would reorder the rack.
-            addExpand(card);
             watchTile(card);
             list.push(card);
         }
@@ -2460,9 +2425,7 @@
             if (carry && carry.el === el) e.preventDefault();
         });
 
-        // A tap on a tile opens it, the same as a card on the table. The
-        // expand control in the corner still works; it is simply no longer the
-        // only way in.
+        // A tap on a tile opens it, the same as a card on the table.
         el.addEventListener('click', function () {
             if (swallowClick) { swallowClick = false; return; }
             if (resetting || rackIndex(work) === -1) return;
@@ -2904,7 +2867,6 @@
         // opens a card now rather than turning it, so one brought back over
         // would have no way back.
         makePlayable(el);
-        addExpand(el);
     }
 
     function restorePlayed(list) {

@@ -55,11 +55,11 @@
      window twice: a card sized to the whole window is a card that overflows it
      by exactly this, twice. */
   --modal-pad: 24px;
-  /* The corner control's box. Smaller than the live site's 36px because the
-     card it sits on is smaller, and because it has to stay in the corner of a
-     card that is tilted: the further it is from the corner the further it
-     swings in as the card turns. */
-  --expand: 28px;
+  /* The corner control's box - the link on a work that has one. Smaller than
+     the live site's 36px because the card it sits on is smaller, and because
+     it has to stay in the corner of a card that is tilted: the further it is
+     from the corner the further it swings in as the card turns. */
+  --corner-btn: 28px;
   /* site.css has no readable-on-the-accent token yet; style.css's two values
      are repeated here so the one control that fills with the accent has ink
      that passes on both palettes. */
@@ -632,20 +632,9 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   0%, 100% { scale: 1;    translate: 0 0 0; }
   32%, 58% { scale: 1.1;  translate: 0 0 28px; }
 }
-/* The expand sits on the wrapper, not on the turning inner, so it would hang
-   in the original corner while the card left it. Hidden for the lift — it
-   cannot be used mid-turn anyway — and hidden on the back: expanding is a
-   look at the work, and the back is not one. */
-.card.is-flipping > .card-expand,
-.card.is-flipping:hover > .card-expand,
-.card.is-flipped > .card-expand,
-.card.is-flipped:hover > .card-expand,
-.card.is-flipped > .card-expand:focus,
-.card.is-flipped > .card-expand:focus-visible {
-  opacity: 0;
-  pointer-events: none;
-}
-/* Same for the link: it belongs to the picture, and the back has none. */
+/* The link sits on the wrapper, not on the turning inner, so it would hang in
+   the original corner while the card left it. Hidden while a card is turned:
+   it belongs to the picture, and the back has none. */
 .card.is-flipping > .card-link,
 .card.is-flipping:hover > .card-link,
 .card.is-flipped > .card-link,
@@ -883,19 +872,14 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   line-height: 1.2;
 }
 
-/* The corner control, out of the way until you want it. It is in the document
-   the whole time rather than mounted on hover, so it can be tabbed to — and it
-   is hidden with opacity alone for exactly that reason. visibility: hidden and
-   display: none both take an element out of the tab order and make .focus() do
-   nothing, which broke both tabbing to it and handing focus back to it when its
-   modal closed. pointer-events does the part visibility was there for. */
-/* Moved in by the width of the border, so it lands on the picture rather than
-   straddling the stock edge — three pixels clear of the work, where it used to
-   be five clear of the card. The corner it sits in is a tilted one and the
-   further out it goes the further it swings in as the card turns, so the gap it
-   keeps from the corner is smaller now, not larger: the frame it steps over is
-   between two and six pixels wide and the five it used to keep is now three. */
-.card-expand {
+/* A work's external link, in the card's top-right corner, out of the way until
+   you want it. It is in the document the whole time rather than mounted on
+   hover, so it can be tabbed to — and it is hidden with opacity alone for
+   exactly that reason: visibility: hidden and display: none both take an
+   element out of the tab order. pointer-events does the part visibility was
+   there for. Moved in by the width of the border, so it lands on the picture
+   rather than straddling the stock edge. In the modal it stays on. */
+.card-link {
   position: absolute;
   top: calc(var(--frame) + 3px);
   right: calc(var(--frame) + 3px);
@@ -903,11 +887,8 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--expand);
-  height: var(--expand);
-  margin: 0;
-  padding: 0;
-  border: 0;
+  width: var(--corner-btn);
+  height: var(--corner-btn);
   border-radius: 8px;
   background: rgba(20, 20, 20, 0.55);
   color: #fff;
@@ -916,38 +897,7 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   pointer-events: none;
   transition: opacity 0.18s ease, background-color 0.18s ease;
 }
-.card-expand svg { width: calc(var(--expand) * 0.5); height: calc(var(--expand) * 0.5); display: block; }
-.card-expand:hover { background: rgba(20, 20, 20, 0.78); }
-.card:hover > .card-expand,
-.card-expand:focus,
-.card-expand:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-.card-expand:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-
-/* A work's external link: the same square control, stacked under the expand,
-   and out of the way until you want it just like that one. In the modal there
-   is no expand above it, so it takes the corner itself and stays on. */
-.card-link {
-  position: absolute;
-  top: calc(var(--frame) + 3px + var(--expand) + 6px);
-  right: calc(var(--frame) + 3px);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--expand);
-  height: var(--expand);
-  border-radius: 8px;
-  background: rgba(20, 20, 20, 0.55);
-  color: #fff;
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease, background-color 0.18s ease;
-}
-.card-link svg { width: calc(var(--expand) * 0.5); height: calc(var(--expand) * 0.5); display: block; }
+.card-link svg { width: calc(var(--corner-btn) * 0.5); height: calc(var(--corner-btn) * 0.5); display: block; }
 .card-link:hover { background: rgba(20, 20, 20, 0.78); }
 .card:hover > .card-link,
 .card-link:focus,
@@ -957,7 +907,6 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 }
 .card-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 #modal-card .card-link {
-  top: calc(var(--frame) + 3px);
   opacity: 1;
   pointer-events: auto;
 }
@@ -1158,7 +1107,6 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
 body.has-dot .card,
 body.has-dot #grid .card,
 body.has-dot .card-flip,
-body.has-dot .card-expand,
 body.has-dot .card-link,
 body.has-dot .chip { cursor: none; }
 
@@ -1418,7 +1366,7 @@ body.modal-open { overflow: hidden; }
   :root {
     --card-w: 124px;
     --card-w-played: 84px;
-    --expand: 24px;
+    --corner-btn: 24px;
     /* The modal's own padding, which used to be set on #card-modal here. It is
        a token because the card's fit has to subtract it from the window, and
        two places saying how much room the modal keeps is two places to drift. */
@@ -1465,7 +1413,6 @@ body.modal-open { overflow: hidden; }
   #played .card.is-riffling,
   #played .card.is-dealing,
   #grid .card-face img,
-  .card-expand,
   .card-link,
   #grid .card-name { transition-duration: 0.001s; }
   .card.is-flipping .card-inner { animation-duration: 0.001s; }

@@ -471,7 +471,6 @@ main { padding-bottom: 0; }
 }
 
 /* One line per project: the light face, and the dark face beside it. */
-.next-card[data-card="asba"] { --card-img: url('assets/cards/asba.jpg'); --card-img-dark: url('assets/cards/asba-dark.jpg'); }
 .next-card[data-card="clarusai"] { --card-img: url('assets/cards/clarusai.jpg'); --card-img-dark: url('assets/cards/clarusai-dark.jpg'); }
 .next-card[data-card="povi"] { --card-img: url('assets/cards/povi.jpg'); --card-img-dark: url('assets/cards/povi-dark.jpg'); }
 .next-card[data-card="puregym"] { --card-img: url('assets/cards/puregym.jpg'); --card-img-dark: url('assets/cards/puregym-dark.jpg'); }

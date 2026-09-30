@@ -147,9 +147,33 @@
     <!-- Loading screen -->
     <div id="loader">
         <div id="loader-cards">
-            <div class="shuffle-card"></div>
-            <div class="shuffle-card"></div>
-            <div class="shuffle-card"></div>
+            <div class="shuffle-card">
+                <div class="shuffle-card-inner">
+                    <div class="shuffle-card-face shuffle-card-back">
+                        <svg class="gf-card-frame" viewBox="0 0 1059 1449" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="35.5" y="35.5" width="988" height="1378" rx="24" fill="none" stroke="currentColor" stroke-width="25"/></svg>
+                        <span class="gf-card-mark"></span>
+                    </div>
+                    <canvas class="shuffle-card-face shuffle-card-front" aria-hidden="true"></canvas>
+                </div>
+            </div>
+            <div class="shuffle-card">
+                <div class="shuffle-card-inner">
+                    <div class="shuffle-card-face shuffle-card-back">
+                        <svg class="gf-card-frame" viewBox="0 0 1059 1449" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="35.5" y="35.5" width="988" height="1378" rx="24" fill="none" stroke="currentColor" stroke-width="25"/></svg>
+                        <span class="gf-card-mark"></span>
+                    </div>
+                    <canvas class="shuffle-card-face shuffle-card-front" aria-hidden="true"></canvas>
+                </div>
+            </div>
+            <div class="shuffle-card">
+                <div class="shuffle-card-inner">
+                    <div class="shuffle-card-face shuffle-card-back">
+                        <svg class="gf-card-frame" viewBox="0 0 1059 1449" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="35.5" y="35.5" width="988" height="1378" rx="24" fill="none" stroke="currentColor" stroke-width="25"/></svg>
+                        <span class="gf-card-mark"></span>
+                    </div>
+                    <canvas class="shuffle-card-face shuffle-card-front" aria-hidden="true"></canvas>
+                </div>
+            </div>
         </div>
         <p id="loader-quote">You can&rsquo;t control the cards you&rsquo;re dealt, just how you play the hand.</p>
         <div id="loader-progress">
@@ -181,38 +205,49 @@
       </div>
     </div>
 
-    <!-- Top nav bar -->
+    <!-- Top nav bar: logo and pages on the left, theme on the right.
+         The view switch lives on its own, centered, so it can arrive last. -->
     <div id="top-nav">
+        <div class="nav-cluster">
         <div id="nav-links">
+            <a class="nav-logo" href="index.html#cards" aria-label="HFYJ, back to About Me"><span class="nav-logo-mark"></span></a>
             <a class="nav-link" href="aboutme.html" data-card-index="0">About</a>
             <a class="nav-link" href="playground.html" data-card-index="1">Playground</a>
         </div>
-        <div id="nav-controls">
-            <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
-                    <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                </svg>
-                <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div id="view-toggle">
-                <button class="toggle-btn active" data-view="cards" title="Card view">
-                    <svg width="26" height="18" viewBox="-4 0 26 18" fill="none" style="overflow:visible">
-                        <rect class="card-left" x="3" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="rgba(var(--panel-rgb),0.92)"/>
-                        <rect class="card-right" x="6" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="rgba(var(--panel-rgb),0.92)"/>
-                    </svg>
-                </button>
-                <button class="toggle-btn" data-view="grid" title="Grid view">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <rect class="grid-tl" x="2" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                        <rect class="grid-tr" x="10" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                        <rect class="grid-bl" x="2" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                        <rect class="grid-br" x="10" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                    </svg>
-                </button>
-            </div>
+        <div class="nav-spacer" aria-hidden="true"></div>
+        <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <!-- Sun and moon sit on opposite quarters of one wheel. Each press
+                 turns that wheel another 90° in the same direction, so the
+                 icon rolls down and the next one comes over the top. -->
+            <span class="theme-wheel">
+                <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+                <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+                <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+                <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+            </span>
+        </button>
+        </div>
+    </div>
+
+    <!-- View switch. Icons only. The white chip slides between them.
+         The pill opens from the middle once the rest of the chrome is in. -->
+    <div id="view-toggle" data-active="cards">
+        <div class="view-toggle-shell">
+        <span class="view-toggle-thumb" aria-hidden="true"></span>
+        <button class="toggle-btn active" type="button" data-view="cards" title="Card view" aria-label="Card view" aria-pressed="true">
+            <svg width="26" height="18" viewBox="-4 0 26 18" fill="none" style="overflow:visible">
+                        <rect class="card-left" x="3" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                        <rect class="card-right" x="6" y="3" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+            </svg>
+        </button>
+        <button class="toggle-btn" type="button" data-view="grid" title="Grid view" aria-label="Grid view" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect class="grid-tl" x="2" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                <rect class="grid-tr" x="10" y="2" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                <rect class="grid-bl" x="2" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                <rect class="grid-br" x="10" y="10" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            </svg>
+        </button>
         </div>
     </div>
 
@@ -226,7 +261,7 @@
                 <span class="gh-connector">like playing with</span>
                 <span class="gh-art">cards<svg class="gh-doodle gh-green gh-green-1" viewBox="0 0 19 20" aria-hidden="true"><path d="M6.53084 0.0665563C16.1752 1.15882 19.3384 11.2093 18.7553 15.0663C16.8223 17.4924 12.0184 5.78142 3.32126 6.49243C-1.91957 6.92088 -1.03682 -0.790509 6.53084 0.0665563Z" fill="#00D343"/></svg><svg class="gh-doodle gh-green gh-green-2" viewBox="0 0 19 20" aria-hidden="true"><path d="M4.43367 9.69887C10.4996 10.0001 14.8588 14.219 15 17.0001C14.0277 18.96 8.94587 12.9658 3.15268 14.6331C-0.33826 15.6378 -0.822394 9.43785 4.43367 9.69887Z" fill="#00D343"/></svg><svg class="gh-doodle gh-orange" viewBox="0 0 51 26" fill="none" aria-hidden="true"><path d="M1.5 21.5C5.34588 14.5742 18.1301 0.882322 38.5 1.52163" stroke="#F5B846" stroke-width="3" stroke-linecap="round"/><path d="M17.6291 15.9956C22.0879 12.0775 34.639 5.62319 49.173 11.1502" stroke="#F5B846" stroke-width="3" stroke-linecap="round"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-bottom" viewBox="0 0 8 8" fill="none" aria-hidden="true"><circle cx="4" cy="4" r="3" stroke="#F54672"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-middle" viewBox="0 0 7 7" fill="none" aria-hidden="true"><circle cx="3.5" cy="3.5" r="2.5" stroke="#F54672"/></svg><svg class="gh-doodle gh-pink-dot gh-pink-top" viewBox="0 0 7 7" aria-hidden="true"><circle cx="3.5" cy="3.5" r="2.5" fill="#F54672"/></svg><svg class="gh-squiggle" viewBox="0 0 100 16" aria-hidden="true"><path d="M2,9 Q10,1 18,9 T34,9 T50,9 T66,9 T82,9 T98,9"/></svg></span>,
                 <span class="gh-connector">with</span><span class="gh-sel-pink"> intentionality,</span><span class="gh-sel-green"> playfulness, and</span><span class="gh-sel-orange"> the desire to challenge.</span>
-                <span class="gh-muted"><span class="gh-muted-text">Previously shuffling pixels around at BMW Designwork</span><span class="gh-card-hover"><span class="gh-card-icon-stack"><img class="gh-end-icon" src="./assets/card.svg" alt=""><span class="gh-card-tooltip-icon"><span class="gh-card-tooltip-card back"></span><span class="gh-card-tooltip-card front"></span></span></span><a class="gh-card-label" href="mailto:jenniferhuang724@163.com">Shuffling up something? Get in touch!</a></span></span>
+                <span class="gh-muted"><span class="gh-muted-text">Previously shuffling around at BMW Designworks and Mirror Physics</span><span class="gh-card-hover"><span class="gh-card-icon-stack"><img class="gh-end-icon" src="./assets/card.svg" alt=""><span class="gh-card-tooltip-icon"><span class="gh-card-tooltip-card back"></span><span class="gh-card-tooltip-card front"></span></span></span><a class="gh-card-label" href="mailto:jenniferhuang724@163.com">Shuffling up something? Get in touch!</a></span></span>
             </p>
             </div></div>
         </div>

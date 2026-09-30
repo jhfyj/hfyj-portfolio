@@ -46,8 +46,18 @@
     <link rel="stylesheet" href="dice.css">
     <!-- The catalogue and the grass both sit on the critical path: the hand
          cannot be dealt without works.json, and the mat cannot paint without
-         the albedo. Starting them here means they overlap the scripts below. -->
-    <link rel="preload" href="assets/sketchbook/works.json" as="fetch" crossorigin>
+         the albedo. The fetch starts here, ahead of the deferred scripts, so
+         the two overlap. A <link rel="preload"> would be rewritten by the
+         build into a different hashed file than the one sketchbook.js reads,
+         which is a second copy and not a head start. The path is root-absolute
+         so a clean URL (/playground, with no trailing slash to anchor a
+         relative one) still resolves to the file at the site root. -->
+    <script>
+        window.__worksPromise = fetch('/assets/sketchbook/works.json').then(function (r) {
+            if (!r.ok) throw new Error('works.json: HTTP ' + r.status);
+            return r.json();
+        });
+    </script>
     <link rel="preload" href="assets/sketchbook/felt/albedo.webp" as="image">
     <!-- Warm the home document while this page is open, so leaving the
          table does not start the carousel's HTML from a cold fetch. -->
@@ -144,7 +154,7 @@
              Both the drag and the arrow keys write here, so the two paths say
              the same thing. -->
         <p id="rack-status" class="visually-hidden" role="status" aria-live="polite"></p>
-        <p id="grid-empty" hidden>The playground could not be loaded.</p>
+        <p id="grid-empty" hidden></p>
     </section>
 
 </main>

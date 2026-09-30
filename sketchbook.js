@@ -20,11 +20,13 @@
 (function () {
     'use strict';
 
-    var MANIFEST = 'assets/sketchbook/works.json';
+    var MANIFEST = '/assets/sketchbook/works.json';
     var SVG_NS = 'http://www.w3.org/2000/svg';
-    // Kick the catalogue off before the rest of this file does any work, so
-    // the request is in flight while the table is being measured.
-    var worksPromise = fetch(MANIFEST).then(function (r) {
+    // playground.html starts this during parse. Reusing that promise is the
+    // whole point of starting it there: a second fetch here would race it
+    // and could lose. The fallback is for a page that includes this script
+    // without that head block.
+    var worksPromise = window.__worksPromise || fetch(MANIFEST).then(function (r) {
         if (!r.ok) throw new Error('works.json: HTTP ' + r.status);
         return r.json();
     });
@@ -1581,6 +1583,10 @@
 
     function openModal(work, opener) {
         if (!modalEl || !modalCardEl || !work) return;
+        // A card opened while the last one is still sinking away takes over
+        // the modal: the pending close is dropped, not finished later on top
+        // of the new card.
+        cancelModalClose();
         modalOpener = opener || null;
         modalOpenedAt = performance.now();
         modalCardEl.innerHTML = '';
@@ -1670,16 +1676,49 @@
         };
     }
 
+    // Closing plays card-sink (sketchbook.css, #card-modal.is-closing) before
+    // the modal is hidden and the card thrown away. The timer is the backstop
+    // for an animationend that never comes: a card with no layout, a tab put
+    // in the background mid-close, or a browser that skips the animation.
+    // Well over the CSS duration (0.42s): on a busy main thread - a GIF still
+    // decoding in the card - the animation can start a frame or several late,
+    // and a backstop set just past 0.42s cut the sink off halfway and snapped.
+    var modalCloseTimer = 0;
+    var modalCloseDone = null;
+    var MODAL_CLOSE_MS = 900;
+
+    function cancelModalClose() {
+        if (!modalCloseDone) return;
+        clearTimeout(modalCloseTimer);
+        modalCardEl.removeEventListener('animationend', modalCloseDone);
+        modalCloseDone = null;
+        modalEl.classList.remove('is-closing');
+    }
+
     function closeModal() {
         if (!modalEl || modalEl.hasAttribute('hidden')) return;
+        // Already on its way out: a second Escape or click changes nothing.
+        if (modalCloseDone) return;
         if (modalTiltOff) modalTiltOff();
-        modalEl.setAttribute('hidden', '');
-        document.body.classList.remove('modal-open');
-        modalCardEl.innerHTML = '';
-        // Back to the control that opened it, or focus is left on nothing and
-        // the next Tab starts from the top of the page.
-        if (modalOpener && document.contains(modalOpener)) modalOpener.focus();
-        modalOpener = null;
+
+        function finish() {
+            cancelModalClose();
+            modalEl.setAttribute('hidden', '');
+            document.body.classList.remove('modal-open');
+            modalCardEl.innerHTML = '';
+            // Back to the control that opened it, or focus is left on nothing and
+            // the next Tab starts from the top of the page.
+            if (modalOpener && document.contains(modalOpener)) modalOpener.focus();
+            modalOpener = null;
+        }
+
+        modalCloseDone = function (e) {
+            if (e && e.animationName !== 'card-sink') return;
+            finish();
+        };
+        modalCardEl.addEventListener('animationend', modalCloseDone);
+        modalCloseTimer = setTimeout(finish, MODAL_CLOSE_MS);
+        modalEl.classList.add('is-closing');
     }
 
     if (modalEl) {
@@ -2947,16 +2986,24 @@
             // buildGrid deals the opening round: the rack, and the hand off
             // the top of it.
             buildGrid();
-            sizeSurface();
-            // Again, because the grid has just changed how big the cloth is
-            // and the middle has moved with it.
-            centrePan();
-            placeMatMark();
-            // After the pan, which is what decides which part of the table is
-            // the visible part a chip has to land in. A saved rim is put
-            // back; a first visit scatters the way it always has.
-            if (!savedScene || !placeSavedChips(savedScene.chips)) scatterChips();
-            if (savedScene) restorePlayed(savedScene.cards);
+            // The catalogue is on the page now. Anything after this — measuring
+            // the cloth, laying chips, putting a saved hand back — can fail
+            // without the page claiming the catalogue never arrived. That
+            // sentence is only for a rack that is actually empty.
+            try {
+                sizeSurface();
+                // Again, because the grid has just changed how big the cloth is
+                // and the middle has moved with it.
+                centrePan();
+                placeMatMark();
+                // After the pan, which is what decides which part of the table is
+                // the visible part a chip has to land in. A saved rim is put
+                // back; a first visit scatters the way it always has.
+                if (!savedScene || !placeSavedChips(savedScene.chips)) scatterChips();
+                if (savedScene) restorePlayed(savedScene.cards);
+            } catch (err) {
+                console.error('[sketchbook]', err);
+            }
             window.__playgroundMatReady = true;
             requestAnimationFrame(function () {
                 requestAnimationFrame(persistScene);
@@ -2966,7 +3013,17 @@
             // The catalogue is the page; without it there is nothing to show,
             // and an empty grid with a heading counting to zero would read as a
             // sketchbook with nothing in it rather than as a page that failed.
-            if (emptyEl) emptyEl.hidden = false;
+            // The words are written here, not in the markup: a page that loaded
+            // should not contain a sentence saying it did not.
+            if (gridEl && gridEl.childElementCount) {
+                console.error('[sketchbook]', err);
+                window.__playgroundMatReady = true;
+                return;
+            }
+            if (emptyEl) {
+                emptyEl.textContent = 'The playground could not be loaded.';
+                emptyEl.hidden = false;
+            }
             if (countEl) countEl.textContent = '';
             console.error('[sketchbook]', err);
             window.__playgroundMatReady = true;

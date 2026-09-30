@@ -196,8 +196,10 @@ canvas.threejs {
   text-align: right;
   max-width: clamp(120px, calc(50vw - clamp(170px, 18vw, 260px)), 260px);
   opacity: 0;
-  transition: opacity 0.65s cubic-bezier(0.2,0.8,0.2,1),
-              transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
+  /* Opacity snaps on. The name is typed in (see playPanelNameType), so a
+     fade here would hide the first characters. The exit rule below puts
+     the opacity fade back when the panels leave. */
+  transition: transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
 }
 
 #panel-right {
@@ -207,8 +209,11 @@ canvas.threejs {
   transform: translateY(-50%) translateX(24px);
   max-width: min(300px, calc(50vw - clamp(180px, 19vw, 270px)));
   opacity: 0;
-  transition: opacity 0.65s cubic-bezier(0.2,0.8,0.2,1) 0.1s,
-              transform 0.65s cubic-bezier(0.2,0.8,0.2,1) 0.1s;
+  filter: blur(14px);
+  /* Opacity and blur are owned by panel-bio-fade, which holds them at
+     nothing until the name has finished typing. Transform still eases
+     in alongside that fade. */
+  transition: transform 1.05s cubic-bezier(0.2,0.8,0.2,1);
 }
 
 #about-panels.visible #panel-left {
@@ -216,9 +221,27 @@ canvas.threejs {
   transform: translateY(-40%) translateX(0);
 }
 
-#about-panels.visible #panel-right {
-  opacity: 1;
+#about-panels.bio-in #panel-right {
   transform: translateY(-60%) translateX(0);
+  animation: panel-bio-fade 1.15s ease forwards;
+}
+
+/* Blur is already on, and opacity stays at 0, before the fade begins —
+   so the line arrives out of the blur rather than popping in sharp. */
+@keyframes panel-bio-fade {
+  0%   { opacity: 0; filter: blur(16px); }
+  12%  { opacity: 0; filter: blur(14px); }
+  100% { opacity: 1; filter: blur(0px); }
+}
+
+.panel-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 0.85em;
+  margin-left: 1px;
+  background: currentColor;
+  vertical-align: -0.08em;
+  animation: caretBlink 1s steps(1) infinite;
 }
 
 /* Exit: slide both panels upward and fade out */
@@ -455,8 +478,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
     text-align: center;
     width: 70vw;
     max-width: 70vw;
-    transition: opacity 0.65s cubic-bezier(0.2,0.8,0.2,1),
-                transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
+    transition: transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
   }
 
   #about-panels.visible #panel-left {
@@ -470,11 +492,10 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
     text-align: center;
     width: 60vw;
     max-width: 60vw;
-    transition: opacity 0.65s cubic-bezier(0.2,0.8,0.2,1) 0.1s,
-                transform 0.65s cubic-bezier(0.2,0.8,0.2,1) 0.1s;
+    transition: transform 1.05s cubic-bezier(0.2,0.8,0.2,1);
   }
 
-  #about-panels.visible #panel-right {
+  #about-panels.bio-in #panel-right {
     transform: translateX(-50%) translateY(0);
   }
 
@@ -515,6 +536,16 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
     line-height: 1.5;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  #panel-right { filter: none; transition: none; }
+  #about-panels.bio-in #panel-right {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
+  .panel-caret { animation: none; }
+}
+
 @media (max-width: 500px) {
       #scrubber { display: none; }
 }
@@ -786,29 +817,86 @@ html[data-card-return] body {
 
 #loader-cards {
   position: relative;
-  width: 58px;
-  height: 82px;
+  z-index: 2;
+  width: 88px;
+  height: 120px;
+  /* The flip lives on the inners. Perspective has to sit here, on an element
+     that never takes a transform of its own — a transform on this box would
+     flatten the turn into a crossfade. */
+  perspective: 900px;
 }
 
 .shuffle-card {
   position: absolute;
   inset: 0;
-  border: 1.5px solid var(--t1);
-  border-radius: 7px;
-  background: var(--bg);
+  /* Flat while it shuffles. preserve-3d on the moving card is what made
+     the shuffle hitch — the turn only needs it once the deck has stopped. */
   animation: card-shuffle 1.8s ease-in-out infinite;
 }
 
-/* Poker card back — inner frame with a diagonal lattice pattern */
-.shuffle-card::before {
-  content: '';
+.shuffle-card-inner {
   position: absolute;
-  inset: 4px;
-  border-radius: 4px;
-  border: 1px solid rgba(var(--ink-rgb), 0.35);
-  background:
-    repeating-linear-gradient(45deg,  rgba(var(--ink-rgb), 0.25) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(-45deg, rgba(var(--ink-rgb), 0.25) 0 1px, transparent 1px 5px);
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.68s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Same back the carousel paints: stock, a hairline edge, the accent frame
+   and the HFYJ mark. The frame and the mark are the footer's own pieces
+   (.gf-card-frame, .gf-card-mark), which are already cut to paintCardBack(). */
+.shuffle-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 3.4% / 2.48%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.shuffle-card-back {
+  background: var(--card-stock);
+  box-shadow: inset 0 0 0 1px #000;
+}
+
+.shuffle-card-front {
+  transform: rotateY(180deg);
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--card-stock);
+}
+
+/* The deck settles, then the top card is given the carousel card's real
+   size — not a scale() on the little shuffle card, which rasterises the
+   face at 88px and stretches it — and only then turns over. */
+#loader.is-settling .shuffle-card {
+  animation: none;
+  transition: transform 0.28s ease, opacity 0.24s ease;
+  transform: none;
+}
+#loader.is-settling .shuffle-card:not(.is-hero) {
+  opacity: 0;
+}
+#loader.is-settling #loader-quote,
+#loader.is-settling #loader-progress {
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+#loader.is-sized .shuffle-card.is-hero {
+  position: fixed;
+  z-index: 6;
+  width: var(--reveal-w);
+  height: var(--reveal-h);
+  left: 50%;
+  top: 50%;
+  margin-left: calc(var(--reveal-w) / -2);
+  margin-top: calc(var(--reveal-h) / -2);
+  transform: none;
+  animation: none;
+  perspective: 1400px;
+}
+#loader.is-revealing .shuffle-card.is-hero .shuffle-card-inner {
+  transform: rotateY(180deg);
 }
 
 .shuffle-card:nth-child(1) { animation-delay: 0s; }
@@ -817,12 +905,12 @@ html[data-card-return] body {
 
 /* Each card cycles: top of stack → pulled out right → tucked under → back to top */
 @keyframes card-shuffle {
-  0%     { transform: translateX(6px)  rotate(5deg);   z-index: 3; }
-  12%    { transform: translateX(72px) rotate(14deg);  z-index: 3; }
-  22%    { transform: translateX(72px) rotate(14deg);  z-index: 1; }
-  33.33% { transform: translateX(-6px) rotate(-5deg);  z-index: 1; }
-  66.66% { transform: translateX(0)    rotate(0deg);   z-index: 2; }
-  100%   { transform: translateX(6px)  rotate(5deg);   z-index: 3; }
+  0%     { transform: translateX(8px)   rotate(5deg);   z-index: 3; }
+  12%    { transform: translateX(104px) rotate(14deg);  z-index: 3; }
+  22%    { transform: translateX(104px) rotate(14deg);  z-index: 1; }
+  33.33% { transform: translateX(-8px)  rotate(-5deg);  z-index: 1; }
+  66.66% { transform: translateX(0)     rotate(0deg);   z-index: 2; }
+  100%   { transform: translateX(8px)   rotate(5deg);   z-index: 3; }
 }
 
 #loader-quote {
@@ -865,13 +953,67 @@ html[data-card-return] body {
   right: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 24px 32px;
   z-index: 99999;
   pointer-events: none;
   opacity: 0;
   transform: translateY(-8px);
+  background: none;
   transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* The header items. In card view the cluster stretches the full bar so the
+   spacer can park the links left and the theme button right. In grid view it
+   shrinks around them into one sticky container, filled with the page colour,
+   and stays fixed over the scrolling grid. */
+.nav-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  background-color: transparent;
+  border-radius: 22px;
+  padding: 0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0);
+  transition:
+    flex-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#top-nav.is-grouped .nav-cluster,
+html[data-restore-view="grid"] #top-nav .nav-cluster {
+  flex-grow: 0;
+  background-color: var(--bg);
+  padding: 8px 22px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* The gap between the pages and the theme button. It grows to fill the bar
+   in card view, which parks the mark and the links on the left and the
+   button on the right. In grid view it shrinks to the same 32px the links
+   already use, and the centered bar closes up into one line. flex-grow is
+   what moves, so the trip eases in both directions. */
+.nav-spacer {
+  flex: 1 0 32px;
+  height: 1px;
+  pointer-events: none;
+  transition: flex-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#top-nav.is-grouped .nav-spacer,
+html[data-restore-view="grid"] #top-nav .nav-spacer {
+  flex-grow: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-spacer,
+  .nav-cluster,
+  #top-nav { transition: none; }
 }
 
 #top-nav.visible {
@@ -881,8 +1023,27 @@ html[data-card-return] body {
 
 #nav-links {
   display: flex;
+  align-items: center;
   gap: 32px;
   pointer-events: auto;
+}
+
+/* The mark, same treatment as the card backs: the file is the light-theme
+   blue, so it is used as a mask and the theme colour fills it. */
+.nav-logo {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+
+.nav-logo-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--accent);
+  -webkit-mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
 }
 
 .nav-link {
@@ -899,86 +1060,199 @@ html[data-card-return] body {
   color: var(--t1);
 }
 
-/* ── Nav controls (view toggle + theme toggle) ── */
-#nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  pointer-events: auto;
+/* ── View toggle ──
+   Fixed at the bottom centre, on the same row as the social links and the
+   scrubber. Closed, it is a slit in the middle; .is-open lets the pill grow
+   outward. A return visit stamps data-intro-done before first paint, so the
+   pill is already open and the grow does not replay. */
+#view-toggle {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  z-index: 100000;
+  transform: translateX(-50%);
+  border: none;
+  border-radius: 18px;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  /* Frost has to live on this element. A filter, or a blur on a child,
+     only samples an empty layer and the page behind stays sharp. */
+  background: rgba(var(--panel-rgb), 0.88);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.16),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: opacity 0.4s ease, visibility 0s linear;
 }
 
-/* ── View toggle ── */
-#view-toggle {
+.view-toggle-shell {
   display: flex;
   align-items: center;
   gap: 0;
-  background: rgba(var(--panel-rgb), 0.92);
-  border: 1px solid rgba(var(--ink-rgb), 0.08);
-  border-radius: 12px;
-  padding: 4px 4px;
+  padding: 6px;
+  border: none;
+  border-radius: inherit;
+  background: none;
+  clip-path: inset(0 50% 0 50% round 18px);
+  transition: clip-path 0.78s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#view-toggle.is-open {
+  visibility: visible;
+  opacity: 1;
   pointer-events: auto;
 }
 
-/* ── Theme toggle ── */
+#view-toggle.is-open .view-toggle-shell {
+  clip-path: inset(0 0 0 0 round 18px);
+}
+
+html[data-intro-done] #view-toggle {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: none;
+}
+
+html[data-intro-done] #view-toggle .view-toggle-shell {
+  clip-path: inset(0 0 0 0 round 18px);
+  transition: none;
+}
+
+/* The white plate under the active icon. It is one element, so switching
+   views slides it across instead of fading a second plate in. Width is one
+   button: half the padding box, minus the left inset. translateX(100%) then
+   lands it on the other button, because the two sit flush. */
+.view-toggle-thumb {
+  position: absolute;
+  z-index: 0;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc(50% - 6px);
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#view-toggle[data-active="grid"] .view-toggle-thumb {
+  transform: translateX(100%);
+}
+
+#view-toggle.no-thumb-move .view-toggle-thumb {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-toggle { transition: none; }
+  .view-toggle-thumb { transition: none; }
+}
+
+@media (max-width: 720px) {
+  /* Sit above the social row so the pill does not cover those buttons. */
+  #view-toggle { bottom: calc(5% + 56px); }
+}
+
+/* ── Theme toggle ──
+   A square window onto a wheel. Sun, moon, sun, moon sit 90° apart, so
+   each press can turn the same way and still land on the other icon.
+   The radius matches the window, which keeps the resting icon alone in
+   the square and the next one just out of sight above it. */
 #theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(var(--ink-rgb), 0.08);
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  display: block;
+  width: 44px;
+  height: 44px;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid rgba(var(--ink-rgb), 0.14);
   border-radius: 12px;
-  background: rgba(var(--panel-rgb), 0.92);
-  color: rgba(var(--ink-rgb), 0.6);
+  background: transparent;
+  color: rgba(var(--ink-rgb), 0.75);
   cursor: pointer;
   pointer-events: auto;
+  overflow: hidden;
+  perspective: 180px;
   transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
 #theme-toggle:hover {
-  color: rgba(var(--ink-rgb), 0.9);
+  color: rgba(var(--ink-rgb), 0.95);
 }
 
-#theme-icon-sun,
-#theme-icon-moon {
-  display: none;
+.theme-wheel {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(0deg);
 }
 
-:root #theme-icon-sun {
-  display: block;
+:root[data-theme="dark"] .theme-wheel {
+  transform: rotateX(-90deg);
 }
 
-:root[data-theme="dark"] #theme-icon-sun {
-  display: none;
+.theme-wheel.is-ready {
+  transition: transform 0.55s cubic-bezier(0.45, 0.02, 0.2, 1);
 }
 
-:root[data-theme="dark"] #theme-icon-moon {
-  display: block;
-}
-
-.toggle-btn {
+.theme-face {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 30px;
+  backface-visibility: hidden;
+}
+
+.theme-face:nth-child(1) { transform: rotateX(0deg) translateZ(22px); }
+.theme-face:nth-child(2) { transform: rotateX(90deg) translateZ(22px); }
+.theme-face:nth-child(3) { transform: rotateX(180deg) translateZ(22px); }
+.theme-face:nth-child(4) { transform: rotateX(270deg) translateZ(22px); }
+
+.theme-sun,
+.theme-moon {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-wheel.is-ready { transition: none; }
+}
+
+.toggle-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 56px;
+  height: 40px;
   border: none;
-  border-radius: 9px;
+  border-radius: 13px;
   background: transparent;
   color: rgba(var(--ink-rgb), 0.35);
   cursor: pointer;
   overflow: visible;
-  transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease;
+  transition: color 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+.toggle-btn[data-view="cards"] svg { width: 32px; height: 22px; }
+.toggle-btn[data-view="grid"] svg { width: 22px; height: 22px; }
 
 .toggle-btn:hover {
   color: rgba(var(--ink-rgb), 0.6);
 }
 
 .toggle-btn.active {
-  background: var(--surface);
-  color: rgba(var(--ink-rgb), 0.7);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: var(--accent);
+  box-shadow: none;
 }
 
 /* Dark: 0.35–0.6 white on the panel fails the 3:1 icon contrast the light
@@ -986,13 +1260,20 @@ html[data-card-return] body {
    active chip so the selected view still reads as selected. */
 :root[data-theme="dark"] #theme-toggle {
   color: rgba(var(--ink-rgb), 0.88);
-  border-color: rgba(var(--ink-rgb), 0.16);
+  border-color: rgba(var(--ink-rgb), 0.22);
 }
 :root[data-theme="dark"] #theme-toggle:hover {
   color: rgb(var(--ink-rgb));
 }
 :root[data-theme="dark"] #view-toggle {
-  border-color: rgba(var(--ink-rgb), 0.16);
+  background: rgba(var(--panel-rgb), 0.88);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    0 4px 14px rgba(0, 0, 0, 0.28);
+}
+:root[data-theme="dark"] .view-toggle-thumb {
+  background: #3d3d3d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 :root[data-theme="dark"] .toggle-btn {
   color: rgba(var(--ink-rgb), 0.72);
@@ -1001,13 +1282,14 @@ html[data-card-return] body {
   color: rgba(var(--ink-rgb), 0.92);
 }
 :root[data-theme="dark"] .toggle-btn.active {
-  color: rgb(var(--ink-rgb));
-  background: #3d3d3d;
+  color: var(--accent);
+  background: transparent;
 }
 
 /* Card icon fan-out on hover and active */
 .toggle-btn[data-view="cards"] .card-left,
 .toggle-btn[data-view="cards"] .card-right {
+  fill: var(--surface);
   transition: transform 200ms ease;
   transform-origin: 9px 16px;
 }

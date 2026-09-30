@@ -139,9 +139,12 @@ window.Site = (function () {
             // Where a surface draws a cursor of its own - the sketchbook's
             // mat has a grab hand - two cursors is one too many, so the dot
             // stands down. The element opts out, not its subtree: a card lying
-            // on the mat still gets the dot back.
+            // on the mat still gets the dot back. An iframe (the YouTube
+            // embeds) counts too: CSS cannot reach inside it, so it always
+            // draws the native cursor, and the dot would only freeze at its
+            // edge because the page stops getting mousemoves there.
             dot.classList.toggle('is-hidden',
-                !!(e.target.matches && e.target.matches('[data-cursor-none]')));
+                !!(e.target.matches && e.target.matches('[data-cursor-none], iframe')));
 
             const t = e.target.closest ? e.target.closest('[data-cursor]') : null;
             if (t === hot) return;

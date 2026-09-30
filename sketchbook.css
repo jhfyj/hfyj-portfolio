@@ -255,6 +255,14 @@ html.felt-snapping #upcoming {
   cursor: grab;
 }
 #felt.is-panning #surface { cursor: grabbing; }
+/* The mat is the one place the native cursor is allowed: site.css hides it
+   everywhere with !important, and these win on specificity. #played covers
+   the whole surface, so it wears the hand too; cards inside it match only
+   the site-wide rule and keep the dot. */
+body.has-dot #surface,
+body.has-dot #played { cursor: grab !important; }
+body.has-dot #felt.is-panning #surface,
+body.has-dot #felt.is-panning #played { cursor: grabbing !important; }
 
 /* The WebGL mat. It fills the surface and sits under the chips, the dice and
    the cards. pointer-events are off: a pan belongs to #felt, a drag belongs
@@ -1154,6 +1162,10 @@ body.has-dot .chip { cursor: none; }
 #grid .card:focus-within .card-name { opacity: 1; }
 
 #grid-empty { color: var(--caption); font-size: 15px; }
+/* Same reason as #card-modal below: an author display rule outranks the
+   UA's [hidden] { display: none }, and this line has to stay off the page
+   until the catalogue has actually failed. */
+#grid-empty[hidden] { display: none !important; }
 
 /* ---------- the card, opened ---------- */
 
@@ -1253,7 +1265,6 @@ body.modal-open { overflow: hidden; }
   --tilt-x: 0deg;
   --tilt-y: 0deg;
   perspective: 1100px;
-  cursor: default;
   animation: card-rise 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) both;
 }
 /* Lean lives on the inner so the rise (on the wrapper) can finish first.
@@ -1277,6 +1288,26 @@ body.modal-open { overflow: hidden; }
 @keyframes modal-fade {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* Closing is the rise played back: the card sinks the way it came and the
+   scrim clears with it. sketchbook.js puts .is-closing on the overlay, waits
+   for card-sink to end, and only then hides the modal and throws the card
+   away. The curve is the rise's mirrored (slow start, fast finish) and a
+   little quicker, because leaving should not keep you waiting. */
+#card-modal.is-closing #modal-card > .card {
+  animation: card-sink 0.42s cubic-bezier(0.72, 0, 0.8, 0.25) both;
+}
+#card-modal.is-closing .modal-scrim {
+  animation: modal-fade-out 0.42s ease both;
+}
+@keyframes card-sink {
+  from { transform: translate3d(0, 0, 0);     opacity: 1; }
+  to   { transform: translate3d(0, 120px, 0); opacity: 0; }
+}
+@keyframes modal-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* The information side. It replaces the card back on this one card: turning the
@@ -1419,7 +1450,9 @@ body.modal-open { overflow: hidden; }
   /* The rise and the scrim's fade are decoration over a modal that is just as
      usable arriving all at once. */
   #modal-card > .card,
-  .modal-scrim { animation-duration: 0.001s; }
+  .modal-scrim,
+  #card-modal.is-closing #modal-card > .card,
+  #card-modal.is-closing .modal-scrim { animation-duration: 0.001s; }
   #modal-card > .card .card-inner { transition-duration: 0.001s; }
   #mat { transition-duration: 0.001s; }
   #felt,

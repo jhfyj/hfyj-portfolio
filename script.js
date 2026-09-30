@@ -56,9 +56,10 @@ let snapSpeed = 0.1;
 const cardCount = 9;
 let scrollTimeout = null;
 let currentView = 'cards';
-// How many faces have sat down. The loader no longer waits on this — it
-// only needs About Me — but the count is still the ring's own tally.
+// How many faces have sat down. The first-visit shuffle stays up until
+// this reaches every card and the playground cloth has finished painting.
 let loadedModels = 0;
+let playgroundFaceReady = false;
 
 // Loader
 // Null on a return visit, which is what turns the loading screen off: the
@@ -75,10 +76,23 @@ if (introSkipped) {
 }
 const loaderProgressEl = document.getElementById('loader-progress-bar');
 const loaderStart = performance.now();
-const LOADER_MIN_MS = 1200; // a beat of shuffle, not a three-second hold
+const LOADER_MIN_MS = 1200; // a beat of shuffle, even when the cache is hot
+const LOADER_MAX_MS = 10000; // a stuck asset must not shuffle forever
 let loaderTarget  = 0;   // jumps to each step as models arrive
 let loaderDisplay = 0;   // lerps smoothly toward loaderTarget
+let loaderBarPct  = -1;  // last percent written to the bar; skips repeat writes
 let loaderDone    = false;
+
+// Faces plus the playground cloth. The cloth's stand-in sits down early,
+// so loadedModels alone would end the shuffle while that paint was still
+// ahead — which is the hitch.
+function refreshLoaderTarget() {
+    if (!loaderEl) return;
+    const total = cardCount + 1;
+    const step = Math.min(total, loadedModels + (playgroundFaceReady ? 1 : 0));
+    const ready = playgroundFaceReady && loadedModels >= cardCount;
+    loaderTarget = ready ? 100 : (step / total) * 100;
+}
 
 // ── Where-you-left-off state (view + position within it) ─────────────────────
 // Clicking into a project is a round trip, not an exit: coming back should put
@@ -458,6 +472,26 @@ let card0TiltTargX = 0, card0TiltTargY = 0; // mouse-driven targets (radians)
 let card0TiltCurrX = 0, card0TiltCurrY = 0; // smoothly lerped current values
 const CARD0_TILT_MAX = 0.24;  // ~10° max tilt in either axis
 const CARD0_TILT_SPEED = 0.07;
+// Full lean grows the ground shadow by this fraction. Position stays put —
+// a shadow doesn't travel with the card's axes, only its size does.
+const CARD0_SHADOW_LEAN_SCALE = 0.22;
+const _shadowTiltEuler = new THREE.Euler(0, 0, 0, 'XYZ');
+const _shadowParentQ = new THREE.Quaternion();
+const _shadowFlatQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0, 'XYZ'));
+const _shadowChildQ = new THREE.Quaternion();
+
+// The shadow is a child of the card, so tilting the card swings it as if it
+// were stuck to the card. Put it back on the ground directly under the card
+// and lay it flat. `groundY` is the shadow's rest height in the card's
+// unrotated frame (negative, below the card).
+function pinCardShadow(shadow, tiltX, tiltY, groundY) {
+    const sx = Math.sin(tiltX), cx = Math.cos(tiltX);
+    const sy = Math.sin(tiltY), cy = Math.cos(tiltY);
+    shadow.position.set(groundY * sx * sy, groundY * cx, groundY * -sx * cy);
+    _shadowTiltEuler.set(tiltX, tiltY, 0);
+    _shadowParentQ.setFromEuler(_shadowTiltEuler);
+    shadow.quaternion.copy(_shadowChildQ.copy(_shadowParentQ).invert().multiply(_shadowFlatQ));
+}
 
 // --- Intro animation state ---
 // 'idle' → 'waitForScroll' (About Me visible) → 'dealing' → 'done'
@@ -474,6 +508,9 @@ const cardDropOffset = new Array(cardCount).fill(Infinity);
 
 // Pending timeout that reveals the About Me panels; cleared if dealing starts first
 let panelRevealTimeout = null;
+// The name type-on, and the pause before the bio fade. One handle: each step
+// replaces it, so clearing it stops the chain wherever it is.
+let panelTypeTimer = null;
 
 // Continuous intro rotation state (replaces per-step snap during dealing)
 let introAnimStartTime = 0;
@@ -1208,15 +1245,10 @@ function _placeCard(i, group) {
     cards[i] = group;
     cardgroup.add(group);
     loadedModels++;
-    // The intro only needs About Me. The other eight keep loading while
-    // the visitor reads the panels; waiting on Playground's nap was the
-    // pause after a cached photo.
-    if (i === 0) {
-        loaderTarget = 100;
-        if (!loaderEl) {
-            document.body.classList.add('gradient-visible');
-            startIntro();
-        }
+    if (loaderEl) refreshLoaderTarget();
+    else if (i === 0) {
+        document.body.classList.add('gradient-visible');
+        startIntro();
     }
 }
 
@@ -2980,15 +3012,16 @@ function loadCard8() {
                 dressProps(theme);
             },
         });
-    }).catch((err) => console.error('[playground]', err));
+    }).catch((err) => console.error('[playground]', err))
+     .finally(() => {
+        playgroundFaceReady = true;
+        refreshLoaderTarget();
+     });
     }
-    if (introSkipped) {
-        paintDetail();
-    } else if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(paintDetail, { timeout: 280 });
-    } else {
-        setTimeout(paintDetail, 80);
-    }
+    // Used to wait for an idle gap on a first visit, so the heavy paint
+    // landed in the middle of the shuffle. It starts now, and the shuffle
+    // stays up until the finally above says the cloth is done.
+    paintDetail();
 }
 
 loadCard0();
@@ -3369,6 +3402,19 @@ const renderloop = (now = 0) => {
         }
     }
 
+    // Card-0 tilt is settled before the shadow pass so this frame's lean
+    // drives the shadow's size, not last frame's.
+    const c0 = cards[0];
+    if (c0) {
+        const tiltActive = introPhase === 'waitForScroll';
+        const targX = tiltActive ? card0TiltTargX : 0;
+        const targY = tiltActive ? card0TiltTargY : 0;
+        card0TiltCurrX += (targX - card0TiltCurrX) * CARD0_TILT_SPEED;
+        card0TiltCurrY += (targY - card0TiltCurrY) * CARD0_TILT_SPEED;
+        c0.rotation.x = card0TiltCurrX;
+        c0.rotation.y = card0TiltCurrY; // base y = 0 for card 0
+    }
+
     // Hover lift + intro drop animation
     cards.forEach((card, i) => {
         if (!card) return;
@@ -3390,36 +3436,35 @@ const renderloop = (now = 0) => {
         }
         card.position.y = cardHoverY[i] + cardIntroY[i];
 
-        // Shadow: stay in place, shrink + fade on hover
+        // Shadow: stay on the ground. Hover lifts the card, so the shadow
+        // shrinks and fades; it does not rise with the card.
         const shadow = cardShadows[i];
         if (shadow) {
             shadow.position.y = shadow.userData.baseY - cardHoverY[i];
             const targetOpacity = isHovered ? 0.5 : 1.0;
-            const targetScale = isHovered ? 0.7 : 1.0;
+            const restScale = isHovered ? 0.7 : 1.0;
+            // Intro tilt: the card leans toward the cursor. The shadow stays
+            // centered under it and only grows with that lean.
+            const lean = i === 0
+                ? Math.min(1, Math.hypot(card0TiltCurrX, card0TiltCurrY) / CARD0_TILT_MAX)
+                : 0;
+            const targetScale = restScale * (1 + lean * CARD0_SHADOW_LEAN_SCALE);
             shadow.material.opacity += (targetOpacity - shadow.material.opacity) * HOVER_ANIM_SPEED;
             shadow.scale.x += (targetScale - shadow.scale.x) * HOVER_ANIM_SPEED;
-            shadow.scale.z += (targetScale - shadow.scale.z) * HOVER_ANIM_SPEED;
+            shadow.scale.z += (restScale - shadow.scale.z) * HOVER_ANIM_SPEED;
+            // Local Y is the ellipse's depth once the mesh is laid flat.
+            // Only the intro lean changes it; hover keeps today's width-only shrink.
+            if (i === 0) {
+                const depthTarget = 1 + lean * CARD0_SHADOW_LEAN_SCALE;
+                shadow.scale.y += (depthTarget - shadow.scale.y) * HOVER_ANIM_SPEED;
+            }
         }
     });
 
-    // Card-0 mouse-tilt + push spring (waitForScroll / early dealing fade-out)
-    const c0 = cards[0];
-    if (c0) {
-        const tiltActive = introPhase === 'waitForScroll';
-        const targX = tiltActive ? card0TiltTargX : 0;
-        const targY = tiltActive ? card0TiltTargY : 0;
-        card0TiltCurrX += (targX - card0TiltCurrX) * CARD0_TILT_SPEED;
-        card0TiltCurrY += (targY - card0TiltCurrY) * CARD0_TILT_SPEED;
-
-        c0.rotation.x = card0TiltCurrX;
-        c0.rotation.y = card0TiltCurrY; // base y = 0 for card 0
-
-        // Keep shadow flat — counter-rotate so it doesn't tilt with the card
-        const s0 = cardShadows[0];
-        if (s0) {
-            s0.rotation.x = -Math.PI / 2 - card0TiltCurrX;
-            s0.rotation.y = -card0TiltCurrY;
-        }
+    // Undo the tilt's swing so card 0's shadow stays on the ground, flat,
+    // directly under the card. Size was already eased above.
+    if (c0 && cardShadows[0]) {
+        pinCardShadow(cardShadows[0], card0TiltCurrX, card0TiltCurrY, cardShadows[0].userData.baseY - cardHoverY[0]);
     }
 
     // Continuous intro rotation (linear sweep across all cards — no per-step easing)
@@ -3486,29 +3531,29 @@ const renderloop = (now = 0) => {
 
     carouselSettled = !isDragging && !isFlinging && targetRotation === null && stillFrames >= STILL_FRAMES_NEEDED;
 
-    // Loader progress — lerps toward the loaded target; fade-out also waits
-    // for LOADER_MIN_MS so the shuffle is seen, then About Me can come up.
+    // Loader progress — the shuffle keeps running until every face is in.
+    // The bar crawls with the clock for the minimum beat, then follows the
+    // assets if they are still arriving.
     if (loaderEl && !loaderDone) {
         loaderDisplay += (loaderTarget - loaderDisplay) * 0.06;
-        // Bar fill is capped by elapsed-time-toward-minimum too, so on a fast
-        // load it doesn't jump to full and then just sit there waiting —
-        // it keeps crawling until the minimum display time is actually up.
+        const elapsed = performance.now() - loaderStart;
         if (loaderProgressEl) {
-            const timePct = Math.min(1, (performance.now() - loaderStart) / LOADER_MIN_MS) * 100;
-            loaderProgressEl.style.width = Math.min(loaderDisplay, timePct) + '%';
+            const timePct = Math.min(1, elapsed / LOADER_MIN_MS) * 100;
+            const pct = Math.round(Math.min(loaderDisplay, timePct));
+            if (pct !== loaderBarPct) {
+                loaderBarPct = pct;
+                loaderProgressEl.style.width = pct + '%';
+            }
         }
-        if (loaderTarget >= 100 && loaderDisplay >= 99 &&
-            performance.now() - loaderStart >= LOADER_MIN_MS) {
+        const loaded = loaderTarget >= 100 && loaderDisplay >= 99 && elapsed >= LOADER_MIN_MS;
+        if (loaded || elapsed >= LOADER_MAX_MS) {
             loaderDone = true;
             if (loaderProgressEl) loaderProgressEl.style.width = '100%';
-            setTimeout(() => {
-                loaderEl.classList.add('fade-out');
-                document.body.classList.add('gradient-visible');
-                setTimeout(() => {
-                    loaderEl.remove();
-                    startIntro(); // card drop plays after loader is fully gone
-                }, 700);
-            }, 200);
+            // One upload of everything that just finished, while the loader
+            // is still opaque, so the shuffle's frames weren't spent on it
+            // and the flip isn't either.
+            renderer.render(scene, camera);
+            finishLoader();
         }
     }
 
@@ -3545,8 +3590,12 @@ const renderloop = (now = 0) => {
     // ── Update spin particles ──
     updateSpinParticles();
 
-    // Render last — all positions are current, no stale-position flash possible
-    renderer.render(scene, camera);
+    // Render last — all positions are current, no stale-position flash possible.
+    // Not while the loader still covers the canvas: a render there uploads
+    // card textures on the same thread the CSS shuffle is running on.
+    if (!loaderEl || loaderEl.classList.contains('fade-out')) {
+        renderer.render(scene, camera);
+    }
 };
 
 // Helpers
@@ -3766,7 +3815,25 @@ function applyTheme(theme, persist = true) {
     if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }
 
+// Quarter-turns of the day/night wheel. The count only ever grows, so the
+// icon always rolls the same way — down, and the next one over the top —
+// instead of rocking back to where it came from.
+const themeWheel = document.querySelector('#theme-toggle .theme-wheel');
+let themeTurns = currentTheme === 'dark' ? 1 : 0;
+
+function parkThemeWheel() {
+    if (!themeWheel) return;
+    themeWheel.classList.remove('is-ready');
+    themeWheel.style.transform = `rotateX(${-themeTurns * 90}deg)`;
+    void themeWheel.offsetWidth;
+    themeWheel.classList.add('is-ready');
+}
+
+parkThemeWheel();
+
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    themeTurns += 1;
+    if (themeWheel) themeWheel.style.transform = `rotateX(${-themeTurns * 90}deg)`;
     applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 });
 
@@ -3784,6 +3851,8 @@ window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
         const theme = getStoredTheme();
         if (theme !== currentTheme) applyTheme(theme, false);
+        themeTurns = getStoredTheme() === 'dark' ? 1 : 0;
+        parkThemeWheel();
     }
 });
 
@@ -3895,11 +3964,29 @@ function replayGridHeroReveal() {
 // animations. Shared by the toggle handler and by the session restore below, so
 // the restored grid can't end up with, say, the scrubber still sitting over it
 // because only one of the two places was updated.
-function applyViewChrome(view) {
+function applyViewChrome(view, animateThumb = true) {
     const scrubber = document.getElementById('scrubber');
     const socialLinks = document.getElementById('social-links');
+    const viewToggle = document.getElementById('view-toggle');
+    const topNav = document.getElementById('top-nav');
+    if (topNav) topNav.classList.toggle('is-grouped', view === 'grid');
 
-    toggleBtns.forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    toggleBtns.forEach(b => {
+        const on = b.dataset.view === view;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+
+    // The plate is one element. Moving data-active slides it. A restore
+    // lands it in place, so a returning grid doesn't watch it travel over.
+    if (viewToggle) {
+        if (!animateThumb) viewToggle.classList.add('no-thumb-move');
+        viewToggle.dataset.active = view;
+        if (!animateThumb) {
+            void viewToggle.offsetWidth;
+            viewToggle.classList.remove('no-thumb-move');
+        }
+    }
 
     if (view === 'grid') {
         // Show grid, hide carousel
@@ -4051,19 +4138,32 @@ document.querySelectorAll('#grid-footer .gf-nav-link').forEach(link => {
             e.preventDefault();
             const cardIdx = parseInt(cardIdxAttr, 10);
             if (Number.isNaN(cardIdx)) return;
-            if (currentView !== 'cards') {
-                document.querySelector('.toggle-btn[data-view="cards"]')?.click();
-            }
-            const apc = (Math.PI * 2) / cardCount;
-            const current = Math.round(cardgroup.rotation.y / apc);
-            const currentMod = ((current % cardCount) + cardCount) % cardCount;
-            let diff = cardIdx - currentMod;
-            if (diff > cardCount / 2) diff -= cardCount;
-            if (diff < -cardCount / 2) diff += cardCount;
-            isFlinging = false;
-            targetRotation = (current + diff) * apc;
+            rotateToCard(cardIdx);
         }
     });
+});
+
+// Switches to card view if needed, then turns the ring the short way round
+// to the card at rotation step cardIdx.
+function rotateToCard(cardIdx) {
+    if (currentView !== 'cards') {
+        document.querySelector('.toggle-btn[data-view="cards"]')?.click();
+    }
+    const apc = (Math.PI * 2) / cardCount;
+    const current = Math.round(cardgroup.rotation.y / apc);
+    const currentMod = ((current % cardCount) + cardCount) % cardCount;
+    let diff = cardIdx - currentMod;
+    if (diff > cardCount / 2) diff -= cardCount;
+    if (diff < -cardCount / 2) diff += cardCount;
+    isFlinging = false;
+    targetRotation = (current + diff) * apc;
+}
+
+// The nav mark is a home link. We are already home, so it brings the ring
+// back round to About Me instead of reloading the page.
+document.querySelector('#top-nav .nav-logo')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    rotateToCard(0);
 });
 
 // ── Grid card reveal-on-scroll (fade + slide up, staggered DOM order) ───────
@@ -4202,7 +4302,7 @@ function restoreGridScroll(top) {
 
 if (restoredState && restoredState.view === 'grid' && gridView) {
     currentView = 'grid';
-    applyViewChrome('grid');
+    applyViewChrome('grid', false);
     revealGridSilently();
     restoreGridScroll(restoredState.gridScroll);
     // Hand the pre-paint hint back: index.html only sets it so the grid is
@@ -4243,19 +4343,236 @@ function markIntroPlayed() {
     } catch (err) { /* file:// and the like */ }
 }
 
+// Set once the loader has turned its own card over onto About Me, so the
+// carousel card is already sitting where that one was instead of falling in
+// on top of a card the visitor just watched land.
+let loaderRevealedAbout = false;
+
+// How tall the front card is on screen. Same projection the camera uses:
+// an 80° lens at z = 3.6, the card standing at the ring's radius.
+function aboutCardScreenHeight() {
+    const dist = 3.6 - getCarouselRadius();
+    const visible = 2 * dist * Math.tan((80 * Math.PI / 180) / 2);
+    return window.innerHeight * ((1.7 * getCardScale()) / visible);
+}
+
+// The carousel's own About Me bitmap, drawn at the size the card will
+// actually be on screen. The blocky type was a small canvas scaled up
+// with a CSS transform: the layer was rasterised at the shuffle card's
+// 88px and stretched. The card is given the screen size instead, and
+// this copy is one device pixel per screen pixel — never a second
+// enlargement, which is what softens the type.
+function paintLoaderAboutFace(card) {
+    const src = aboutmeSwap.faces[0] && aboutmeSwap.faces[0].canvas;
+    const dest = card.querySelector('.shuffle-card-front');
+    if (!src || !dest || !src.width) return;
+    const cssH = aboutCardScreenHeight();
+    const cssW = cssH * (src.width / src.height);
+    card.style.setProperty('--reveal-w', cssW.toFixed(2) + 'px');
+    card.style.setProperty('--reveal-h', cssH.toFixed(2) + 'px');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const destH = Math.max(1, Math.min(src.height, Math.round(cssH * dpr)));
+    const destW = Math.max(1, Math.round(destH * (src.width / src.height)));
+    dest.width = destW;
+    dest.height = destH;
+    const ctx = dest.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, destW, destH);
+}
+
+function presentAboutCard() {
+    const c = cards[0];
+    if (!c) return;
+    c.visible = true;
+    cardIntroY[0] = 0;
+    cardHoverY[0] = 0;
+    c.position.y = 0;
+    loaderRevealedAbout = true;
+}
+
+function dismissLoader(delay) {
+    setTimeout(() => {
+        presentAboutCard();
+        loaderEl.classList.add('fade-out');
+        document.body.classList.add('gradient-visible');
+        setTimeout(() => {
+            loaderEl.remove();
+            startIntro();
+        }, 700);
+    }, delay);
+}
+
+// The shuffle has had its beat. Park the deck, turn the top card over onto
+// About Me, then let the loader fade off the carousel card underneath.
+function finishLoader() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const deck = [...loaderEl.querySelectorAll('.shuffle-card')];
+    if (!deck.length || reduced) {
+        dismissLoader(reduced ? 0 : 200);
+        return;
+    }
+    deck.forEach((card) => {
+        const cs = getComputedStyle(card);
+        card.style.animation = 'none';
+        if (cs.transform && cs.transform !== 'none') card.style.transform = cs.transform;
+        card.style.zIndex = cs.zIndex === 'auto' ? '1' : cs.zIndex;
+    });
+    const hero = deck.reduce((best, card) =>
+        ((parseInt(card.style.zIndex, 10) || 0) >= (parseInt(best.style.zIndex, 10) || 0) ? card : best));
+    hero.classList.add('is-hero');
+    paintLoaderAboutFace(hero);
+    loaderEl.classList.add('is-settling');
+    void loaderEl.offsetWidth;
+    deck.forEach((card) => { card.style.transform = ''; });
+
+    const settleMs = 320;
+    const flipMs = 680;
+    const holdMs = 280;
+    setTimeout(() => {
+        if (!loaderEl.isConnected) return;
+        // Size first, on its own frame, so the face is rasterised at the
+        // size it will be seen. The turn starts the frame after that.
+        loaderEl.classList.add('is-sized');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (loaderEl.isConnected) loaderEl.classList.add('is-revealing');
+            });
+        });
+    }, settleMs);
+    dismissLoader(settleMs + flipMs + holdMs);
+}
+
+function cancelPanelType() {
+    if (panelTypeTimer !== null) {
+        clearTimeout(panelTypeTimer);
+        panelTypeTimer = null;
+    }
+}
+
+// The name is two lines split by a <br>. Read them before the type-on
+// replaces the contents, so the copy stays in the markup.
+function readPanelNameLines(el) {
+    const lines = [];
+    let current = '';
+    el.childNodes.forEach((node) => {
+        if (node.nodeName === 'BR') {
+            lines.push(current.replace(/\s+/g, ' ').trim());
+            current = '';
+        } else {
+            current += node.textContent || '';
+        }
+    });
+    lines.push(current.replace(/\s+/g, ' ').trim());
+    return lines.filter((line) => line.length);
+}
+
+function panelCaret() {
+    const caret = document.createElement('span');
+    caret.className = 'panel-caret';
+    caret.setAttribute('aria-hidden', 'true');
+    return caret;
+}
+
+function renderPanelName(el, lines, count, caret) {
+    const frag = document.createDocumentFragment();
+    let consumed = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const start = consumed;
+        if (i > 0 && count <= start) break;
+        if (i > 0) frag.appendChild(document.createElement('br'));
+        const take = Math.max(0, Math.min(line.length, count - start));
+        const span = document.createElement('span');
+        span.textContent = line.slice(0, take);
+        frag.appendChild(span);
+        consumed += line.length;
+        if (caret && count >= start && count < consumed) {
+            frag.appendChild(panelCaret());
+            break;
+        }
+    }
+    if (caret && count >= consumed) frag.appendChild(panelCaret());
+    el.replaceChildren(frag);
+}
+
+// Types the left (top, on a phone) name, then lets the bio fade in out of
+// a blur. Dealing or a skipped intro cancels the chain via cancelPanelType.
+function playPanelNameType(panels) {
+    cancelPanelType();
+    const nameEl = panels.querySelector('.panel-name');
+    if (!nameEl) {
+        panels.classList.add('bio-in');
+        return;
+    }
+    const lines = readPanelNameLines(nameEl);
+    const total = lines.reduce((n, line) => n + line.length, 0);
+    if (!total) {
+        panels.classList.add('bio-in');
+        return;
+    }
+    nameEl.setAttribute('aria-label', lines.join(' '));
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+        renderPanelName(nameEl, lines, total, false);
+        panels.classList.add('bio-in');
+        return;
+    }
+
+    const CHAR_MS = 46;
+    const LINE_GAP = 180;
+    renderPanelName(nameEl, lines, 0, true);
+
+    let count = 0;
+    function step() {
+        if (!panels.classList.contains('visible')) return;
+        if (count >= total) {
+            panelTypeTimer = setTimeout(() => {
+                renderPanelName(nameEl, lines, total, false);
+                panelTypeTimer = setTimeout(() => {
+                    panelTypeTimer = null;
+                    if (panels.classList.contains('visible')) panels.classList.add('bio-in');
+                }, 90);
+            }, 160);
+            return;
+        }
+        count += 1;
+        renderPanelName(nameEl, lines, count, true);
+        const atLineBreak = lines.some((_, i) => {
+            if (i === lines.length - 1) return false;
+            const end = lines.slice(0, i + 1).reduce((n, line) => n + line.length, 0);
+            return count === end;
+        });
+        panelTypeTimer = setTimeout(step, CHAR_MS + (atLineBreak ? LINE_GAP : 0));
+    }
+    panelTypeTimer = setTimeout(step, 240);
+}
+
 function startIntro() {
     if (introAlreadyPlayed()) { skipIntro(); return; }
     // No extra delay needed — loader fade already provides the transition buffer
     const c = cards[0];
     if (!c) return;
     c.visible = true;
-    cardDropStartTime[0] = performance.now();
+    if (!loaderRevealedAbout) cardDropStartTime[0] = performance.now();
     introPhase = 'waitForScroll';
     const panels = document.getElementById('about-panels');
     if (panels) panelRevealTimeout = setTimeout(() => {
         panelRevealTimeout = null;
         panels.classList.add('visible');
+        playPanelNameType(panels);
     }, 350);
+}
+
+// The view pill is the last piece of chrome. `delay` is how long after the
+// caller to start the grow; 0 is a return visit, where the pill is already
+// open via data-intro-done and this only keeps the class in step.
+function revealViewToggle(delay) {
+    const el = document.getElementById('view-toggle');
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => el.classList.add('is-open'), reduce ? 0 : delay);
 }
 
 function triggerDealing() {
@@ -4266,10 +4583,12 @@ function triggerDealing() {
         clearTimeout(panelRevealTimeout);
         panelRevealTimeout = null;
     }
+    cancelPanelType();
     // Slide panels upward then remove them
     const panels = document.getElementById('about-panels');
     if (panels) {
         panels.classList.remove('visible');
+        panels.classList.remove('bio-in');
         panels.classList.add('exiting');
         setTimeout(() => panels.classList.remove('exiting'), 600);
     }
@@ -4317,6 +4636,9 @@ function triggerDealing() {
         if (scrubberEl) setTimeout(() => scrubberEl.classList.add('ui-intro-visible'), 350);
         const tn = document.getElementById('top-nav');
         if (tn) setTimeout(() => tn.classList.add('visible'), 200);
+        // Last of the chrome. The nav, the socials and the scrubber are
+        // already settled; the pill then grows out from the middle.
+        revealViewToggle(1100);
     }, totalDuration + 200);
 }
 
@@ -4337,12 +4659,14 @@ function skipIntro() {
     if (sc) sc.classList.add('ui-intro-visible');
     const tn = document.getElementById('top-nav');
     if (tn) tn.classList.add('visible');
+    revealViewToggle(0);
     if (panelRevealTimeout !== null) {
         clearTimeout(panelRevealTimeout);
         panelRevealTimeout = null;
     }
+    cancelPanelType();
     const panels = document.getElementById('about-panels');
-    if (panels) { panels.classList.remove('visible'); panels.classList.remove('exiting'); }
+    if (panels) { panels.classList.remove('visible'); panels.classList.remove('bio-in'); panels.classList.remove('exiting'); }
 }
 
 // A return visit used to sit in 'idle' until the last card called

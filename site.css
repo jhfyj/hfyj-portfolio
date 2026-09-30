@@ -234,10 +234,18 @@ a { color: inherit; }
 
 /* JS adds this only on a fine pointer, so touch keeps its native behaviour.
    .dot-live waits for the first mousemove so the dot never flashes at 0,0. */
-body.has-dot { cursor: none; }
-body.has-dot a,
-body.has-dot button,
-body.has-dot .hero { cursor: none; }
+/* Everything, not a list of the usual suspects: the native cursor must never
+   show beside the dot. A per-element list kept missing things (the opened
+   sketchbook card set its own `cursor: default`), and !important also beats
+   any page stylesheet or inline style a script writes. The one deliberate
+   exception is the playground mat's grab hand, re-allowed in sketchbook.css
+   with higher specificity - the dot stands down over it (data-cursor-none).
+   Cross-origin iframes (YouTube) still draw their own cursor; site.js hides
+   the dot over them so there is still only one. */
+body.has-dot,
+body.has-dot *,
+body.has-dot *::before,
+body.has-dot *::after { cursor: none !important; }
 body.has-dot.dot-live #cursor-dot { opacity: 1; }
 /* ...except over something that draws its own cursor. Written at the same
    weight as the rule above it, or the dot it is trying to hide wins. */

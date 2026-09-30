@@ -973,10 +973,10 @@ const CARD_FACE_LAYOUT = {
     title: { x: 54 / 1059, baseline: 960 / 1449, size: 96 / 1449 },
 };
 
-// The five project cards fly a photo well into a case-page hero. Card 8
+// The six project cards fly a photo well into a case-page hero. Card 8
 // (playground) flies that same well into the live table on sketchbook.
 // Card 0 still has no hand-off: About Me does not open on a hero either.
-const HANDOFF_INDICES = new Set([1, 2, 3, 4, 5]);
+const HANDOFF_INDICES = new Set([1, 2, 3, 4, 5, 6]);
 const PLAYGROUND_INDEX = 8;
 // The About Me photo mask, as fractions of the face: nearly the whole
 // card, with the folded corner and the pill shelf sitting on top of it.

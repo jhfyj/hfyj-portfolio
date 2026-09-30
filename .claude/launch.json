@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5191", "--strictPort"],
       "port": 5191
+    },
+    {
+      "name": "hfyj-art",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/dev/hfyj-art", "run", "dev", "--", "--port", "5192", "--strictPort"],
+      "port": 5192
     }
   ]
 }

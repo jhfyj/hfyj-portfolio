@@ -1,0 +1,59 @@
+/* BMW Designworks case study — only what differs from the shared case-study components.
+   Components: case.css · chrome and type scale: site.css */
+
+:root {
+  --col: 794px;
+}
+
+/* A quoted line: a short rule, then the words in italic. The bar sits on the
+   quote only, so the attribution lines up under the words. */
+.pullquote {
+  margin: 28px 0 0;
+  padding: 0;
+  border: 0;
+}
+.pullquote p {
+  margin: 0;
+  padding: 1px 0 1px 14px;
+  border-left: 2px solid var(--faint);
+  font-family: "Figtree", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.65;
+  font-style: italic;
+  color: var(--ink);
+}
+.pullquote footer {
+  margin: 10px 0 0;
+  padding-left: 16px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  font-style: normal;
+  letter-spacing: 0.01em;
+  color: var(--caption);
+}
+:root[data-theme="dark"] .pullquote p { border-left-color: var(--caption); }
+
+/* Los Angeles: four polaroids, two by two, each with a light tilt so they read
+   as prints on a table rather than a grid. The print itself comes from
+   photo-viewer.css; only the layout lives here. */
+.la-polaroids {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 240px));
+  justify-content: center;
+  gap: 40px 20px;
+  margin: 32px 0 0;
+  padding: 0 16px;
+}
+/* Kept well under the 340px the viewer opens to, so a click reads as the
+   print coming up to you rather than staying the same size. */
+.la-print { margin: 0; width: 100%; max-width: 240px; justify-self: center; }
+.la-print figcaption { margin-top: 16px; }
+.lp1 { transform: rotate(-2.5deg); }
+.lp2 { transform: rotate(2deg); }
+.lp3 { transform: rotate(1.5deg); }
+.lp4 { transform: rotate(-2deg); }
+@media (max-width: 600px) {
+  .la-polaroids { gap: 28px 12px; padding: 0 4px; }
+}

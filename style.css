@@ -104,8 +104,10 @@ canvas.threejs {
   z-index: 15; /* above canvas, below UI chrome like the scrubber/cursor */
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
+  font-style: italic;
   letter-spacing: 0.3px;
-  color: var(--t3);
+  /* Fainter than the nav links (ink at 0.8) so it reads as an aside. */
+  color: rgba(var(--ink-rgb), 0.3);
   text-align: center;
   white-space: nowrap;
   opacity: 0;
@@ -244,6 +246,12 @@ canvas.threejs {
   animation: caretBlink 1s steps(1) infinite;
 }
 
+/* The caret sits between the typed text and the invisible rest of the name,
+   so it must take no width of its own or it would nudge every line by its
+   2.5px each time it arrives or leaves. */
+.panel-name .panel-caret { margin-right: -2.5px; }
+.panel-ghost { visibility: hidden; }
+
 /* Exit: slide both panels upward and fade out */
 #about-panels.exiting #panel-left,
 #about-panels.exiting #panel-right {
@@ -292,30 +300,104 @@ canvas.threejs {
   align-items: center;
 }
 
+/* ---------- company logos ----------
+   Once the bio has faded in (1.15s), each logo rises past its spot, settles
+   back, then keeps bobbing so it reads as something to hover. Arrival owns
+   opacity on the slot, so the hover dim lives on the image inside it; an
+   animation's fill would otherwise outrank the hover rule. */
+.company-slot {
+  position: relative;
+  display: inline-flex;
+  pointer-events: auto;   /* the panels layer is click-through */
+  outline: none;
+  opacity: 0;
+}
+#about-panels.bio-in .company-slot {
+  --arrive: calc(1.1s + var(--i, 0) * 0.14s);
+  animation:
+    company-arrive 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) var(--arrive) both,
+    company-float calc(4.2s + var(--i, 0) * 0.6s) ease-in-out calc(var(--arrive) + 0.9s) infinite;
+}
+@keyframes company-arrive {
+  0%   { opacity: 0; transform: translateY(14px); }
+  55%  { opacity: 1; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+/* A slow drift that rocks as it rises, like a card on water. */
+@keyframes company-float {
+  0%   { transform: translateY(0) rotate(0deg); }
+  30%  { transform: translateY(-6px) rotate(2deg); }
+  65%  { transform: translateY(-2px) rotate(-1.8deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
 .company-pill {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
   opacity: 0.85;
   filter: grayscale(1);
+  /* --tilt is set on hover by script.js, a few degrees to a random side.
+     It lives here, not on the slot, whose transform the float owns. */
+  transform: rotate(var(--tilt, 0deg));
+  transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+/* The tech@nyu wordmark is one flat colour, so it is used as a mask and the
+   theme's ink fills it: dark on the light page, light on the dark one. */
+.company-mark {
+  display: block;
+  width: 80px;
+  background-color: var(--t1);
+  -webkit-mask: url(assets/techLogo.svg) center / contain no-repeat;
+  mask: url(assets/techLogo.svg) center / contain no-repeat;
+}
+.currently-at-logos:has(.company-slot:hover, .company-slot:focus-visible)
+  .company-slot:not(:hover):not(:focus-visible) .company-pill { opacity: 0.5; }
+.company-slot:hover .company-pill,
+.company-slot:focus-visible .company-pill { opacity: 1; }
+
+.company-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translate(-50%, 4px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--t1);
+  color: var(--bg);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+/* the little point under the bubble */
+.company-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: var(--t1);
+}
+.company-slot:hover .company-tip,
+.company-slot:focus-visible .company-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #about-panels.bio-in .company-slot {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .highlight { color: var(--t1); font-weight: 700; }
 
-
-#social-links {
-  position: fixed;
-  bottom: 5%;
-  left: 24px;
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(22px);
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
-  z-index: 99999;
-}
 
 .social-link {
   width: 40px;
@@ -348,118 +430,10 @@ canvas.threejs {
 
 body { font-family: 'DM Sans', system-ui, sans-serif; }
 
-/* ── Scrubber ── */
-#scrubber {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  pointer-events: none;
-  user-select: none;
-  opacity: 0;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  transform: translateY(12px);
-}
-
-#scrubber.hidden {
-  opacity: 0;
-  transform: translateY(12px);
-  pointer-events: none;
-}
-
 .ui-intro-visible {
   opacity: 1 !important;
   pointer-events: auto !important;
   transform: translateY(0) !important;
-}
-
-#scrubber.slide-down {
-  opacity: 0 !important;
-  transform: translateY(40px) !important;
-  pointer-events: none !important;
-}
-
-#scrubber-label {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: rgba(var(--ink-rgb),0.60);
-  width: 280px;
-  text-align: center;
-  transition: color 250ms ease;
-}
-
-/* Fixed-width viewport that clips the scrolling tick strip */
-#scrubber-track-wrap {
-  position: relative;
-  width: 280px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(var(--panel-rgb),0.90);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(var(--ink-rgb),0.10);
-  cursor: grab;
-  -webkit-mask-image: linear-gradient(to right,
-    transparent 0%,
-    rgba(0,0,0,0.15) 8%,
-    rgba(0,0,0,0.55) 18%,
-    black 32%,
-    black 68%,
-    rgba(0,0,0,0.55) 82%,
-    rgba(0,0,0,0.15) 92%,
-    transparent 100%);
-  mask-image: linear-gradient(to right,
-    transparent 0%,
-    rgba(0,0,0,0.15) 8%,
-    rgba(0,0,0,0.55) 18%,
-    black 32%,
-    black 68%,
-    rgba(0,0,0,0.55) 82%,
-    rgba(0,0,0,0.15) 92%,
-    transparent 100%);
-}
-#scrubber-track-wrap:active { cursor: grabbing; }
-
-/* The scrolling tick strip — wider than the wrapper; slides via translateX */
-#scrubber-track {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  padding: 18px 140px;
-  will-change: transform;
-}
-
-/* Centre playhead line */
-#scrubber-playhead {
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 50%;
-  width: 2px;
-  transform: translateX(-50%);
-  background: rgba(var(--ink-rgb),0.85);
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.scrubber-tick {
-  width: 2px;
-  border-radius: 2px;
-  background: rgba(var(--ink-rgb),0.35);
-  flex-shrink: 0;
-}
-
-.scrubber-tick.active {
-  background: rgba(var(--ink-rgb),0.75);
 }
 
 
@@ -545,12 +519,6 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
   }
   .panel-caret { animation: none; }
 }
-
-@media (max-width: 500px) {
-      #scrubber { display: none; }
-}
-
-
 
 /* blinking animation */
 @keyframes caretBlink {
@@ -832,6 +800,8 @@ html[data-card-return] body {
   /* Flat while it shuffles. preserve-3d on the moving card is what made
      the shuffle hitch — the turn only needs it once the deck has stopped. */
   animation: card-shuffle 1.8s ease-in-out infinite;
+  /* The two cards under the top one leave before the turn, not during it. */
+  transition: opacity var(--settle, 420ms) ease;
 }
 
 .shuffle-card-inner {
@@ -866,37 +836,16 @@ html[data-card-return] body {
   background: var(--card-stock);
 }
 
-/* The deck settles, then the top card is given the carousel card's real
-   size — not a scale() on the little shuffle card, which rasterises the
-   face at 88px and stretches it — and only then turns over. */
-#loader.is-settling .shuffle-card {
-  animation: none;
-  transition: transform 0.28s ease, opacity 0.24s ease;
-  transform: none;
+/* The quote and the bar leave with the extra cards, so the shuffle ends
+   on one card. The duration is stamped from script when that settle starts. */
+#loader-quote,
+#loader-progress {
+  transition: opacity var(--settle, 420ms) ease;
 }
-#loader.is-settling .shuffle-card:not(.is-hero) {
+#loader.is-settled #loader-quote,
+#loader.is-settled #loader-progress,
+#loader.is-settled .shuffle-card:not(.is-hero) {
   opacity: 0;
-}
-#loader.is-settling #loader-quote,
-#loader.is-settling #loader-progress {
-  opacity: 0;
-  transition: opacity 0.24s ease;
-}
-#loader.is-sized .shuffle-card.is-hero {
-  position: fixed;
-  z-index: 6;
-  width: var(--reveal-w);
-  height: var(--reveal-h);
-  left: 50%;
-  top: 50%;
-  margin-left: calc(var(--reveal-w) / -2);
-  margin-top: calc(var(--reveal-h) / -2);
-  transform: none;
-  animation: none;
-  perspective: 1400px;
-}
-#loader.is-revealing .shuffle-card.is-hero .shuffle-card-inner {
-  transform: rotateY(180deg);
 }
 
 .shuffle-card:nth-child(1) { animation-delay: 0s; }
@@ -963,23 +912,23 @@ html[data-card-return] body {
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-/* The header items. In card view the cluster stretches the full bar so the
-   spacer can park the links left and the theme button right. In grid view it
-   shrinks around them into one sticky container, filled with the page colour,
-   and stays fixed over the scrolling grid. */
+/* The header items. Both views keep them in one centered line. Card view
+   leaves that line bare. Grid view fills it with the page colour and a
+   shadow, and it stays fixed over the scrolling grid. The 10px top inset
+   is already there in card view, matching the pill, so opening the grid
+   does not drop or lift the line. */
 .nav-cluster {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   box-sizing: border-box;
   background-color: transparent;
-  border-radius: 22px;
-  padding: 0;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0);
+  border-radius: 16px;
+  padding: 10px 0 0;
+  box-shadow: none;
   transition:
-    flex-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     background-color 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     padding 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
@@ -987,27 +936,19 @@ html[data-card-return] body {
 
 #top-nav.is-grouped .nav-cluster,
 html[data-restore-view="grid"] #top-nav .nav-cluster {
-  flex-grow: 0;
   background-color: var(--bg);
-  padding: 8px 22px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  /* Top stays 10px with the card line. The mark gets more room on the left
+     than the theme button has on the right. */
+  padding: 10px 10px 10px 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
 }
 
-/* The gap between the pages and the theme button. It grows to fill the bar
-   in card view, which parks the mark and the links on the left and the
-   button on the right. In grid view it shrinks to the same 32px the links
-   already use, and the centered bar closes up into one line. flex-grow is
-   what moves, so the trip eases in both directions. */
+/* The gap between the pages and the theme button. Same 32px the links
+   already use, so the centered line reads as one group in both views. */
 .nav-spacer {
-  flex: 1 0 32px;
+  flex: 0 0 32px;
   height: 1px;
   pointer-events: none;
-  transition: flex-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-#top-nav.is-grouped .nav-spacer,
-html[data-restore-view="grid"] #top-nav .nav-spacer {
-  flex-grow: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1032,8 +973,8 @@ html[data-restore-view="grid"] #top-nav .nav-spacer {
    blue, so it is used as a mask and the theme colour fills it. */
 .nav-logo {
   display: inline-flex;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   flex: none;
 }
 
@@ -1050,7 +991,7 @@ html[data-restore-view="grid"] #top-nav .nav-spacer {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: rgba(var(--ink-rgb), 0.50);
+  color: rgba(var(--ink-rgb), 0.80);
   text-decoration: none;
   letter-spacing: 0.3px;
   transition: color 200ms ease;
@@ -1061,10 +1002,10 @@ html[data-restore-view="grid"] #top-nav .nav-spacer {
 }
 
 /* ── View toggle ──
-   Fixed at the bottom centre, on the same row as the social links and the
-   scrubber. Closed, it is a slit in the middle; .is-open lets the pill grow
-   outward. A return visit stamps data-intro-done before first paint, so the
-   pill is already open and the grow does not replay. */
+   The whole pill stays centred. Card view widens it so the tick carousel
+   can sit to the left of the switch; grid view lets that width close and
+   the pill hugs the switch. It loads in by growing out of a slit in the
+   middle. .is-open starts that, including on a return visit. */
 #view-toggle {
   position: fixed;
   left: 50%;
@@ -1072,66 +1013,76 @@ html[data-restore-view="grid"] #top-nav .nav-spacer {
   z-index: 100000;
   transform: translateX(-50%);
   border: none;
-  border-radius: 18px;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
-  /* Frost has to live on this element. A filter, or a blur on a child,
-     only samples an empty layer and the page behind stays sharp. */
-  background: rgba(var(--panel-rgb), 0.88);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.16),
-    0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: opacity 0.4s ease, visibility 0s linear;
+  background: none;
+  box-shadow: none;
+  transition: opacity 0.65s ease, visibility 0s linear 0.65s;
+}
+
+.view-toggle-frame {
+  width: max-content;
+  border-radius: 18px;
 }
 
 .view-toggle-shell {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 6px;
   padding: 6px;
   border: none;
-  border-radius: inherit;
-  background: none;
+  border-radius: 18px;
+  /* Frost has to live on this element. A filter, or a blur on a child,
+     only samples an empty layer and the page behind stays sharp. */
+  background: rgba(var(--panel-rgb), 0.88);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  /* A hairline edge, inset so the clip below cannot cut it off. The
+     drop-shadow is even — no downward offset — and it follows the clip,
+     so the shadow grows with the bar instead of sitting on one side. */
+  box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
   clip-path: inset(0 50% 0 50% round 18px);
-  transition: clip-path 0.78s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    clip-path 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+    gap 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#view-toggle[data-active="grid"] .view-toggle-shell,
+html[data-restore-view="grid"] #view-toggle .view-toggle-shell {
+  gap: 0;
 }
 
 #view-toggle.is-open {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
+  transition: opacity 0.65s ease, visibility 0s linear 0s;
 }
 
 #view-toggle.is-open .view-toggle-shell {
   clip-path: inset(0 0 0 0 round 18px);
 }
 
-html[data-intro-done] #view-toggle {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transition: none;
+/* The two icons, and the plate under whichever is on. The plate is one
+   element, so switching views slides it across instead of fading a second
+   plate in. It is half the switch: translateX(100%) lands it on the other
+   button, because the two sit flush. */
+.view-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
 }
 
-html[data-intro-done] #view-toggle .view-toggle-shell {
-  clip-path: inset(0 0 0 0 round 18px);
-  transition: none;
-}
-
-/* The white plate under the active icon. It is one element, so switching
-   views slides it across instead of fading a second plate in. Width is one
-   button: half the padding box, minus the left inset. translateX(100%) then
-   lands it on the other button, because the two sit flush. */
 .view-toggle-thumb {
   position: absolute;
   z-index: 0;
-  top: 6px;
-  bottom: 6px;
-  left: 6px;
-  width: calc(50% - 6px);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
   border-radius: 13px;
   background: var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -1139,8 +1090,100 @@ html[data-intro-done] #view-toggle .view-toggle-shell {
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-#view-toggle[data-active="grid"] .view-toggle-thumb {
+#view-toggle[data-active="grid"] .view-toggle-thumb,
+html[data-restore-view="grid"] #view-toggle .view-toggle-thumb {
   transform: translateX(100%);
+}
+
+/* The tick carousel. It lives in the pill, to the left of the switch, and
+   only while card view is on. Width is what moves: 0 lets the pill hug the
+   switch, and the track inside stays full size so the ticks don't reflow
+   as they clip away. The label is for the name the ticks are standing on;
+   the row is too short to show it. */
+#scrubber {
+  position: relative;
+  flex: none;
+  width: 0;
+  height: 40px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease;
+}
+
+#view-toggle.is-open[data-active="cards"] #scrubber,
+html[data-intro-done] #view-toggle[data-active="cards"] #scrubber {
+  width: 156px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scrubber-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#scrubber-track-wrap {
+  position: relative;
+  width: 156px;
+  height: 40px;
+  overflow: hidden;
+  cursor: grab;
+  /* The mask stays put while the ticks scroll under it, so whichever
+     mark is in the middle is the darkest and both ends fall away. */
+  -webkit-mask-image: linear-gradient(to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.12) 16%,
+    rgba(0, 0, 0, 0.4) 32%,
+    rgba(0, 0, 0, 0.75) 42%,
+    black 50%,
+    rgba(0, 0, 0, 0.75) 58%,
+    rgba(0, 0, 0, 0.4) 68%,
+    rgba(0, 0, 0, 0.12) 84%,
+    transparent 100%);
+  mask-image: linear-gradient(to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.12) 16%,
+    rgba(0, 0, 0, 0.4) 32%,
+    rgba(0, 0, 0, 0.75) 42%,
+    black 50%,
+    rgba(0, 0, 0, 0.75) 58%,
+    rgba(0, 0, 0, 0.4) 68%,
+    rgba(0, 0, 0, 0.12) 84%,
+    transparent 100%);
+}
+#scrubber-track-wrap:active { cursor: grabbing; }
+
+#scrubber-track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 78px;
+  box-sizing: content-box;
+}
+
+.scrubber-tick {
+  width: 2px;
+  border-radius: 2px;
+  background: rgb(var(--ink-rgb));
+  flex-shrink: 0;
 }
 
 #view-toggle.no-thumb-move .view-toggle-thumb {
@@ -1148,13 +1191,14 @@ html[data-intro-done] #view-toggle .view-toggle-shell {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #view-toggle { transition: none; }
+  #view-toggle,
+  .view-toggle-shell,
+  #scrubber { transition: none; }
   .view-toggle-thumb { transition: none; }
 }
 
 @media (max-width: 720px) {
-  /* Sit above the social row so the pill does not cover those buttons. */
-  #view-toggle { bottom: calc(5% + 56px); }
+  #view-toggle { bottom: 24px; }
 }
 
 /* ── Theme toggle ──
@@ -1167,18 +1211,18 @@ html[data-intro-done] #view-toggle .view-toggle-shell {
   box-sizing: border-box;
   flex: none;
   display: block;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   aspect-ratio: 1;
   padding: 0;
   border: 1px solid rgba(var(--ink-rgb), 0.14);
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: rgba(var(--ink-rgb), 0.75);
   cursor: pointer;
   pointer-events: auto;
   overflow: hidden;
-  perspective: 180px;
+  perspective: 148px;
   transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
@@ -1210,14 +1254,16 @@ html[data-intro-done] #view-toggle .view-toggle-shell {
   backface-visibility: hidden;
 }
 
-.theme-face:nth-child(1) { transform: rotateX(0deg) translateZ(22px); }
-.theme-face:nth-child(2) { transform: rotateX(90deg) translateZ(22px); }
-.theme-face:nth-child(3) { transform: rotateX(180deg) translateZ(22px); }
-.theme-face:nth-child(4) { transform: rotateX(270deg) translateZ(22px); }
+.theme-face:nth-child(1) { transform: rotateX(0deg) translateZ(18px); }
+.theme-face:nth-child(2) { transform: rotateX(90deg) translateZ(18px); }
+.theme-face:nth-child(3) { transform: rotateX(180deg) translateZ(18px); }
+.theme-face:nth-child(4) { transform: rotateX(270deg) translateZ(18px); }
 
 .theme-sun,
 .theme-moon {
   display: block;
+  width: 15px;
+  height: 15px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1265,11 +1311,9 @@ html[data-intro-done] #view-toggle .view-toggle-shell {
 :root[data-theme="dark"] #theme-toggle:hover {
   color: rgb(var(--ink-rgb));
 }
-:root[data-theme="dark"] #view-toggle {
+:root[data-theme="dark"] .view-toggle-shell {
   background: rgba(var(--panel-rgb), 0.88);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.5),
-    0 4px 14px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
 }
 :root[data-theme="dark"] .view-toggle-thumb {
   background: #3d3d3d;
@@ -1596,6 +1640,10 @@ html[data-restore-view="grid"] #grid-view {
   z-index: 20;
 }
 
+.gh-tail { white-space: nowrap; }
+/* Only takes room where the label can actually open (below). */
+.gh-label-room { display: none; }
+
 @media (any-hover: hover) and (any-pointer: fine) and (min-width: 761px) {
   .gh-card-hover:hover .gh-end-icon,
   .gh-card-hover:focus-within .gh-end-icon {
@@ -1613,6 +1661,21 @@ html[data-restore-view="grid"] #grid-view {
   }
   .gh-card-label:hover {
     text-decoration: underline;
+  }
+  /* The label above is out of flow, so on its own the line would wrap as if
+     it were not there and the opened label would run off the edge. This
+     invisible copy holds its width in the line instead, and .gh-tail keeps
+     the last word, the icon and that room together, so the text wraps early
+     enough for the opened label to always fit. */
+  .gh-label-room {
+    display: inline-block;
+    padding-left: 4px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    vertical-align: middle;
+    visibility: hidden;
+    pointer-events: none;
   }
 }
 
@@ -1919,7 +1982,7 @@ html.gh-handle-drag .gh-handle.br::before {
   transform: translateY(0);
 }
 
-/* BMW and Nenos: not a page yet. The box stays solid — its fill and shadow
+/* Nenos: not a page yet. The box stays solid — its fill and shadow
    are untouched — and only what sits in it fades: the picture, the number and
    the copy. On those rather than the card so .visible and the row's hover dim
    can still do their own work. */
@@ -2268,10 +2331,6 @@ html.gh-handle-drag .gh-handle.br::before {
   .gf-card:hover { transform: none; }
 }
 
-/* Hide the floating bottom-left social buttons whenever grid view is up
-   (the JS toggle handler also clears opacity, but this guards against
-   any timing gap and ensures pointer events are off too) */
-#grid-view.visible ~ #social-links { display: none !important; }
 .gf-col { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .gf-quote {

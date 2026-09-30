@@ -82,6 +82,15 @@ let loaderTarget  = 0;   // jumps to each step as models arrive
 let loaderDisplay = 0;   // lerps smoothly toward loaderTarget
 let loaderBarPct  = -1;  // last percent written to the bar; skips repeat writes
 let loaderDone    = false;
+// Assets are in, but the shuffle is still mid-pull. Held until the next
+// time a card lands back in the deck, so the shuffle can finish.
+let loaderAwaitShuffle = false;
+let shuffleBeatSeen = null;
+const ARRIVE_MS = 920;
+const ARRIVE_EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+// The other cards leave, and the top one squares up, before it turns.
+const SETTLE_MS = 420;
+const SETTLE_HOLD_MS = 180;
 
 // Faces plus the playground cloth. The cloth's stand-in sits down early,
 // so loadedModels alone would end the shuffle while that paint was still
@@ -911,7 +920,7 @@ const CARD_URLS = [
     "clarusai.html",                       // 3 — Clarus AI
     "povi.html",                           // 4 — POVI
     "the-dial.html",                       // 5 — The Dial
-    "#",                                    // 6 — BMW Designworks (Coming Soon)
+    "bmw.html",                            // 6 — BMW Designworks
     "#",                                    // 7 — Nenos Inc. (Coming Soon)
     // 8 — Playground. Local now: playground.html is the built page, and it is
     // the one this site should be sending people to. It used to point at the
@@ -922,7 +931,7 @@ const CARD_URLS = [
 // Cards with no real destination page yet — hovering shows "coming soon" and
 // clicking the front card is a no-op instead of navigating. Keep in sync with
 // the "#" placeholders above.
-const COMING_SOON_INDICES = new Set([6, 7]);
+const COMING_SOON_INDICES = new Set([7]);
 
 
 // ── Card → page hand-off ─────────────────────────────────────────────────────
@@ -1180,7 +1189,7 @@ cardShadowTex.minFilter = THREE.LinearFilter;
 cardShadowTex.magFilter = THREE.LinearFilter;
 cardShadowTex.generateMipmaps = false;
 
-// BMW and Nenos are not open yet. The card itself stays solid — same stock,
+// Nenos is not open yet. The card itself stays solid — same stock,
 // same shadow as the rest of the deck — and only what is printed on it is
 // faded, in buildTemplateCardTexture (see `comingSoon` there).
 const COMING_SOON_INK = 0.5;
@@ -2230,7 +2239,7 @@ function loadCard6() {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp',
         tag: '#006',
         title: 'BMW Designworks',
-        description: 'Product Design Internship across B2B, SAS, consumer, and more at BMW Designworks.',
+        description: 'Product Design Internship across B2B, consumer, and more at BMW Designworks.',
         pills: ['2026', 'INTERNSHIP', 'UI/UX'],
     });
 }
@@ -3130,7 +3139,11 @@ window.addEventListener('mousemove', (e) => {
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    const hits = raycaster.intersectObjects(cardgroup.children, true);
+    // The intro panel's logos sit over the ring, and the raycast sees straight
+    // through them to the cards behind. Over a logo it is the logo being
+    // pointed at, so the plain dot shows rather than the card's label.
+    const overLogo = e.target instanceof Element && e.target.closest('.company-slot');
+    const hits = overLogo ? [] : raycaster.intersectObjects(cardgroup.children, true);
     if (hits.length > 0) {
         const root = findCardRoot(hits[0].object);
         if (root) {
@@ -3551,11 +3564,14 @@ const renderloop = (now = 0) => {
             if (loaderProgressEl) loaderProgressEl.style.width = '100%';
             // One upload of everything that just finished, while the loader
             // is still opaque, so the shuffle's frames weren't spent on it
-            // and the flip isn't either.
+            // and the turn isn't either.
             renderer.render(scene, camera);
-            finishLoader();
+            // Don't freeze the deck here. The shuffle runs on to its next
+            // landing, and that landing is what starts the turn.
+            loaderAwaitShuffle = true;
         }
     }
+    if (loaderAwaitShuffle) noteShuffleAndMaybeArrive();
 
     // Update scrubber UI
     updateScrubber();
@@ -3633,16 +3649,21 @@ let lastScrubberActiveIdx = -1;
 
 // Build 3 copies of the tick strip end-to-end so scrolling loops seamlessly.
 // Each tick stores its *logical* index (0..TICK_COUNT-1) via data-tickIndex.
+// The strip sits in the view pill, to the left of the switch, and only
+// while card view is open. The loop below is also what clicks as the ring
+// passes a card.
 const ticks = [];
-for (let rep = 0; rep < 3; rep++) {
-    TICK_HEIGHTS.forEach((h, i) => {
-        const tick = document.createElement('div');
-        tick.className = 'scrubber-tick';
-        tick.style.height = h + 'px';
-        tick.dataset.tickIndex = i;   // logical index within one period
-        scrubberTrack.appendChild(tick);
-        ticks.push(tick);
-    });
+if (scrubberTrack) {
+    for (let rep = 0; rep < 3; rep++) {
+        TICK_HEIGHTS.forEach((h, i) => {
+            const tick = document.createElement('div');
+            tick.className = 'scrubber-tick';
+            tick.style.height = h + 'px';
+            tick.dataset.tickIndex = i;   // logical index within one period
+            scrubberTrack.appendChild(tick);
+            ticks.push(tick);
+        });
+    }
 }
 
 // Map tick index → card index (distribute ticks evenly across cards)
@@ -3651,7 +3672,7 @@ function tickToCardIndex(tickIdx) {
 }
 
 // Clicking any tick snaps to the corresponding card
-scrubberTrack.addEventListener('click', (e) => {
+scrubberTrack?.addEventListener('click', (e) => {
     resetIdleTimer();
     const tick = e.target.closest('.scrubber-tick');
     if (!tick) return;
@@ -3677,8 +3698,8 @@ function onScrubMove(e) {
     const isTouch = !!e.touches;
     const clientX = isTouch ? e.touches[0].clientX : e.clientX;
     const dx = clientX - scrubberStartX;
-    // Negative dx (drag left) → rotation increases → carousel moves forward
-    cardgroup.rotation.y = scrubberStartRotation - dx * SCRUB_SENSITIVITY;
+    // Same sign as dragging the ring itself, so the cards follow the finger.
+    cardgroup.rotation.y = scrubberStartRotation + dx * SCRUB_SENSITIVITY;
     // scrubberWrap.setPointerCapture() redirects pointer events to it while
     // dragging, which suppresses the normal 'mousemove' updates that drive the
     // custom cursor overlay — leaving it frozen until release, then jumping to
@@ -3695,14 +3716,14 @@ function onScrubEnd() {
     scrubberDragging = false;
     window.removeEventListener('pointermove', onScrubMove);
     window.removeEventListener('pointerup', onScrubEnd);
-    scrubberWrap.removeEventListener('touchmove', onScrubMove);
-    scrubberWrap.removeEventListener('touchend', onScrubEnd);
-    scrubberWrap.removeEventListener('touchcancel', onScrubEnd);
+    scrubberWrap?.removeEventListener('touchmove', onScrubMove);
+    scrubberWrap?.removeEventListener('touchend', onScrubEnd);
+    scrubberWrap?.removeEventListener('touchcancel', onScrubEnd);
     snaptoNearestCard();
 }
 
 // Pointer (mouse + stylus + some touch)
-scrubberWrap.addEventListener('pointerdown', (e) => {
+scrubberWrap?.addEventListener('pointerdown', (e) => {
     // Only handle if not a touch-driven pointer (we handle those separately)
     if (e.pointerType === 'touch') return;
     scrubberDragging = true;
@@ -3716,13 +3737,13 @@ scrubberWrap.addEventListener('pointerdown', (e) => {
     e.preventDefault();
 }, { passive: false });
 
-scrubberWrap.addEventListener('pointercancel', (e) => {
+scrubberWrap?.addEventListener('pointercancel', (e) => {
     if (e.pointerType === 'touch') return;
     onScrubEnd();
 });
 
 // Touch (mobile) — handled independently so it never conflicts with canvas
-scrubberWrap.addEventListener('touchstart', (e) => {
+scrubberWrap?.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     scrubberDragging = true;
     scrubberStartX = e.touches[0].clientX;
@@ -3746,9 +3767,10 @@ function updateScrubber() {
     // Map raw rotation to pixels — no modulo, so it grows continuously.
     // Then modulo into [0, stripWidth) for the looped offset.
     // We start at -stripWidth (middle copy) so both sides are buffered.
-    const rawOffset = (cardgroup.rotation.y / TWO_PI) * stripWidth;
+    // Negated so the ticks travel the same way as the cards (and the finger).
+    const rawOffset = -(cardgroup.rotation.y / TWO_PI) * stripWidth;
     const loopedOffset = ((rawOffset % stripWidth) + stripWidth) % stripWidth;
-    scrubberTrack.style.transform = `translateX(${-(stripWidth + loopedOffset)}px)`;
+    if (scrubberTrack) scrubberTrack.style.transform = `translateX(${-(stripWidth + loopedOffset)}px)`;
 
     // Label + active tick highlight — only recalculate when snapped card changes
     const raw = Math.round(cardgroup.rotation.y / apc);
@@ -3758,7 +3780,7 @@ function updateScrubber() {
         // rotation (scroll/drag/scrubber), not during the intro deal or idle auto-rotate
         if (lastScrubberActiveIdx !== -1 && introPhase === 'done' && !autoRotating) playTickThrottled();
         lastScrubberActiveIdx = activeIdx;
-        scrubberLabel.textContent = CARD_NAMES[activeIdx] || 'Untitled';
+        if (scrubberLabel) scrubberLabel.textContent = CARD_NAMES[activeIdx] || 'Untitled';
         // All 3 copies share the same logical tickIndex, so this highlights all at once
         ticks.forEach((t) => {
             t.classList.toggle('active', tickToCardIndex(parseInt(t.dataset.tickIndex)) === activeIdx);
@@ -3965,7 +3987,6 @@ function replayGridHeroReveal() {
 // the restored grid can't end up with, say, the scrubber still sitting over it
 // because only one of the two places was updated.
 function applyViewChrome(view, animateThumb = true) {
-    const scrubber = document.getElementById('scrubber');
     const socialLinks = document.getElementById('social-links');
     const viewToggle = document.getElementById('view-toggle');
     const topNav = document.getElementById('top-nav');
@@ -3993,7 +4014,6 @@ function applyViewChrome(view, animateThumb = true) {
         gridView.classList.add('visible');
         canvasEl.style.opacity = '0';
         canvasEl.style.pointerEvents = 'none';
-        if (scrubber) scrubber.classList.add('slide-down');
         if (socialLinks) socialLinks.style.opacity = '0';
         if (socialLinks) socialLinks.style.pointerEvents = 'none';
         dotCursor.classList.remove('visible');
@@ -4004,7 +4024,6 @@ function applyViewChrome(view, animateThumb = true) {
         gridView.classList.remove('visible');
         canvasEl.style.opacity = '1';
         canvasEl.style.pointerEvents = 'auto';
-        if (scrubber) scrubber.classList.remove('slide-down');
         if (socialLinks) { socialLinks.style.opacity = ''; socialLinks.style.pointerEvents = ''; }
         setGridMediaPlaying(false);
     }
@@ -4403,44 +4422,167 @@ function dismissLoader(delay) {
     }, delay);
 }
 
-// The shuffle has had its beat. Park the deck, turn the top card over onto
-// About Me, then let the loader fade off the carousel card underneath.
-function finishLoader() {
+// Where the shuffle is in its cycle. One beat is a single card leaving the
+// deck and landing back in it — a third of card-shuffle, matching the three
+// staggered cards. Null if the animation can't be read.
+function shuffleClock() {
+    const card = loaderEl.querySelector('.shuffle-card');
+    const anim = card && card.getAnimations().find((a) => a.animationName === 'card-shuffle');
+    if (!anim || anim.currentTime == null || !anim.effect) return null;
+    const dur = anim.effect.getComputedTiming().duration;
+    if (typeof dur !== 'number' || !(dur > 0)) return null;
+    const t = ((anim.currentTime % dur) + dur) % dur;
+    return { t, beat: dur / 3 };
+}
+
+// Assets are ready. Keep shuffling until the card that's out has landed,
+// then hand off. A landing that just happened (the first few frames of a
+// beat) counts — stopping there is the shuffle finishing, not cutting it.
+function noteShuffleAndMaybeArrive() {
+    if (!loaderEl || !loaderEl.isConnected) { loaderAwaitShuffle = false; return; }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        loaderAwaitShuffle = false;
+        beginLoaderArrival();
+        return;
+    }
+    const clock = shuffleClock();
+    if (!clock) {
+        loaderAwaitShuffle = false;
+        beginLoaderArrival();
+        return;
+    }
+    const beat = Math.floor(clock.t / clock.beat);
+    const intoBeat = clock.t - beat * clock.beat;
+    // Still on the stack. Wider than this and the next card has already
+    // started out — a late wake (the texture upload blocks the thread, and
+    // the shuffle keeps time while it does) must not freeze that pull.
+    const landed = intoBeat <= 36;
+    if (shuffleBeatSeen === null) {
+        shuffleBeatSeen = beat;
+        if (landed) {
+            loaderAwaitShuffle = false;
+            beginLoaderArrival();
+        }
+        return;
+    }
+    if (beat !== shuffleBeatSeen) {
+        shuffleBeatSeen = beat;
+        if (landed) {
+            loaderAwaitShuffle = false;
+            beginLoaderArrival();
+        }
+    }
+}
+
+function revealSize(card) {
+    const w = parseFloat(card.style.getPropertyValue('--reveal-w'));
+    const h = parseFloat(card.style.getPropertyValue('--reveal-h'));
+    if (w > 0 && h > 0) return { w, h };
+    const cssH = aboutCardScreenHeight();
+    const src = aboutmeSwap.faces[0] && aboutmeSwap.faces[0].canvas;
+    const aspect = src && src.height ? src.width / src.height : 1059 / 1449;
+    return { w: cssH * aspect, h: cssH };
+}
+
+// The shuffle has landed. Square the deck and let the cards underneath
+// disappear, so one card is all that's left. The turn waits until that
+// has finished — the flip is the next thing, not part of the shuffle.
+function beginLoaderArrival() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const deck = [...loaderEl.querySelectorAll('.shuffle-card')];
     if (!deck.length || reduced) {
         dismissLoader(reduced ? 0 : 200);
         return;
     }
-    deck.forEach((card) => {
+    const pose = deck.map((card) => {
         const cs = getComputedStyle(card);
-        card.style.animation = 'none';
-        if (cs.transform && cs.transform !== 'none') card.style.transform = cs.transform;
-        card.style.zIndex = cs.zIndex === 'auto' ? '1' : cs.zIndex;
+        return {
+            card,
+            transform: cs.transform,
+            zIndex: cs.zIndex === 'auto' ? '1' : cs.zIndex,
+        };
     });
-    const hero = deck.reduce((best, card) =>
-        ((parseInt(card.style.zIndex, 10) || 0) >= (parseInt(best.style.zIndex, 10) || 0) ? card : best));
+    pose.forEach(({ card, transform, zIndex }) => {
+        card.getAnimations().forEach((anim) => anim.cancel());
+        card.style.transition = 'none';
+        card.style.animation = 'none';
+        card.style.transform = transform && transform !== 'none' ? transform : 'none';
+        card.style.zIndex = zIndex;
+    });
+    const hero = pose.reduce((best, item) =>
+        ((parseInt(item.zIndex, 10) || 0) >= (parseInt(best.zIndex, 10) || 0) ? item : best)).card;
     hero.classList.add('is-hero');
     paintLoaderAboutFace(hero);
-    loaderEl.classList.add('is-settling');
-    void loaderEl.offsetWidth;
-    deck.forEach((card) => { card.style.transform = ''; });
+    loaderEl.style.setProperty('--settle', SETTLE_MS + 'ms');
 
-    const settleMs = 320;
-    const flipMs = 680;
-    const holdMs = 280;
-    setTimeout(() => {
-        if (!loaderEl.isConnected) return;
-        // Size first, on its own frame, so the face is rasterised at the
-        // size it will be seen. The turn starts the frame after that.
-        loaderEl.classList.add('is-sized');
+    requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (loaderEl.isConnected) loaderEl.classList.add('is-revealing');
+            if (!loaderEl.isConnected) return;
+            const ease = `transform ${SETTLE_MS}ms ${ARRIVE_EASE}, opacity ${SETTLE_MS}ms ease`;
+            deck.forEach((card) => {
+                card.style.transition = ease;
+                card.style.transform = 'none';
+                if (card !== hero) card.style.opacity = '0';
             });
+            loaderEl.classList.add('is-settled');
+            setTimeout(() => flipLoaderHero(hero), SETTLE_MS + SETTLE_HOLD_MS);
         });
-    }, settleMs);
-    dismissLoader(settleMs + flipMs + holdMs);
+    });
+}
+
+// One card, sitting still. It turns over onto About Me and grows to that
+// card's real size together. The face is already painted at the size it
+// will be seen, so the box grows around the bitmap instead of stretching it.
+function flipLoaderHero(hero) {
+    if (!loaderEl.isConnected || !hero.isConnected) return;
+    const vis = hero.getBoundingClientRect();
+    const layoutW = hero.offsetWidth;
+    const layoutH = hero.offsetHeight;
+    const size = revealSize(hero);
+    const startLeft = vis.left + vis.width / 2 - layoutW / 2;
+    const startTop = vis.top + vis.height / 2 - layoutH / 2;
+    const finalLeft = (window.innerWidth - size.w) / 2;
+    const finalTop = (window.innerHeight - size.h) / 2;
+    const inner = hero.querySelector('.shuffle-card-inner');
+
+    // #loader-cards has perspective, and perspective is a containing block
+    // for position:fixed. Left/top are viewport coordinates; applied inside
+    // that 88×120 box they land in the bottom-right of the screen. The
+    // loader itself is the full screen, so the hero has to move up to it
+    // before those coordinates mean anything.
+    loaderEl.appendChild(hero);
+    hero.style.transition = 'none';
+    hero.style.position = 'fixed';
+    hero.style.left = startLeft + 'px';
+    hero.style.top = startTop + 'px';
+    hero.style.width = layoutW + 'px';
+    hero.style.height = layoutH + 'px';
+    hero.style.right = 'auto';
+    hero.style.bottom = 'auto';
+    hero.style.margin = '0';
+    hero.style.transform = 'none';
+    hero.style.zIndex = '6';
+    hero.style.perspective = '1400px';
+    if (inner) {
+        inner.style.transition = 'none';
+        inner.style.transform = 'rotateY(0deg)';
+    }
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (!loaderEl.isConnected) return;
+            hero.style.transition = `left ${ARRIVE_MS}ms ${ARRIVE_EASE}, top ${ARRIVE_MS}ms ${ARRIVE_EASE}, width ${ARRIVE_MS}ms ${ARRIVE_EASE}, height ${ARRIVE_MS}ms ${ARRIVE_EASE}`;
+            hero.style.left = finalLeft + 'px';
+            hero.style.top = finalTop + 'px';
+            hero.style.width = size.w + 'px';
+            hero.style.height = size.h + 'px';
+            if (inner) {
+                inner.style.transition = `transform ${ARRIVE_MS}ms ${ARRIVE_EASE}`;
+                inner.style.transform = 'rotateY(180deg)';
+            }
+            dismissLoader(ARRIVE_MS);
+        });
+    });
 }
 
 function cancelPanelType() {
@@ -4474,25 +4616,36 @@ function panelCaret() {
     return caret;
 }
 
+// The whole name is laid out from the first frame, with the untyped part
+// held invisible. The panel is right-aligned and shrink-wraps its text, so
+// typing into an empty box grew each line out from the right edge; with the
+// full width reserved, every letter lands where it will stay and the name
+// types left to right. The block's height is fixed from the start too.
 function renderPanelName(el, lines, count, caret) {
     const frag = document.createDocumentFragment();
     let consumed = 0;
+    let caretPlaced = false;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const start = consumed;
-        if (i > 0 && count <= start) break;
         if (i > 0) frag.appendChild(document.createElement('br'));
         const take = Math.max(0, Math.min(line.length, count - start));
-        const span = document.createElement('span');
-        span.textContent = line.slice(0, take);
-        frag.appendChild(span);
+        const typed = document.createElement('span');
+        typed.textContent = line.slice(0, take);
+        frag.appendChild(typed);
         consumed += line.length;
-        if (caret && count >= start && count < consumed) {
+        const last = i === lines.length - 1;
+        if (caret && !caretPlaced && (count < consumed || last)) {
             frag.appendChild(panelCaret());
-            break;
+            caretPlaced = true;
+        }
+        if (take < line.length) {
+            const ghost = document.createElement('span');
+            ghost.className = 'panel-ghost';
+            ghost.textContent = line.slice(take);
+            frag.appendChild(ghost);
         }
     }
-    if (caret && count >= consumed) frag.appendChild(panelCaret());
     el.replaceChildren(frag);
 }
 
@@ -4627,17 +4780,16 @@ function triggerDealing() {
         prevOffset = offset;
     }
 
-    // Unlock interaction and reveal social links + scrubber + top nav
+    // Unlock interaction and reveal the top nav
     setTimeout(() => {
         introPhase = 'done';
         markIntroPlayed();
         const sl = document.getElementById('social-links');
         if (sl) setTimeout(() => sl.classList.add('ui-intro-visible'), 100);
-        if (scrubberEl) setTimeout(() => scrubberEl.classList.add('ui-intro-visible'), 350);
         const tn = document.getElementById('top-nav');
         if (tn) setTimeout(() => tn.classList.add('visible'), 200);
-        // Last of the chrome. The nav, the socials and the scrubber are
-        // already settled; the pill then grows out from the middle.
+        // Last of the chrome. The nav is already settled; the pill then
+        // grows out from the middle.
         revealViewToggle(1100);
     }, totalDuration + 200);
 }
@@ -4655,8 +4807,6 @@ function skipIntro() {
     markIntroPlayed();
     const sl = document.getElementById('social-links');
     if (sl) sl.classList.add('ui-intro-visible');
-    const sc = document.getElementById('scrubber');
-    if (sc) sc.classList.add('ui-intro-visible');
     const tn = document.getElementById('top-nav');
     if (tn) tn.classList.add('visible');
     revealViewToggle(0);
@@ -4670,15 +4820,12 @@ function skipIntro() {
 }
 
 // A return visit used to sit in 'idle' until the last card called
-// startIntro. Unlock the chrome now so the nav and the scrubber are
-// there for the fade-in, not waiting on the same Promise as the faces.
+// startIntro. Unlock the chrome now so the nav is there for the fade-in,
+// not waiting on the same Promise as the faces.
 if (introSkipped) {
     document.body.classList.add('gradient-visible');
     skipIntro();
 }
-
-// --- Scrubber overlay hide/show ---
-const scrubberEl = document.getElementById('scrubber');
 
 // --- Social links handler ---
 // Clicks open a new tab when not embedded; if the page is embedded inside
@@ -4852,3 +4999,19 @@ const scrubberEl = document.getElementById('scrubber');
 
     typeWord(WORDS[wordIndex % WORDS.length], 0);
 })();
+
+// Intro panel logos: hovering one tips it a few degrees to a random side.
+// The angle is fresh on every visit, so repeated hovers do not look canned.
+document.querySelectorAll('.company-slot').forEach((slot) => {
+    const pill = slot.querySelector('.company-pill');
+    if (!pill) return;
+    const tip = () => {
+        const deg = (4 + Math.random() * 4) * (Math.random() < 0.5 ? -1 : 1);
+        pill.style.setProperty('--tilt', deg.toFixed(1) + 'deg');
+    };
+    const settle = () => pill.style.removeProperty('--tilt');
+    slot.addEventListener('mouseenter', tip);
+    slot.addEventListener('mouseleave', settle);
+    slot.addEventListener('focus', tip);
+    slot.addEventListener('blur', settle);
+});

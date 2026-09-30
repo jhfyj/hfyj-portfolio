@@ -143,7 +143,8 @@ main { padding-bottom: 0; }
    Exceptions (handled outside this block):
      · Clarus AI's .strip — photos butted edge to edge; only the outer corners
        of the stack are rounded, in clarusai.css
-     · About Me polaroids, photobooth strips and the hero fan — aboutme.css
+     · polaroids (About Me, BMW) — photo-viewer.css; photobooth strips
+       and the hero fan — aboutme.css
 
    Polaroids are never rounded with this token. Do not add .strip img here. */
 .case { --photo-radius: 6px; }

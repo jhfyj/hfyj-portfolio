@@ -29,6 +29,7 @@ const PAGES = {
     puregym: 'puregym.html',
     techatnyu: 'techatnyu.html',
     thedial: 'the-dial.html',
+    bmw: 'bmw.html',
     playground: 'playground.html',
     // The page's old address, kept so existing links still land on the table.
     sketchbook: 'sketchbook.html',
@@ -52,6 +53,7 @@ const CLASSIC_SCRIPTS = [
     'dice.js',
     'felt.js',
     'footer-deck.js',
+    'photo-viewer.js',
     'site.js',
     'sketchbook.js',
     'skeleton.js',

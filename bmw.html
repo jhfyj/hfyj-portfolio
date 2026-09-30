@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BMW Designworks — HFYJ</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // Settle the theme before anything paints. site.js runs at the end of
+        // <body>, so by the time it could set this the light page would already
+        // have flashed on screen; the attribute has to be on <html> before the
+        // stylesheets below are ever applied. That is what makes this block
+        // worth repeating verbatim in every page's <head>.
+        //
+        // The key, the two values and the shape of the read are index.html's,
+        // and that is the whole mechanism carrying a reader's choice between
+        // the home page and here. See the theme section at the top of site.js.
+        (function () {
+            var saved = null;
+            // storage throws outright in some privacy modes rather than returning null
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            // Only an explicit press is ever stored, so the OS preference gets
+            // consulted exactly when there is no choice to honour instead.
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <!-- Before the first paint on purpose: it decides whether this page was
+         opened by clicking its card on the home page, and if so holds the hero
+         and the title back until it can fly them in from where the card was.
+         With no such hand-off waiting it does nothing at all. -->
+    <script src="card-transition.js"></script>
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="skeleton.css">
+    <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
+         deferred: the shimmer is on in the markup, so this only ever takes it
+         off, and the sooner it can do that for a cached image the better. -->
+    <script src="skeleton.js"></script>
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="photo-viewer.css">
+    <link rel="stylesheet" href="bmw.css">
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <!-- #cards tells the home page the intro has already played -->
+        <a href="index.html#cards">Home</a>
+        <span class="sep">/</span>
+        <span class="here">BMW Designworks</span>
+    </div>
+    <div class="topbar-right">
+        <span>Interaction</span>
+        <span class="sep-lg">/</span>
+        <span>Internship</span>
+        <span class="sep-lg">/</span>
+        <span>Web</span>
+    </div>
+    <!-- Written out here rather than injected by site.js: the theme is already
+         settled in <head>, so shipping the button in the markup puts it on
+         screen in the first paint with no reflow, and it holds the bar's right
+         edge even if site.js is slow or never arrives. site.js only wires it
+         up — the sun/moon swap is pure CSS off <html>'s data-theme. -->
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+    </button>
+</nav>
+
+<!-- Follows the pointer in place of the native cursor, on fine pointers only. -->
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Pinned table of contents; hidden once it would collide with the column. -->
+<aside id="toc" aria-label="Sections">
+    <a href="#overview"><span class="suit">&spades;</span> OVERVIEW</a>
+    <a href="#platform"><span class="suit">&hearts;</span> THREE BRANDS</a>
+    <a href="#work"><span class="suit">&clubs;</span> TWO PROJECTS</a>
+    <a href="#studio"><span class="suit">&diams;</span> LOS ANGELES</a>
+    <a href="#reflection"><span class="suit">&spades;</span> REFLECTION</a>
+</aside>
+
+<main class="case">
+
+    <figure class="shot shot-hero">
+        <!-- Intrinsic size stated so the browser knows the shape before the
+             bytes land: the hero now opens the page, so its box settling late
+             would shove the whole column, and the card transition measures it
+             on arrival. -->
+        <img src="assets/bmw/hero.webp" width="1250" height="1004" alt="Laptop and phone mockups from the Designworks internship" data-skel>
+    </figure>
+
+    <header class="case-head">
+        <h1><a class="to-cards" href="index.html#cards" data-cursor="back to cards">BMW Designworks</a></h1>
+        <p class="lede">Interaction Design internship at the Los Angeles studio.</p>
+
+        <dl class="meta">
+            <div>
+                <dt>Timeline</dt>
+                <dd>June 1 - August 21, 2026</dd>
+            </div>
+            <div>
+                <dt>Team</dt>
+                <dd>Interactions team</dd>
+            </div>
+            <div>
+                <dt>Manager</dt>
+                <dd>Matthew Potter</dd>
+            </div>
+            <div>
+                <dt>Tools</dt>
+                <dd>Figma, Adobe</dd>
+            </div>
+        </dl>
+    </header>
+
+    <section class="case-section" id="overview">
+        <p class="eyebrow">The role</p>
+        <p class="statement">I spent the summer on the Interactions team, working across branded web experiences for BMW Group brands and a confidential client project.</p>
+        <p class="body-copy">Some of the work has already shipped and is still in development. A public version is expected by the end of the year, and I'll share it here when it wraps.</p>
+    </section>
+
+    <section class="case-section" id="platform">
+        <p class="eyebrow">Three brands</p>
+        <p class="statement">Adapting one platform so BMW, MINI, and Motorrad still feel like themselves.</p>
+        <p class="body-copy">Alongside updates to an existing BMW platform, I owned the design differentiation for MINI and Motorrad. That meant researching each brand's imagery and visual language, then designing brand-specific versions of modules the three sites share. This is a piece publishing by the end of 2026. I'll update this page when it is live.</p>
+        <figure class="shot">
+            <img src="assets/bmw/brands-x5.webp" alt="A black BMW X5 parked on a leafy residential street" width="1504" height="658" data-skel>
+        </figure>
+        <blockquote class="pullquote">
+            <p>“Her work balanced the constraints of a shared platform with the distinct identity and character of each brand, helping create experiences that remained both consistent and authentic.”</p>
+            <footer>— Matthew Potter, my manager</footer>
+        </blockquote>
+    </section>
+
+    <section class="case-section" id="work">
+        <p class="eyebrow">Two projects</p>
+        <p class="statement">A conceptual exploration, and a pitch for a client.</p>
+        <p class="body-copy">These are two different projects, shown with the branding removed. The conceptual one was about bringing AI into an established industry, designing for unconventional surfaces, and thinking about how it could be more a part of everyday life. On the client pitch, I owned five end-to-end flows from concept through the presentation. I'd be happy to dive into either in more detail, so feel free to schedule a call.</p>
+        <blockquote class="pullquote">
+            <p>“Through user journey development, interaction design, and visual refinement, Jennifer helped identify opportunities to improve both the functionality and overall usability of the platform.”</p>
+            <footer>— Matthew Potter</footer>
+        </blockquote>
+        <div class="media-row" style="--n: 2">
+            <figure>
+                <img src="assets/bmw/BMWShow2.png" alt="A tablet showing a conceptual in-field interface" width="3809" height="2857" data-skel>
+                <figcaption>Conceptual project</figcaption>
+            </figure>
+            <figure>
+                <img src="assets/bmw/BMWShow.png" alt="A laptop showing an interface from a client pitch" width="3096" height="2872" data-skel>
+                <figcaption>Client pitch</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <section class="case-section" id="studio">
+        <p class="eyebrow">Los Angeles</p>
+        <p class="statement">A lovely summer spent in Santa Monica.</p>
+        <p class="body-copy">Outside of work, I met a lot of really cool people working also in diverse fields. I also took many runs along the Santa Monica Pier, which had a splendid view during sunset. Also got to drive around in a BMW, which has always been and will continue to be my favorite car :)))</p>
+        <!-- Polaroids, the same prints as About Me (photo-viewer.css). A click
+             opens the photo larger; photo-viewer.js does the rest. -->
+        <div class="la-polaroids">
+            <figure class="la-print">
+                <div class="polaroid lp1" role="button" tabindex="0" aria-label="The studio, from the street"><img src="assets/bmw/studio.jpg" alt="The Designworks studio from the street" width="1179" height="2096" data-skel></div>
+                <figcaption>The studio, from the street</figcaption>
+            </figure>
+            <figure class="la-print">
+                <div class="polaroid lp2" role="button" tabindex="0" aria-label="With our lovely intern cohort"><img src="assets/bmw/interns.png" alt="With our intern cohort" width="1968" height="2624" data-skel></div>
+                <figcaption>With our lovely intern cohort</figcaption>
+            </figure>
+            <figure class="la-print">
+                <div class="polaroid lp3" role="button" tabindex="0" aria-label="Sunset in LA"><img src="assets/bmw/sunset.jpg" alt="A sunset in Los Angeles" width="2160" height="2880" data-skel></div>
+                <figcaption>Sunset in LA</figcaption>
+            </figure>
+            <figure class="la-print">
+                <div class="polaroid lp4" role="button" tabindex="0" aria-label="My beloved 3 Series, from the employee car program"><img src="assets/bmw/car.jpg" alt="The BMW 3 Series from the employee car program" width="2160" height="2880" data-skel></div>
+                <figcaption>My beloved 3 Series, from the employee car program</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <section class="case-section" id="reflection">
+        <p class="eyebrow">Reflection</p>
+        <p class="body-copy">I met some of the most lovely, most amazing people there. I learned so much from just being surrounded by my team and by everybody, by the amazing people and very talented designers that I can surround myself with. Every day, I'm grateful for the opportunity to be able to work on such a diverse portfolio of projects that I'm around to, and lucky to be able to receive so much ownership.</p>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <!-- The slot holds the tilt; the card inside does the lift, so the two
+                 transforms never fight. data-cursor swaps the dot for a pill. -->
+            <div class="next-slot nc1">
+                <a class="next-card" data-card="the-dial" href="the-dial.html" data-cursor="open project"
+                   aria-label="The Dial"></a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" data-card="puregym" href="puregym.html" data-cursor="open project"
+                   aria-label="Puregym Redesign"></a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Enlarged polaroid. Hidden until one is clicked; photo-viewer.js fills
+     #photo-modal-stage and takes it off `hidden`. -->
+<div id="photo-modal" hidden>
+    <div class="photo-modal-scrim"></div>
+    <div class="photo-modal-panel" role="dialog" aria-modal="true" tabindex="-1" aria-label="Photo">
+        <div id="photo-modal-stage"></div>
+    </div>
+</div>
+
+<script src="analytics.js" defer></script>
+<script src="site.js"></script>
+<script src="case.js"></script>
+<script src="photo-viewer.js"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+/* Polaroids and the photo viewer, shared by About Me and the BMW case study.
+   A .polaroid (or an About Me .strip) opens a larger print over a blurred page
+   when clicked; photo-viewer.js does the opening. Page-specific layout, like
+   the About Me shuffle, stays in each page's own stylesheet. */
+
+/* ---------- polaroid ---------- */
+/* Same stock as the hero cards: white frame, deep bottom margin, soft shadow. */
+.polaroid {
+  position: relative;
+  background: #fff;
+  border-radius: 4px;
+  padding: 7px 7px 34px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
+  cursor: pointer;
+  /* Same trick as the strips: the shuffle lives on `transform`, the hover
+     lift on `translate`, so one never has to restate the other. */
+  translate: 0 0;
+}
+.polaroid img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 2px;
+  pointer-events: none;
+}
+body.has-dot .polaroid { cursor: none; }
+.polaroid:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* Hover lift. Fine pointers only — a tap has no hover, and leaving a
+   translate stuck after a tap would look like the photo had jumped. The
+   z-index snap (no transition) is what lets a tucked-under print come
+   forward for the lift instead of sliding up behind its neighbour. */
+@media (hover: hover) and (pointer: fine) {
+  .polaroid,
+  .strip {
+    transition: translate 0.28s cubic-bezier(.22, .61, .36, 1),
+                box-shadow 0.28s ease;
+  }
+  .polaroid:hover,
+  .polaroid:focus-visible {
+    translate: 0 -12px;
+    z-index: 5;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+  }
+  .strip:hover,
+  .strip:focus-visible {
+    translate: 0 -12px;
+    z-index: 3;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.20);
+  }
+}
+
+/* ---------- photo modal ---------- */
+
+/* The page behind a modal does not scroll. Set on <body>, which propagates to
+   the viewport, so the scrollbar goes with it and the scrim measures exactly
+   the window. */
+body.modal-open { overflow: hidden; }
+
+#photo-modal {
+  position: fixed;
+  inset: 0;
+  /* Above the sticky top bar (10) and below the cursor dot (100). */
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+#photo-modal[hidden] { display: none; }
+
+.photo-modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 22, 0.42);
+  animation: photo-modal-fade 0.28s ease both;
+}
+:root[data-theme="dark"] .photo-modal-scrim { background: rgba(0, 0, 0, 0.6); }
+/* Only while it is open. A backdrop-filter that is merely display:none still
+   reports itself in the computed style. */
+#photo-modal:not([hidden]) .photo-modal-scrim {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.photo-modal-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+}
+.photo-modal-panel:focus { outline: none; }
+.photo-modal-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+
+#photo-modal-stage { display: flex; }
+
+/* The rise lives on the outer wrapper so the inner card is free to lean with
+   the pointer afterwards — two transforms on the same node would fight. */
+.photo-modal-rise {
+  perspective: 1100px;
+  animation: photo-modal-rise 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) both;
+}
+
+.photo-modal-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+/* The lean is gated on .is-tilting so it cannot start until the rise has
+   finished — otherwise the card would twist on the way up. */
+.photo-modal-card.is-tilting {
+  transition: transform 140ms ease-out;
+}
+
+.photo-modal-card.is-polaroid {
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px 12px 56px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  width: min(340px, calc(100vw - 64px));
+}
+.photo-modal-card.is-polaroid img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.photo-modal-card.is-strip {
+  line-height: 0;
+  filter: drop-shadow(0 18px 50px rgba(0, 0, 0, 0.28));
+}
+.photo-modal-card.is-strip img {
+  width: auto;
+  height: auto;
+  max-height: calc(100svh - 64px);
+  max-width: min(280px, calc(100vw - 64px));
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+@keyframes photo-modal-rise {
+  from { transform: translate3d(0, 88px, 0); opacity: 0; }
+  to   { transform: translate3d(0, 0, 0);    opacity: 1; }
+}
+@keyframes photo-modal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .polaroid,
+  .strip { transition: none; }
+  .polaroid:hover,
+  .polaroid:focus-visible,
+  .strip:hover,
+  .strip:focus-visible { translate: 0 0; }
+  .photo-modal-scrim,
+  .photo-modal-rise { animation: none; }
+  .photo-modal-card.is-tilting { transition: none; }
+}

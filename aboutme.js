@@ -1,4 +1,4 @@
-/* About Me page behaviour: the hero card fan, the photo viewer, and the FAQ
+/* About Me page behaviour: the hero card fan, the outside photos, and the FAQ
    accordion. Top bar, cursor and the reveal helper come from site.js.
    Vanilla port of the Framer CardFan component — same geometry and timings,
    driven by the Web Animations API instead of framer-motion. */
@@ -296,113 +296,75 @@
         });
     });
 
-    // ---------------------------------------------------------- photo viewer
+    // ------------------------------------------------- experience polaroids
 
-    // The photobooth strips and the Sundays polaroids open over a blurred page.
-    // The print in there is built fresh on every open and thrown away on close:
-    // there is then never a second copy of a photo sitting in the document, and
-    // the rise always has a new element to play on.
-    const photoModal = document.getElementById('photo-modal');
-    const photoStage = document.getElementById('photo-modal-stage');
-    const photoPanel = photoModal && photoModal.querySelector('[role="dialog"]');
-    let photoOpener = null;
-    let photoCard = null;
-    let photoTiltTimer = null;
-    let photoPointer = { x: 0, y: 0 };
-
-    function photoName(source) {
-        return source.getAttribute('aria-label') || source.alt || 'Photo';
-    }
-
-    function tiltFromPointer(card) {
-        const r = card.getBoundingClientRect();
-        if (!r.width || !r.height) return;
-        let px = (photoPointer.x - r.left) / r.width - 0.5;
-        let py = (photoPointer.y - r.top) / r.height - 0.5;
-        px = Math.max(-0.65, Math.min(0.65, px));
-        py = Math.max(-0.65, Math.min(0.65, py));
-        card.style.setProperty('--tilt-x', (-py * 7).toFixed(2) + 'deg');
-        card.style.setProperty('--tilt-y', (px * 9).toFixed(2) + 'deg');
-    }
-
-    function openPhoto(source, pointer) {
-        if (!photoModal || !photoStage || !source) return;
-        if (photoTiltTimer) {
-            window.clearTimeout(photoTiltTimer);
-            photoTiltTimer = null;
-        }
-        photoStage.innerHTML = '';
-        photoCard = null;
-        photoOpener = source;
-        if (pointer) {
-            photoPointer.x = pointer.clientX;
-            photoPointer.y = pointer.clientY;
-        }
-
-        const isStrip = source.classList.contains('strip');
-        const srcImg = source.tagName === 'IMG' ? source : source.querySelector('img');
-        if (!srcImg) return;
-
-        const rise = document.createElement('div');
-        rise.className = 'photo-modal-rise';
+    // A hover over an experience with photos drops one polaroid somewhere over
+    // the education column. Each hover picks a new spot, a new tilt, and — when
+    // a row has more than one photo — a new picture. Rows without a
+    // data-exp-photos attribute simply do nothing, so the last two can wait.
+    (function () {
+        const cv = document.querySelector('.block.cv');
+        const rows = document.querySelectorAll('.exp-row[data-exp-photos]');
+        if (!cv || !rows.length) return;
 
         const card = document.createElement('div');
-        card.className = 'photo-modal-card ' + (isStrip ? 'is-strip' : 'is-polaroid');
-
+        card.className = 'exp-float polaroid';
+        card.setAttribute('aria-hidden', 'true');
         const img = document.createElement('img');
-        img.src = srcImg.currentSrc || srcImg.src;
-        img.alt = srcImg.alt || photoName(source);
+        img.alt = '';
         card.appendChild(img);
-        rise.appendChild(card);
-        photoStage.appendChild(rise);
-        photoCard = card;
+        cv.appendChild(card);
 
-        if (photoPanel) photoPanel.setAttribute('aria-label', photoName(source));
-        photoModal.removeAttribute('hidden');
-        document.body.classList.add('modal-open');
-        if (photoPanel) photoPanel.focus();
+        let hideTimer = 0;
 
-        if (reduceMotion) return;
-
-        let started = false;
-        const beginTilt = function () {
-            if (started || photoCard !== card || !document.contains(card)) return;
-            started = true;
-            card.classList.add('is-tilting');
-            tiltFromPointer(card);
-        };
-        rise.addEventListener('animationend', function (e) {
-            if (e.target === rise) beginTilt();
-        });
-        // animationend is easy to miss if the node is hidden mid-flight, and
-        // a print that never leans looks broken rather than reduced. 700ms is
-        // a hair past the 620ms rise.
-        photoTiltTimer = window.setTimeout(beginTilt, 700);
-    }
-
-    function closePhoto() {
-        if (!photoModal || photoModal.hasAttribute('hidden')) return;
-        if (photoTiltTimer) {
-            window.clearTimeout(photoTiltTimer);
-            photoTiltTimer = null;
+        function rand(min, max) {
+            return min + Math.random() * (max - min);
         }
-        photoCard = null;
-        photoModal.setAttribute('hidden', '');
-        document.body.classList.remove('modal-open');
-        photoStage.innerHTML = '';
-        if (photoOpener && document.contains(photoOpener)) photoOpener.focus();
-        photoOpener = null;
-    }
 
-    function bindPhoto(el) {
-        if (!photoModal) return;
-        el.addEventListener('click', function (e) { openPhoto(el, e); });
-        el.addEventListener('keydown', function (e) {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            e.preventDefault();
-            openPhoto(el, null);
+        function show(row) {
+            const photos = row.getAttribute('data-exp-photos').split(/\s+/).filter(Boolean);
+            if (!photos.length) return;
+            const src = photos[Math.floor(Math.random() * photos.length)];
+            if (img.getAttribute('src') !== src) img.src = src;
+
+            const host = cv.getBoundingClientRect();
+            const edu = cv.querySelectorAll('.cv-col')[1];
+            const zone = edu ? edu.getBoundingClientRect() : host;
+            const wide = zone.left > host.left + 80;
+            const w = 188;
+            const h = 250;
+            let left;
+            let top;
+            if (wide) {
+                const minL = zone.left - host.left + 4;
+                const maxL = Math.max(minL, zone.right - host.left - w - 4);
+                const minT = Math.max(0, zone.top - host.top - 8);
+                const maxT = Math.max(minT + 24, zone.bottom - host.top - h * 0.35);
+                left = rand(minL, maxL);
+                top = rand(minT, maxT);
+            } else {
+                const rowBox = row.getBoundingClientRect();
+                left = rand(8, Math.max(8, host.width - w - 8));
+                top = rowBox.bottom - host.top + rand(6, 18);
+            }
+            card.style.left = left + 'px';
+            card.style.top = top + 'px';
+            card.style.setProperty('--exp-rot', rand(-5, 5).toFixed(2) + 'deg');
+            card.classList.add('is-on');
+        }
+
+        rows.forEach(function (row) {
+            row.addEventListener('pointerenter', function () {
+                window.clearTimeout(hideTimer);
+                show(row);
+            });
+            row.addEventListener('pointerleave', function () {
+                hideTimer = window.setTimeout(function () {
+                    card.classList.remove('is-on');
+                }, 90);
+            });
         });
-    }
+    })();
 
     // ------------------------------------------------------- outside photos
 
@@ -431,37 +393,11 @@
                     img.setAttribute('data-skel', '');
                     tile.appendChild(img);
                     row.appendChild(tile);
-                    bindPhoto(tile);
+                    if (window.PhotoViewer) window.PhotoViewer.bind(tile);
                 });
                 row.hidden = false;
             })
             .catch(function () {});
     });
 
-    if (photoModal) {
-        document.querySelectorAll('.polaroid, .strip').forEach(bindPhoto);
-
-        // Keep the pointer current during the rise so the first lean is toward
-        // where the mouse is now, not where the click was 600ms ago.
-        photoModal.addEventListener('pointermove', function (e) {
-            if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
-            photoPointer.x = e.clientX;
-            photoPointer.y = e.clientY;
-            if (photoCard && photoCard.classList.contains('is-tilting')) tiltFromPointer(photoCard);
-        });
-
-        photoModal.addEventListener('click', function (e) {
-            if (!photoStage.contains(e.target)) closePhoto();
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (photoModal.hasAttribute('hidden')) return;
-            if (e.key === 'Escape') { closePhoto(); return; }
-            if (e.key !== 'Tab') return;
-            // The dialog itself is the only focusable thing in here, so Tab
-            // has nowhere to go without walking onto the blurred page.
-            e.preventDefault();
-            if (photoPanel) photoPanel.focus();
-        });
-    }
 })();

@@ -67,13 +67,10 @@
          edge even if site.js is slow or never arrives. site.js only wires it
          up — the sun/moon swap is pure CSS off <html>'s data-theme. -->
     <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
-        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        </svg>
-        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-        </svg>
+        <span class="theme-wheel">
+            <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </span>
     </button>
 </nav>
 

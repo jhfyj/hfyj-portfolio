@@ -30,7 +30,7 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&family=Mynerve&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="site.css">
     <link rel="stylesheet" href="skeleton.css">
     <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
@@ -62,13 +62,10 @@
          edge even if site.js is slow or never arrives. site.js only wires it
          up — the sun/moon swap is pure CSS off <html>'s data-theme. -->
     <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
-        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        </svg>
-        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-        </svg>
+        <span class="theme-wheel">
+            <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </span>
     </button>
 </nav>
 
@@ -107,7 +104,7 @@
         <div class="cv-col">
             <p class="eyebrow">EXPERIENCE</p>
             <ul class="exp-list">
-                <li class="exp-row" data-exp-photos="assets/about/experience/bmw.jpg">
+                <li class="exp-row" data-exp-photos="assets/about/experience/bmw.jpg" data-exp-caption="coolest office ever">
                     <span class="exp-date">Summer 2026</span>
                     <img class="exp-logo" src="assets/about/logo-bmw.png" alt="BMW Designworks" data-skel width="500" height="500">
                     <span class="exp-body">
@@ -115,7 +112,7 @@
                         <span class="exp-role">Interactions Intern</span>
                     </span>
                 </li>
-                <li class="exp-row" data-exp-photos="assets/about/experience/developforgood.png">
+                <li class="exp-row" data-exp-photos="assets/about/experience/developforgood.png" data-exp-caption="the dream team!" data-exp-landscape>
                     <span class="exp-date">Summer 2026</span>
                     <img class="exp-logo exp-logo-wide" src="assets/about/logo-dfg.png" alt="Develop for Good" data-skel width="512" height="142">
                     <span class="exp-body">
@@ -124,7 +121,7 @@
                         <span class="exp-sub">Designer - Summer 2025</span>
                     </span>
                 </li>
-                <li class="exp-row" data-exp-photos="assets/about/experience/mirrorphysics1.jpg assets/about/experience/mirrorphysics2.jpg">
+                <li class="exp-row" data-exp-photos="assets/about/experience/mirrorphysics1.jpg assets/about/experience/mirrorphysics2.jpg" data-exp-caption="inside joke from whiteboarding sessions">
                     <span class="exp-date">2025-2026</span>
                     <img class="exp-logo" src="assets/about/logo-mirror.jpg" alt="Mirror Physics" data-skel width="100" height="100">
                     <span class="exp-body">

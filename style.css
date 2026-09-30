@@ -127,6 +127,38 @@ canvas.threejs {
   }
 }
 
+/* Scroll cue — a small arrow at the bottom during the intro, shown after
+   two idle seconds (script.js, armScrollCue). Fades in, then bobs. */
+#scroll-cue {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  color: rgba(var(--ink-rgb), 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+#scroll-cue.visible {
+  opacity: 1;
+}
+
+#scroll-cue svg {
+  animation: scroll-cue-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes scroll-cue-bob {
+  0%, 100% { transform: translateY(-3px); }
+  50%      { transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #scroll-cue svg { animation: none; }
+}
+
 /* Centered square that touches at least one viewport edge */
 #logo-wrap{
   position: fixed;
@@ -937,16 +969,18 @@ html[data-card-return] body {
 #top-nav.is-grouped .nav-cluster,
 html[data-restore-view="grid"] #top-nav .nav-cluster {
   background-color: var(--bg);
-  /* Top stays 10px with the card line. The mark gets more room on the left
-     than the theme button has on the right. */
-  padding: 10px 10px 10px 18px;
+  /* Top stays 10px with the card line. The theme button's outline is its
+     visible edge, so it sits 10px in; the mark has no outline, so it gets
+     14px, the same inset it has top and bottom. */
+  padding: 10px 10px 10px 14px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
 }
 
-/* The gap between the pages and the theme button. Same 32px the links
-   already use, so the centered line reads as one group in both views. */
+/* The gap between the pages and the theme button. Shorter than the links'
+   28px because it is measured to the button's outline: the icon inside
+   sits another 9px in, so to the eye the three gaps come out even. */
 .nav-spacer {
-  flex: 0 0 32px;
+  flex: 0 0 20px;
   height: 1px;
   pointer-events: none;
 }
@@ -962,10 +996,21 @@ html[data-restore-view="grid"] #top-nav .nav-cluster {
   transform: translateY(0);
 }
 
+/* Grid view: tucked away while scrolling down, back on the way up
+   (script.js, next to the grid's scroll handler). */
+#top-nav.visible.is-scroll-hidden {
+  opacity: 0;
+  transform: translateY(-150%);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+#top-nav.is-scroll-hidden * {
+  pointer-events: none !important;
+}
+
 #nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
   pointer-events: auto;
 }
 
@@ -1032,18 +1077,19 @@ html[data-restore-view="grid"] #top-nav .nav-cluster {
   gap: 6px;
   padding: 6px;
   border: none;
-  border-radius: 18px;
+  --pill-radius: 15px; /* the one knob: border + both clip-paths below */
+  border-radius: var(--pill-radius);
   /* Frost has to live on this element. A filter, or a blur on a child,
      only samples an empty layer and the page behind stays sharp. */
-  background: rgba(var(--panel-rgb), 0.88);
-  backdrop-filter: blur(18px) saturate(1.2);
+  background: rgba(var(--panel-rgb), 0.5);
+  backdrop-filter: blur(10px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   /* A hairline edge, inset so the clip below cannot cut it off. The
      drop-shadow is even — no downward offset — and it follows the clip,
      so the shadow grows with the bar instead of sitting on one side. */
   box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
-  clip-path: inset(0 50% 0 50% round 18px);
+  clip-path: inset(0 50% 0 50% round var(--pill-radius));
   transition:
     clip-path 0.72s cubic-bezier(0.16, 1, 0.3, 1),
     gap 0.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1062,7 +1108,7 @@ html[data-restore-view="grid"] #view-toggle .view-toggle-shell {
 }
 
 #view-toggle.is-open .view-toggle-shell {
-  clip-path: inset(0 0 0 0 round 18px);
+  clip-path: inset(0 0 0 0 round var(--pill-radius));
 }
 
 /* The two icons, and the plate under whichever is on. The plate is one
@@ -1083,7 +1129,7 @@ html[data-restore-view="grid"] #view-toggle .view-toggle-shell {
   bottom: 0;
   left: 0;
   width: 50%;
-  border-radius: 13px;
+  border-radius: 11px;
   background: var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   pointer-events: none;
@@ -1173,14 +1219,14 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   height: 100%;
   padding: 0 78px;
   box-sizing: content-box;
 }
 
 .scrubber-tick {
-  width: 2px;
+  width: 1.5px;
   border-radius: 2px;
   background: rgb(var(--ink-rgb));
   flex-shrink: 0;
@@ -1222,27 +1268,43 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber {
   cursor: pointer;
   pointer-events: auto;
   overflow: hidden;
-  perspective: 148px;
   transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
+/* Hover: a faint fill and a firmer edge, tuned per theme. On the light page
+   ink-on-white needs very little; on the dark page the same alpha barely
+   shows, so it goes a step brighter. */
 #theme-toggle:hover {
   color: rgba(var(--ink-rgb), 0.95);
+  background: rgba(var(--ink-rgb), 0.05);
+  border-color: rgba(var(--ink-rgb), 0.24);
 }
 
+:root[data-theme="dark"] #theme-toggle:hover {
+  background: rgba(var(--ink-rgb), 0.09);
+  border-color: rgba(var(--ink-rgb), 0.3);
+}
+
+/* The wheel. Its hub sits --r below the button's centre, so the face at the
+   top of the rim is the one in the window and the opposite end is hidden
+   below. script.js turns it by half turns on each press. */
 .theme-wheel {
+  --r: 24px;
   position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(0deg);
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% calc(50% + var(--r));
+  transform: rotate(0deg);
 }
 
 :root[data-theme="dark"] .theme-wheel {
-  transform: rotateX(-90deg);
+  transform: rotate(180deg);
 }
 
 .theme-wheel.is-ready {
-  transition: transform 0.55s cubic-bezier(0.45, 0.02, 0.2, 1);
+  transition: transform 0.6s cubic-bezier(0.45, 0.02, 0.2, 1);
 }
 
 .theme-face {
@@ -1251,13 +1313,12 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber {
   display: flex;
   align-items: center;
   justify-content: center;
-  backface-visibility: hidden;
 }
 
-.theme-face:nth-child(1) { transform: rotateX(0deg) translateZ(18px); }
-.theme-face:nth-child(2) { transform: rotateX(90deg) translateZ(18px); }
-.theme-face:nth-child(3) { transform: rotateX(180deg) translateZ(18px); }
-.theme-face:nth-child(4) { transform: rotateX(270deg) translateZ(18px); }
+/* The far end of the rim, upside down so it arrives upright at the top. */
+.theme-face:nth-child(2) {
+  transform: translateY(calc(var(--r) * 2)) rotate(180deg);
+}
 
 .theme-sun,
 .theme-moon {
@@ -1280,7 +1341,7 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber {
   width: 56px;
   height: 40px;
   border: none;
-  border-radius: 13px;
+  border-radius: 11px;
   background: transparent;
   color: rgba(var(--ink-rgb), 0.35);
   cursor: pointer;
@@ -1410,25 +1471,6 @@ html[data-restore-view="grid"] #grid-view {
 
 #grid-view.visible * {
   cursor: none;
-}
-
-#grid-view::before {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  z-index: 1;
-  display: none;
-  top: 0;
-  height: 120px;
-  background: linear-gradient(to bottom, var(--bg) 35%, transparent 100%);
-}
-
-@media (max-width: 1160px) {
-  #grid-view::before {
-    display: block;
-  }
 }
 
 /* ── Grid-view hero intro ── */
@@ -1946,13 +1988,13 @@ html.gh-handle-drag .gh-handle.br::before {
 @media (max-width: 760px) {
   #grid-hero {
     max-width: none;
-    padding: 100px 1rem 0;
+    padding: 128px 1rem 0;
   }
   .gh-statement { font-size: clamp(1.25rem, 5vw, 1rem); }
 }
 
 @media (max-width: 500px) {
-  #grid-hero { padding: 80px 1rem 0; }
+  #grid-hero { padding: 112px 1rem 0; }
 }
 
 .grid-container {

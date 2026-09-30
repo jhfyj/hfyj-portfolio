@@ -313,6 +313,10 @@
         const img = document.createElement('img');
         img.alt = '';
         card.appendChild(img);
+        // Written on the bottom margin, from the row's data-exp-caption.
+        const caption = document.createElement('p');
+        caption.className = 'exp-float-caption';
+        card.appendChild(caption);
         cv.appendChild(card);
 
         let hideTimer = 0;
@@ -326,13 +330,18 @@
             if (!photos.length) return;
             const src = photos[Math.floor(Math.random() * photos.length)];
             if (img.getAttribute('src') !== src) img.src = src;
+            caption.textContent = row.getAttribute('data-exp-caption') || '';
 
             const host = cv.getBoundingClientRect();
             const edu = cv.querySelectorAll('.cv-col')[1];
             const zone = edu ? edu.getBoundingClientRect() : host;
             const wide = zone.left > host.left + 80;
-            const w = 188;
-            const h = 250;
+            // data-exp-landscape turns the print on its side, sized to the
+            // photo so a wide group shot shows whole instead of cropped.
+            const landscape = row.hasAttribute('data-exp-landscape');
+            card.classList.toggle('is-landscape', landscape);
+            const w = landscape ? 300 : 188;
+            const h = landscape ? 206 : 262;
             let left;
             let top;
             if (wide) {

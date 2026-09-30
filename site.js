@@ -36,7 +36,7 @@ window.Site = (function () {
     function syncThemeButton(theme) {
         // aria-pressed, not a changing label: this is one control whose state
         // flips, and a screen reader announces the new state on press. The
-        // sighted equivalent is the sun/moon swap, which CSS already handles.
+        // sighted equivalent is the sun/moon wheel turning, below.
         if (themeToggle) themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
     }
 
@@ -59,9 +59,28 @@ window.Site = (function () {
     // re-deriving the theme here would just be a second chance to disagree.
     syncThemeButton(document.documentElement.getAttribute('data-theme'));
 
+    // Half-turns of the sun/moon wheel, as on the home page (script.js). The
+    // count only grows, so the wheel always rolls the same way round instead
+    // of rocking back. Parking sets the angle with the transition off, so a
+    // theme that changes without a press (the OS, a back/forward restore)
+    // lands on the right face without a spin.
+    const themeWheel = themeToggle && themeToggle.querySelector('.theme-wheel');
+    let themeTurns = document.documentElement.getAttribute('data-theme') === 'dark' ? 1 : 0;
+    function parkThemeWheel() {
+        if (!themeWheel) return;
+        themeTurns = document.documentElement.getAttribute('data-theme') === 'dark' ? 1 : 0;
+        themeWheel.classList.remove('is-ready');
+        themeWheel.style.transform = 'rotate(' + (themeTurns * 180) + 'deg)';
+        void themeWheel.offsetWidth;
+        themeWheel.classList.add('is-ready');
+    }
+    parkThemeWheel();
+
     if (themeToggle) {
         themeToggle.addEventListener('click', function () {
             const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            themeTurns += 1;
+            if (themeWheel) themeWheel.style.transform = 'rotate(' + (themeTurns * 180) + 'deg)';
             applyTheme(next, true);
         });
     }
@@ -73,6 +92,7 @@ window.Site = (function () {
     const onSystemTheme = function (e) {
         if (readStoredTheme()) return;
         applyTheme(e.matches ? 'dark' : 'light', false);
+        parkThemeWheel();
     };
     if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemTheme);
     else if (darkQuery.addListener) darkQuery.addListener(onSystemTheme);   // Safari < 14
@@ -90,6 +110,7 @@ window.Site = (function () {
     window.addEventListener('pageshow', function (e) {
         if (!e.persisted) return;
         applyTheme(readStoredTheme() || (darkQuery.matches ? 'dark' : 'light'), false);
+        parkThemeWheel();
     });
 
     // Hides on the way down, comes back on the way up, and is always there at

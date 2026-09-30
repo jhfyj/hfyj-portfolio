@@ -177,6 +177,39 @@
   transform: rotate(var(--exp-rot, -2deg)) scale(1);
   animation: exp-drift 5.5s ease-in-out infinite;
 }
+/* The caption is written on the print's bottom margin, which grows a little
+   so a two-line caption still fits. The frame is white in both themes, so
+   the ink is fixed rather than themed. */
+.exp-float { padding-bottom: 42px; }
+.exp-float-caption {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 42px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: "Mynerve", "Figtree", cursive;
+  font-size: 15px;
+  line-height: 1.15;
+  color: #3a3a3a;
+}
+.exp-float-caption:empty { display: none; }
+
+/* On its side: wider, and the photo keeps its own proportions. */
+.exp-float.is-landscape { width: 300px; }
+.exp-float.is-landscape img { aspect-ratio: auto; height: auto; }
+
+/* Hovering an experience with a print dims the other experiences, so the
+   one being pictured stands out. Fine pointers only, like the print. */
+@media (hover: hover) and (pointer: fine) {
+  .exp-row { transition: opacity 0.25s ease; }
+  .exp-list:has(.exp-row[data-exp-photos]:hover) .exp-row:not(:hover) { opacity: 0.5; }
+}
+
 @keyframes exp-drift {
   0%, 100% { translate: 0 0; }
   50% { translate: 10px -12px; }

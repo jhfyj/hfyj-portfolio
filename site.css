@@ -136,26 +136,43 @@ a { color: inherit; }
 
 /* ---------- theme toggle ---------- */
 
-/* Deliberately the same shape as the home page's #theme-toggle (style.css) —
-   same soft panel, same 12px-family radius, same icon size — only smaller,
-   because this bar is 63px tall rather than a floating nav with room to spare.
-   Sized so the 34px button leaves an even ~14px above and below. */
+/* The same component as the home page's #theme-toggle (style.css): a clear
+   36px square with a hairline edge, and the sun and moon on a wheel that
+   rolls round on each press (site.js turns it). Keep the two in step.
+   --ink-rgb is the home page's ink, scoped here because the case pages'
+   palette has no rgb triple of its own. */
 #theme-toggle {
+  --ink-rgb: 40, 40, 40;
+  position: relative;
+  box-sizing: border-box;
   flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
+  display: block;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border: 1px solid var(--rule);
+  border: 1px solid rgba(var(--ink-rgb), 0.14);
   border-radius: 10px;
-  background: var(--panel);
-  color: var(--caption);
+  background: transparent;
+  color: rgba(var(--ink-rgb), 0.75);
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
 }
-#theme-toggle:hover { color: var(--ink); }
+#theme-toggle:hover {
+  color: rgba(var(--ink-rgb), 0.95);
+  background: rgba(var(--ink-rgb), 0.05);
+  border-color: rgba(var(--ink-rgb), 0.24);
+}
+:root[data-theme="dark"] #theme-toggle {
+  --ink-rgb: 255, 255, 255;
+  color: rgba(var(--ink-rgb), 0.88);
+  border-color: rgba(var(--ink-rgb), 0.22);
+}
+:root[data-theme="dark"] #theme-toggle:hover {
+  color: rgb(var(--ink-rgb));
+  background: rgba(var(--ink-rgb), 0.09);
+  border-color: rgba(var(--ink-rgb), 0.3);
+}
 /* :focus-visible only, so a mouse press does not leave a ring behind. The site
    hides the native cursor over buttons, which makes keyboard reachability the
    only way some readers will ever land on this. */
@@ -164,15 +181,44 @@ a { color: inherit; }
   outline-offset: 2px;
 }
 
-/* One icon is drawn at a time; which one is a pure function of the attribute
-   on <html>, so it is already correct in the first paint and site.js never has
-   to touch it. The sun shows in light mode (this is what you are in), the moon
-   in dark — matching the home page rather than showing the destination. */
-#theme-icon-sun,
-#theme-icon-moon { display: none; }
-:root #theme-icon-sun { display: block; }
-:root[data-theme="dark"] #theme-icon-sun { display: none; }
-:root[data-theme="dark"] #theme-icon-moon { display: block; }
+/* The wheel. Its hub sits --r below the button's centre, so the face at the
+   top of the rim is the one in the window and the other is hidden below.
+   Which one is up is set from <html> before the first paint; site.js takes
+   over the angle so each press keeps turning the same way. */
+.theme-wheel {
+  --r: 24px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% calc(50% + var(--r));
+  transform: rotate(0deg);
+}
+:root[data-theme="dark"] .theme-wheel { transform: rotate(180deg); }
+.theme-wheel.is-ready {
+  transition: transform 0.6s cubic-bezier(0.45, 0.02, 0.2, 1);
+}
+.theme-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* The far end of the rim, upside down so it arrives upright at the top. */
+.theme-face:nth-child(2) {
+  transform: translateY(calc(var(--r) * 2)) rotate(180deg);
+}
+.theme-sun,
+.theme-moon {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-wheel.is-ready { transition: none; }
+}
 
 /* ---------- custom cursor ---------- */
 

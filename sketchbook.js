@@ -1227,6 +1227,13 @@
         mark.classList.add('is-placed');
         mark.style.left = Math.round(cx - mark.offsetWidth / 2) + 'px';
         mark.style.top = Math.round(cy - mark.offsetHeight / 2) + 'px';
+        // The drag hint hangs just under the name, centred on it.
+        var hint = document.getElementById('table-hint');
+        if (hint) {
+            hint.classList.add('is-placed');
+            hint.style.left = Math.round(cx - hint.offsetWidth / 2) + 'px';
+            hint.style.top = Math.round(cy + mark.offsetHeight / 2 + 18) + 'px';
+        }
         if (window.Felt && typeof window.Felt.stamp === 'function') {
             window.Felt.stamp();
         }
@@ -1318,11 +1325,18 @@
         var sh = tableH || surface.offsetHeight;
         var pad = 32;
         if (mark && mark.classList.contains('is-placed') && mark.offsetWidth > 0) {
+            var top = parseFloat(mark.style.top) || 0;
+            var bottom = top + mark.offsetHeight;
+            // The drag hint hangs under the name; keep chips off it too.
+            var hint = document.getElementById('table-hint');
+            if (hint && hint.classList.contains('is-placed')) {
+                bottom = Math.max(bottom, (parseFloat(hint.style.top) || 0) + hint.offsetHeight);
+            }
             return {
                 x: (parseFloat(mark.style.left) || 0) - pad,
-                y: (parseFloat(mark.style.top) || 0) - pad,
+                y: top - pad,
                 w: mark.offsetWidth + pad * 2,
-                h: mark.offsetHeight + pad * 2
+                h: bottom - top + pad * 2
             };
         }
         var w = Math.min(560, sw * 0.62);

@@ -144,14 +144,20 @@
   --felt-base: max(64dvh, 460px);
   height: calc(var(--felt-base) + (100vh - var(--felt-base)) * var(--felt-expand));
   height: calc(var(--felt-base) + (100dvh - var(--felt-base)) * var(--felt-expand));
-  /* Grows up over the 63px bar as well as down, so 1 is genuinely fullscreen
-     and not a 100vh block that still sits under the crumb. */
-  margin-top: calc(-63px * var(--felt-expand));
-  /* Edge to edge, so the corners and the side rule would sit off-screen. Only
-     the two edges that are actually on the page are drawn. */
-  border-radius: 0;
+  /* At rest the cloth is a card on the page: inset from the window's edges
+     and the bar, with rounded corners. Opening it (--felt-expand toward 1)
+     takes the inset and the rounding away together, and it also grows up
+     over the 63px bar, so 1 is genuinely fullscreen and not a 100vh block
+     that still sits under the crumb. */
+  --felt-inset: 16px;
+  --felt-radius: 20px;
+  --felt-rest: calc(1 - var(--felt-expand));
+  margin-top: calc(var(--felt-inset) * var(--felt-rest) - 63px * var(--felt-expand));
+  margin-left: calc(var(--felt-inset) * var(--felt-rest));
+  margin-right: calc(var(--felt-inset) * var(--felt-rest));
+  border-radius: calc(var(--felt-radius) * var(--felt-rest));
   background-color: var(--felt);
-  box-shadow: inset 0 1px 0 var(--rule), inset 0 -1px 0 var(--rule);
+  box-shadow: inset 0 0 0 1px var(--rule);
   overflow: hidden;
   /* The cards inside are dragged with the pointer; without this a drag on a
      touch screen scrolls the page out from under the card instead. */
@@ -314,6 +320,31 @@ html.mat-ink #mat.is-lit ~ #table-heading { opacity: 0; }
   -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
   color: rgba(255, 255, 255, 0.5);
 }
+/* The drag hint under the name. Same white-on-grass ink as the fallback
+   print, smaller and in the UI face, since it is an instruction rather than
+   part of the name. Placed by sketchbook.js; hidden until then. */
+#table-hint {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  margin: 0;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  visibility: hidden;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.55);
+}
+#table-hint.is-placed { visibility: visible; }
+#table-hint svg { flex: none; }
+
 #table-heading .mat-title {
   display: block;
   font-family: "DM Sans", sans-serif;
@@ -1413,9 +1444,12 @@ body.modal-open { overflow: hidden; }
   #felt {
     --felt-base: 70vh;
     --felt-base: 70dvh;
+    --felt-inset: 10px;
+    --felt-radius: 16px;
   }
   #table-heading .mat-title { font-size: clamp(36px, 12vw, 72px); }
   #table-heading .mat-tag { font-size: clamp(16px, 4.4vw, 28px); }
+  #table-hint { font-size: 13px; gap: 6px; }
   /* The caps, not the padding: the shorthand above is a min() against the card's
      own size, and restating it here as two lengths would throw that away on
      exactly the narrow window where it does the most work. */

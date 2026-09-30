@@ -32,12 +32,13 @@ const CARD_BG = '#F7F5F5';
 // colors — only the stock and the ink drawn on it follow the theme.
 const THEME_COLORS = {
     light: {
-        fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG,
+        fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG, shadow: 1,
         ink: '#000', inkSub: '#585858', inkBody: '#626875',
         rule: '#232323', placeholder: '#d9d9d9',
     },
     dark: {
-        fog: 0x121212, accent: '#FFFA50', cardBg: '#373737',
+        // The lavender ground shadow glows on the dark floor, so it sits lower.
+        fog: 0x121212, accent: '#FFFA50', cardBg: '#373737', shadow: 0.55,
         ink: '#F2F2F2', inkSub: '#A8A8A8', inkBody: '#A8AEBC',
         rule: '#8F8F8F', placeholder: '#4A4A4A',
     },
@@ -448,6 +449,7 @@ let autoRotating = false;
 
 function resetIdleTimer() {
     lastInteractionTime = performance.now();
+    if (introPhase === 'waitForScroll') armScrollCue();
     if (autoRotating) {
         autoRotating = false;
         // Clear hover so card drops back down before we stop
@@ -3202,6 +3204,19 @@ canvas.addEventListener('mouseleave', () => {
 // Click handling
 canvas.addEventListener("click", (event) => {
     resetIdleTimer();
+    // On touch, tapping the About Me card during the intro deals the cards,
+    // same as a swipe. With a mouse, scrolling stays the only way in.
+    if (introPhase === 'waitForScroll') {
+        const isTouch = event.pointerType === 'touch' || !hasFinePointer;
+        if (!isTouch) return;
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hit = raycaster.intersectObjects(cardgroup.children, true)[0];
+        const root = hit && findCardRoot(hit.object);
+        if (root && root.userData.cardIndex === 0) { playWhooshThrottled(); triggerDealing(); }
+        return;
+    }
     if (hasDragged || introPhase !== 'done') return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -3454,7 +3469,7 @@ const renderloop = (now = 0) => {
         const shadow = cardShadows[i];
         if (shadow) {
             shadow.position.y = shadow.userData.baseY - cardHoverY[i];
-            const targetOpacity = isHovered ? 0.5 : 1.0;
+            const targetOpacity = (isHovered ? 0.5 : 1.0) * THEME_COLORS[currentTheme].shadow;
             const restScale = isHovered ? 0.7 : 1.0;
             // Intro tilt: the card leans toward the cursor. The shadow stays
             // centered under it and only grows with that lean.
@@ -3837,16 +3852,16 @@ function applyTheme(theme, persist = true) {
     if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }
 
-// Quarter-turns of the day/night wheel. The count only ever grows, so the
-// icon always rolls the same way — down, and the next one over the top —
-// instead of rocking back to where it came from.
+// Half-turns of the day/night wheel. The count only ever grows, so the wheel
+// always spins clockwise — the icon swings off to the right and the other
+// comes up from the left — instead of rocking back to where it came from.
 const themeWheel = document.querySelector('#theme-toggle .theme-wheel');
 let themeTurns = currentTheme === 'dark' ? 1 : 0;
 
 function parkThemeWheel() {
     if (!themeWheel) return;
     themeWheel.classList.remove('is-ready');
-    themeWheel.style.transform = `rotateX(${-themeTurns * 90}deg)`;
+    themeWheel.style.transform = `rotate(${themeTurns * 180}deg)`;
     void themeWheel.offsetWidth;
     themeWheel.classList.add('is-ready');
 }
@@ -3855,7 +3870,7 @@ parkThemeWheel();
 
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
     themeTurns += 1;
-    if (themeWheel) themeWheel.style.transform = `rotateX(${-themeTurns * 90}deg)`;
+    if (themeWheel) themeWheel.style.transform = `rotate(${themeTurns * 180}deg)`;
     applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 });
 
@@ -3990,7 +4005,11 @@ function applyViewChrome(view, animateThumb = true) {
     const socialLinks = document.getElementById('social-links');
     const viewToggle = document.getElementById('view-toggle');
     const topNav = document.getElementById('top-nav');
-    if (topNav) topNav.classList.toggle('is-grouped', view === 'grid');
+    if (topNav) {
+        topNav.classList.toggle('is-grouped', view === 'grid');
+        // Card view has no scroll, so the header must never stay tucked away.
+        if (view !== 'grid') topNav.classList.remove('is-scroll-hidden');
+    }
 
     toggleBtns.forEach(b => {
         const on = b.dataset.view === view;
@@ -4073,6 +4092,30 @@ gridView.addEventListener('scroll', () => {
     viewState.gridScroll = gridView.scrollTop;
     schedulePersist();
 }, { passive: true });
+
+// Header in grid view: hides on the way down, comes back on the way up, and is
+// always there near the top. Same rule and deadband as the case pages' topbar
+// (site.js), but the grid scrolls its own element rather than the window.
+{
+    const topNav = document.getElementById('top-nav');
+    const TOP = 20;
+    const DEADBAND = 6;
+    let lastY = 0;
+    let ticking = false;
+    const sync = () => {
+        ticking = false;
+        const y = Math.max(0, gridView.scrollTop);
+        const delta = y - lastY;
+        if (Math.abs(delta) < DEADBAND && y > TOP) return;
+        lastY = y;
+        topNav.classList.toggle('is-scroll-hidden', currentView === 'grid' && y > TOP && delta > 0);
+    };
+    if (topNav) gridView.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(sync);
+    }, { passive: true });
+}
 
 // ── Grid-view footer ─────────────────────────────────────────────────────────
 
@@ -4649,19 +4692,49 @@ function renderPanelName(el, lines, count, caret) {
     el.replaceChildren(frag);
 }
 
+// Scroll cue: once the intro has settled (bio in), two seconds with no
+// activity brings up a bobbing arrow at the bottom. Activity before then
+// restarts the wait; once it's up it stays until dealing starts.
+const SCROLL_CUE_IDLE_MS = 2000;
+let scrollCueTimer = null;
+
+function armScrollCue() {
+    const cue = document.getElementById('scroll-cue');
+    if (!cue || introPhase !== 'waitForScroll' || cue.classList.contains('visible')) return;
+    const panels = document.getElementById('about-panels');
+    if (!panels || !panels.classList.contains('bio-in')) return;
+    clearTimeout(scrollCueTimer);
+    scrollCueTimer = setTimeout(() => {
+        scrollCueTimer = null;
+        if (introPhase === 'waitForScroll') cue.classList.add('visible');
+    }, SCROLL_CUE_IDLE_MS);
+}
+
+function hideScrollCue() {
+    clearTimeout(scrollCueTimer);
+    scrollCueTimer = null;
+    const cue = document.getElementById('scroll-cue');
+    if (cue) cue.classList.remove('visible');
+}
+
+function showPanelBio(panels) {
+    panels.classList.add('bio-in');
+    armScrollCue();
+}
+
 // Types the left (top, on a phone) name, then lets the bio fade in out of
 // a blur. Dealing or a skipped intro cancels the chain via cancelPanelType.
 function playPanelNameType(panels) {
     cancelPanelType();
     const nameEl = panels.querySelector('.panel-name');
     if (!nameEl) {
-        panels.classList.add('bio-in');
+        showPanelBio(panels);
         return;
     }
     const lines = readPanelNameLines(nameEl);
     const total = lines.reduce((n, line) => n + line.length, 0);
     if (!total) {
-        panels.classList.add('bio-in');
+        showPanelBio(panels);
         return;
     }
     nameEl.setAttribute('aria-label', lines.join(' '));
@@ -4669,7 +4742,7 @@ function playPanelNameType(panels) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) {
         renderPanelName(nameEl, lines, total, false);
-        panels.classList.add('bio-in');
+        showPanelBio(panels);
         return;
     }
 
@@ -4685,7 +4758,7 @@ function playPanelNameType(panels) {
                 renderPanelName(nameEl, lines, total, false);
                 panelTypeTimer = setTimeout(() => {
                     panelTypeTimer = null;
-                    if (panels.classList.contains('visible')) panels.classList.add('bio-in');
+                    if (panels.classList.contains('visible')) showPanelBio(panels);
                 }, 90);
             }, 160);
             return;
@@ -4737,6 +4810,7 @@ function triggerDealing() {
         panelRevealTimeout = null;
     }
     cancelPanelType();
+    hideScrollCue();
     // Slide panels upward then remove them
     const panels = document.getElementById('about-panels');
     if (panels) {

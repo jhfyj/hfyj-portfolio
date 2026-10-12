@@ -59,6 +59,32 @@ const CLASSIC_SCRIPTS = [
     'skeleton.js',
 ];
 
+// The same, and for the same reason, for the stylesheets of those pages. Each
+// <link> is marked vite-ignore so the build leaves it exactly as written, and
+// the files are copied through beside the scripts.
+//
+// Letting Vite bundle them cost the one thing a stylesheet's place in <head> is
+// for: the cascade. It hoisted each page's own file (aboutme.css, case.css's
+// per-page partners) above the shared ones it had split into chunks of their
+// own, so every page override of site.css or photo-viewer.css lost on the live
+// site and won in dev. About Me's hover print, for one, fell back to
+// .polaroid's position: relative and stood in the grid as an invisible row.
+const CLASSIC_STYLES = [
+    'aboutme.css',
+    'bmw.css',
+    'case.css',
+    'clarusai.css',
+    'dice.css',
+    'photo-viewer.css',
+    'povi.css',
+    'puregym.css',
+    'site.css',
+    'skeleton.css',
+    'sketchbook.css',
+    'techatnyu.css',
+    'the-dial.css',
+];
+
 // Asset trees whose URLs are built at runtime rather than written in the HTML:
 // the card photos script.js walks through on hover, the fan of photos on the
 // About Me page, the carousel's mark, both favicons — which the pre-paint theme
@@ -68,7 +94,9 @@ const CLASSIC_SCRIPTS = [
 // rewrite the references it can see, so none of these survive on their own;
 // they are copied through at their real paths so the strings in the JavaScript
 // keep meaning what they say.
-const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo'];
+// fonts/ joins them now that site.css is copied rather than bundled: its
+// @font-face urls are plain relative paths again.
+const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo', 'fonts'];
 
 function copyStaticFiles() {
     return {
@@ -81,7 +109,7 @@ function copyStaticFiles() {
         },
         // After the bundle is written, so nothing here can be overwritten by it.
         closeBundle() {
-            for (const f of CLASSIC_SCRIPTS) {
+            for (const f of [...CLASSIC_SCRIPTS, ...CLASSIC_STYLES]) {
                 copyFileSync(resolve(__dirname, f), resolve(__dirname, 'dist', f));
             }
             for (const d of RUNTIME_ASSET_DIRS) {

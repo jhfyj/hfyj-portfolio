@@ -35,15 +35,15 @@
          carousel card, the cloth is held back until the card's face can
          expand into it. With no such hand-off waiting it does nothing. -->
     <script src="card-transition.js"></script>
-    <link rel="stylesheet" href="site.css">
-    <link rel="stylesheet" href="skeleton.css">
+    <link rel="stylesheet" href="site.css" vite-ignore>
+    <link rel="stylesheet" href="skeleton.css" vite-ignore>
     <!-- Ends the loading shimmer on each image as it arrives. In <head> and not
          deferred: the shimmer is on in the markup, so this only ever takes it
          off, and the sooner it can do that for a cached image the better. It
          also watches for images added later, which is the whole grid here. -->
     <script src="skeleton.js"></script>
-    <link rel="stylesheet" href="sketchbook.css">
-    <link rel="stylesheet" href="dice.css">
+    <link rel="stylesheet" href="sketchbook.css" vite-ignore>
+    <link rel="stylesheet" href="dice.css" vite-ignore>
     <!-- The catalogue and the grass both sit on the critical path: the hand
          cannot be dealt without works.json, and the mat cannot paint without
          the albedo. The fetch starts here, ahead of the deferred scripts, so

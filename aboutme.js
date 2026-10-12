@@ -306,6 +306,11 @@
         const cv = document.querySelector('.block.cv');
         const rows = document.querySelectorAll('.exp-row[data-exp-photos]');
         if (!cv || !rows.length) return;
+        // A mouse only. On a phone a tap, or a scroll that happens to start
+        // on a row, fires pointerenter too, and the print flashed up in a
+        // random spot over the list. The CSS dimming is already fine-pointer
+        // only; this is the same rule for the print.
+        const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
 
         const card = document.createElement('div');
         card.className = 'exp-float polaroid';
@@ -363,7 +368,8 @@
         }
 
         rows.forEach(function (row) {
-            row.addEventListener('pointerenter', function () {
+            row.addEventListener('pointerenter', function (e) {
+                if (e.pointerType !== 'mouse' || !fine.matches) return;
                 window.clearTimeout(hideTimer);
                 show(row);
             });

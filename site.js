@@ -284,73 +284,91 @@ window.Site = (function () {
             settle = setTimeout(sweep, 900);
         };
         window.addEventListener('scroll', onScroll, { passive: true });
+        // Not only scrolling: a phone's toolbar collapsing resizes the
+        // viewport, the page settles again once images and fonts are in, and
+        // a page restored from the back/forward cache never scrolls at all.
+        window.addEventListener('resize', onScroll, { passive: true });
+        window.addEventListener('load', onScroll);
+        window.addEventListener('pageshow', onScroll);
         onScroll();
 
         io = new IntersectionObserver(function (entries) {
             entries.forEach(function (e) {
-                const replayable = wantsReplay(e.target);
-
-                if (!e.isIntersecting) {
-                    // Most blocks reveal once and are done. A block that opts
-                    // into replay goes back to hidden on the way out instead,
-                    // so scrolling down to it a second time plays it again.
-                    // Only a leave with nothing in flight is the reader
-                    // actually scrolling away; see `rising` above.
-                    if (replayable && !rising.has(e.target)) e.target.style.opacity = '0';
-                    return;
-                }
-                // already shown, or already on its way in
-                if (replayable && e.target.style.opacity !== '0') return;
-                if (!replayable) io.unobserve(e.target);
-
-                // Keep whatever transform the element already carries (the
-                // tilted photos and cards) and rise from below it. Distance and
-                // duration come from CSS so a block can ask for a longer travel
-                // than the default nudge — the next-project cards slide a long
-                // way up out of their clip — without a second code path here.
-                const cs = getComputedStyle(e.target);
-                const base = cs.transform;
-                const dy = parseFloat(cs.getPropertyValue('--rise')) || 26;
-                const ms = parseFloat(cs.getPropertyValue('--rise-ms')) || 700;
-                const spring = springEasing &&
-                    parseFloat(cs.getPropertyValue('--rise-spring')) === 1;
-                // Both keyframes carry the same function list — a translateY
-                // in front of whatever the element already had. That is what
-                // lets a spring overshoot: matched lists interpolate function
-                // by function and extrapolate past the endpoints, while
-                // mismatched ones fall back to decomposing the matrix, which
-                // stops dead at the last keyframe and swallows the overshoot.
-                const shift = 'translateY(' + dy + 'px)';
-                const settled = 'translateY(0px)';
-                const rise = base === 'none' ? shift : shift + ' ' + base;
-                const rest = base === 'none' ? settled : settled + ' ' + base;
-
-                e.target.style.opacity = '';
-                const anim = e.target.animate(
-                    [{ opacity: 0, transform: rise }, { opacity: 1, transform: rest }],
-                    {
-                        duration: ms,
-                        delay: delays.get(e.target) || 0,
-                        easing: spring ? springEasing : 'cubic-bezier(.22, .61, .36, 1)',
-                        fill: 'backwards',
-                    }
-                );
-
-                if (replayable) {
-                    const el = e.target;
-                    rising.add(el);
-                    const done = function () {
-                        rising.delete(el);
-                        // If the reader scrolled clear of it mid-rise, the leave
-                        // above was ignored as self-inflicted. Settle up now, so
-                        // the next approach still gets a rise.
-                        const r = el.getBoundingClientRect();
-                        if (r.top > window.innerHeight || r.bottom < 0) el.style.opacity = '0';
-                    };
-                    anim.finished.then(done, function () { rising.delete(el); });
+                // One entry going wrong must not strand the rest of the batch:
+                // they were hidden by this script, and an exception here would
+                // leave every later one in the batch blank until the sweep. A
+                // failed rise just shows the element where it stands.
+                try {
+                    riseIn(e);
+                } catch (err) {
+                    e.target.style.opacity = '';
                 }
             });
         }, { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
+
+        function riseIn(e) {
+            const replayable = wantsReplay(e.target);
+
+            if (!e.isIntersecting) {
+                // Most blocks reveal once and are done. A block that opts
+                // into replay goes back to hidden on the way out instead,
+                // so scrolling down to it a second time plays it again.
+                // Only a leave with nothing in flight is the reader
+                // actually scrolling away; see `rising` above.
+                if (replayable && !rising.has(e.target)) e.target.style.opacity = '0';
+                return;
+            }
+            // already shown, or already on its way in
+            if (replayable && e.target.style.opacity !== '0') return;
+            if (!replayable) io.unobserve(e.target);
+
+            // Keep whatever transform the element already carries (the
+            // tilted photos and cards) and rise from below it. Distance and
+            // duration come from CSS so a block can ask for a longer travel
+            // than the default nudge — the next-project cards slide a long
+            // way up out of their clip — without a second code path here.
+            const cs = getComputedStyle(e.target);
+            const base = cs.transform;
+            const dy = parseFloat(cs.getPropertyValue('--rise')) || 26;
+            const ms = parseFloat(cs.getPropertyValue('--rise-ms')) || 700;
+            const spring = springEasing &&
+                parseFloat(cs.getPropertyValue('--rise-spring')) === 1;
+            // Both keyframes carry the same function list — a translateY
+            // in front of whatever the element already had. That is what
+            // lets a spring overshoot: matched lists interpolate function
+            // by function and extrapolate past the endpoints, while
+            // mismatched ones fall back to decomposing the matrix, which
+            // stops dead at the last keyframe and swallows the overshoot.
+            const shift = 'translateY(' + dy + 'px)';
+            const settled = 'translateY(0px)';
+            const rise = base === 'none' ? shift : shift + ' ' + base;
+            const rest = base === 'none' ? settled : settled + ' ' + base;
+
+            e.target.style.opacity = '';
+            const anim = e.target.animate(
+                [{ opacity: 0, transform: rise }, { opacity: 1, transform: rest }],
+                {
+                    duration: ms,
+                    delay: delays.get(e.target) || 0,
+                    easing: spring ? springEasing : 'cubic-bezier(.22, .61, .36, 1)',
+                    fill: 'backwards',
+                }
+            );
+
+            if (replayable) {
+                const el = e.target;
+                rising.add(el);
+                const done = function () {
+                    rising.delete(el);
+                    // If the reader scrolled clear of it mid-rise, the leave
+                    // above was ignored as self-inflicted. Settle up now, so
+                    // the next approach still gets a rise.
+                    const r = el.getBoundingClientRect();
+                    if (r.top > window.innerHeight || r.bottom < 0) el.style.opacity = '0';
+                };
+                anim.finished.then(done, function () { rising.delete(el); });
+            }
+        }
 
         delays.forEach(function (_, el) { io.observe(el); });
     }

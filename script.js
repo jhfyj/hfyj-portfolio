@@ -862,7 +862,11 @@ function makeCardBackTexture(theme) {
 
 function updateCardBackTexture(theme) {
     if (!cardBackTexture) return; // the mark hasn't loaded; the first paint will use the current theme
+    const w0 = cardBackCanvas.width;
     paintCardBack(theme);
+    // A resize can change the scale it is drawn at, and a texture's GPU
+    // storage is fixed at its first size.
+    if (cardBackCanvas.width !== w0) cardBackTexture.dispose();
     // The materials already point at this texture object, so nothing about them
     // has changed — marking them dirty would only push every card back through
     // program resolution for a texture swap that never happened.
@@ -1035,19 +1039,37 @@ function stashCardHandoff(index, url) {
         const face = map && map.image;
         if (!face || !face.width) return;
         try {
-            // Only the photo well travels, not the whole face: the photo is the
-            // part that becomes the hero, and cropping it here saves the
-            // destination any background-position arithmetic. 900px across is well
-            // past the size it is ever painted at, and keeps the base64 inside
-            // sessionStorage's budget — which is spent in UTF-16, so every
-            // character of it costs two bytes.
-            const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
-            const sw = L.photo.w * face.width, sh = L.photo.h * face.height;
-            const k = Math.min(1, 900 / sw);
+            // Only the picture travels, never the card around it. The photo is
+            // the part that becomes the hero; 900px across is past the size it
+            // is ever painted at, and keeps the base64 inside sessionStorage's
+            // budget — which is spent in UTF-16, so every character costs two
+            // bytes.
+            //
+            // Drawn fresh from the card's own source image rather than cut out
+            // of the painted face. The face has the folded corner in the
+            // well's top-left with the "#00X" tag printed on it, and a crop of
+            // the face carried both into the flight — the tag would grow with
+            // the picture on its way to the hero. From the source it is just the
+            // picture, framed exactly as the well frames it, and at the source's
+            // own resolution rather than the face's (which is drawn only as big
+            // as the card is on screen).
             const out = document.createElement('canvas');
-            out.width = Math.round(sw * k);
-            out.height = Math.round(sh * k);
-            out.getContext('2d').drawImage(face, sx, sy, sw, sh, 0, 0, out.width, out.height);
+            const src = group.userData.handoffPhoto;
+            const wellW = L.photo.w * TEMPLATE_CARD.w, wellH = L.photo.h * TEMPLATE_CARD.h;
+            if (src && (src.naturalWidth || src.width)) {
+                out.width = 900;
+                out.height = Math.round(900 * wellH / wellW);
+                const octx = out.getContext('2d');
+                octx.imageSmoothingQuality = 'high';
+                tmplDrawImageCover(octx, src, 0, 0, out.width, out.height);
+            } else {
+                const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
+                const sw = L.photo.w * face.width, sh = L.photo.h * face.height;
+                const k = Math.min(1, 900 / sw);
+                out.width = Math.round(sw * k);
+                out.height = Math.round(sh * k);
+                out.getContext('2d').drawImage(face, sx, sy, sw, sh, 0, 0, out.width, out.height);
+            }
             image = out.toDataURL('image/jpeg', 0.86);
         } catch (err) {
             return;
@@ -1120,6 +1142,24 @@ function getCarouselRadius() {
 // Builds a flat card with rounded corners (like a playing card).
 // Only the 4 corner edges are curved — top/bottom/left/right stay straight.
 function makeRoundedCardGeo(cardW, cardH, radius) {
+    const hw = cardW / 2, hh = cardH / 2;
+    const geo = new THREE.ShapeGeometry(makeRoundedCardShape(cardW, cardH, radius));
+    // ShapeGeometry UVs are raw x/y — remap to [0,1] so textures display correctly
+    const uvAttr = geo.attributes.uv;
+    const posAttr = geo.attributes.position;
+    for (let i = 0; i < uvAttr.count; i++) {
+        uvAttr.setXY(i,
+            (posAttr.getX(i) + hw) / cardW,
+            (posAttr.getY(i) + hh) / cardH
+        );
+    }
+    uvAttr.needsUpdate = true;
+    return geo;
+}
+
+// The card's outline on its own, so the edge band (makeCardEdgeGeo) follows
+// exactly the corners the faces were cut with.
+function makeRoundedCardShape(cardW, cardH, radius) {
     const hw = cardW / 2, hh = cardH / 2, r = radius;
     const shape = new THREE.Shape();
     shape.moveTo(-hw + r, -hh);
@@ -1132,18 +1172,7 @@ function makeRoundedCardGeo(cardW, cardH, radius) {
     shape.lineTo(-hw, -hh + r);
     shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
     shape.closePath();
-    const geo = new THREE.ShapeGeometry(shape);
-    // ShapeGeometry UVs are raw x/y — remap to [0,1] so textures display correctly
-    const uvAttr = geo.attributes.uv;
-    const posAttr = geo.attributes.position;
-    for (let i = 0; i < uvAttr.count; i++) {
-        uvAttr.setXY(i,
-            (posAttr.getX(i) + hw) / cardW,
-            (posAttr.getY(i) + hh) / cardH
-        );
-    }
-    uvAttr.needsUpdate = true;
-    return geo;
+    return shape;
 }
 
 // Shared grain texture — subtle paper/card surface bump, created once and reused
@@ -1164,6 +1193,420 @@ function makeGrainTexture(size = 128) {
     return tex;
 }
 const grainTex = makeGrainTexture();
+
+// ── Card stock ───────────────────────────────────────────────────────────────
+// Three things make the cards read as printed cards rather than flat pictures:
+//
+//   1. An embossed linen finish — the fine basket weave pressed into trading
+//      and playing cards — kept as a height map, never painted into the art.
+//   2. A sliver of thickness: an edge band joining the face to the back.
+//   3. The mouse as a faint light. The weave is shaded from the cursor's
+//      direction, so moving it slides the highlights and the tiny shadows
+//      across the surface. Touch screens have no cursor to follow, so there the
+//      stock sits under a still light from the upper left and only the texture
+//      shows.
+//
+// Every number that decides how much of this you can see is here. It is meant
+// to be found by looking for it, not noticed.
+const CARD_STOCK = {
+    thickness: 0.005,      // card-local units; a face is 1.7 tall (~real card stock)
+    tiles: 1.15,           // height-map tiles down the card (fibres ~1–3% of its height)
+    relief: 0.5,           // how far the surface tilts the normal
+    // The texture is applied in perceived lightness (cube root of linear
+    // light, i.e. CIE L* / 116), not in linear light. Linear light treats the
+    // two stocks completely differently: the same added light is ~8× more
+    // visible on #373737 than on #F7F5F5, and multiplying near-white runs
+    // into 1.0 and clips. In lightness units one number looks the same on both.
+    reliefGain: 0.15,      // relief → lightness (≈ 17 L* per unit of relief)
+    poolGain: 0.03,        // the soft brightening right under the cursor
+    poolFalloff: 1.6,      // how quickly that pool fades, per unit²
+    sheen: 0.008,          // tiny glints off the fibre tops, in lightness (≈ 0.9 L*)
+    // Per-theme trim on top. Equal lightness still reads stronger on the dark
+    // stock: light-on-dark specks stand out, and the eye is dark-adapted there.
+    themeGain: { light: 1.25, dark: 0.6 },
+    // The gloss streak: a slanted line of light through the cursor, like the
+    // shine across a trading card. Sizes in card-local units (a face is 1.7
+    // tall); gains in lightness, like reliefGain.
+    streak: {
+        angle: 24,         // degrees off vertical
+        core: 0.045,       // half-width of the bright centre line
+        halo: 0.2,         // half-width of the soft glow around it
+        length: 0.85,      // how far along the line before it fades out
+        lead: 0.35,        // the streak runs this much ahead of the cursor
+        coreGain: 0.02,    // brightness of the centre line (≈ 2.3 L*)
+        haloGain: 0.01,    // brightness of the glow (≈ 1.2 L*)
+        fibre: 0.6,        // how much the fibres break the line up
+    },
+    lightLift: 0.3,        // how far in front of the face the cursor light floats (lower = more raking)
+    edgeShade: { light: 0.86, dark: 0.78 },   // edge colour vs. the card stock
+};
+const CARD_STOCK_HEIGHT_PX = 512;
+
+// The stock's surface, as heights in 0..1.
+//
+// Not a weave. A linen finish is a crosshatch pressed in by a patterned roller,
+// and however it is softened it reads as a grid. Uncoated card stock — felt and
+// vellum finishes, the "papery" playing cards — has no pattern at all. Under a
+// raking light it shows three things, at three scales, and this is those three:
+//
+//   1. Formation: the sheet is never perfectly even. Fibres settle into soft
+//      clumps and thin patches a few millimetres across, a faint cloudiness.
+//   2. Fibres: the surface is matted cellulose, strands a millimetre or few
+//      long lying every which way (with a slight lean along the machine
+//      direction), each catching the light along one side.
+//   3. Tooth: the fine eggshell grain between them, what a vellum finish is.
+//
+// All of it wraps at the edge, so the tile repeats without a seam, and the
+// tile is big enough that it is never seen to repeat on one card.
+function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
+    const N = size;
+    let seed = 7331;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const wrap = (v) => ((v % N) + N) % N;
+    const smooth = (t) => t * t * (3 - 2 * t);
+
+    // Wrapping value noise on a cells×cells lattice
+    function valueNoise(cells) {
+        const lat = new Float32Array(cells * cells).map(() => rand());
+        const out = new Float32Array(N * N);
+        for (let y = 0; y < N; y++) {
+            const gy = (y / N) * cells, y0 = Math.floor(gy), fy = smooth(gy - y0);
+            const r0 = (y0 % cells) * cells, r1 = ((y0 + 1) % cells) * cells;
+            for (let x = 0; x < N; x++) {
+                const gx = (x / N) * cells, x0 = Math.floor(gx), fx = smooth(gx - x0);
+                const c0 = x0 % cells, c1 = (x0 + 1) % cells;
+                const top = lat[r0 + c0] + (lat[r0 + c1] - lat[r0 + c0]) * fx;
+                const bot = lat[r1 + c0] + (lat[r1 + c1] - lat[r1 + c0]) * fx;
+                out[y * N + x] = top + (bot - top) * fy;
+            }
+        }
+        return out;
+    }
+
+    // 1. Formation
+    const f1 = valueNoise(5), f2 = valueNoise(12), f3 = valueNoise(28);
+    // 2. Fibres — laid down as soft strokes. Raised and pressed-in fibres go in
+    // separate layers and each keeps its highest value rather than summing, so
+    // crossings stay crossings instead of building up into blobs.
+    const up = new Float32Array(N * N), down = new Float32Array(N * N);
+    // A tile is ~0.9 of a card's height, so 1% of the card is ~4.5px here.
+    // Real fibres are ~1–3mm on an 88mm card: 5–15px, short and fine. Longer
+    // than that and they overlap into a network that reads as crumpled.
+    const FIBRES = Math.round(3200 * (N / 512) * (N / 512));
+    for (let i = 0; i < FIBRES; i++) {
+        let x = rand() * N, y = rand() * N;
+        // A light machine-direction lean: some fibres run near horizontal,
+        // the rest point anywhere.
+        let a = rand() < 0.35 ? (rand() - 0.5) * 0.8 : rand() * Math.PI;
+        const len = 4 + Math.pow(rand(), 1.5) * 13;
+        const w = 0.45 + rand() * 0.4;            // half-width, px
+        const invW2 = 1 / (w * w);
+        const amp = 0.5 + rand() * 0.5;
+        const layer = rand() < 0.25 ? down : up;
+        const bend = (rand() - 0.5) * 0.06;
+        for (let t = 0; t < len; t += 0.5) {
+            a += bend + (rand() - 0.5) * 0.04;
+            x += Math.cos(a) * 0.5;
+            y += Math.sin(a) * 0.5;
+            // Fibres taper at both ends
+            const taper = Math.sin(Math.PI * Math.min(1, t / len));
+            const cx = Math.round(x), cy = Math.round(y);
+            const peak = amp * taper;
+            for (let dy = -2; dy <= 2; dy++) {
+                const ey = cy + dy - y, row = wrap(cy + dy) * N;
+                for (let dx = -2; dx <= 2; dx++) {
+                    const ex = cx + dx - x;
+                    const d = (ex * ex + ey * ey) * invW2;
+                    if (d > 4.6) continue;   // under 1% of the peak: skip the exp
+                    const v = peak * Math.exp(-d);
+                    const k = row + wrap(cx + dx);
+                    if (v > layer[k]) layer[k] = v;
+                }
+            }
+        }
+    }
+    // 3. Tooth — white noise, softened twice so it is a smooth eggshell grain
+    // rather than static (once left it reading as sandpaper)
+    const soften = (src) => {
+        const out = new Float32Array(N * N);
+        for (let y = 0; y < N; y++) {
+            for (let x = 0; x < N; x++) {
+                let sum = 0;
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        sum += src[wrap(y + dy) * N + wrap(x + dx)] * (dx === 0 && dy === 0 ? 4 : (dx === 0 || dy === 0) ? 2 : 1);
+                    }
+                }
+                out[y * N + x] = sum / 16;
+            }
+        }
+        return out;
+    };
+    const tooth = soften(soften(new Float32Array(N * N).map(() => rand())));
+
+    const h = new Float32Array(N * N);
+    let lo = Infinity, hi = -Infinity;
+    for (let k = 0; k < N * N; k++) {
+        const formation = 0.5 * f1[k] + 0.3 * f2[k] + 0.2 * f3[k];
+        // Tooth kept low: the fine grain is what reads as "rough"
+        const v = 0.26 * formation + 0.50 * (up[k] - 0.8 * down[k]) + 0.24 * tooth[k];
+        h[k] = v;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+    }
+
+    // The shader only ever wants the surface's SLOPE, so that is what is
+    // stored — x slope in red, y slope in green — worked out here once
+    // instead of from four height lookups per pixel, every frame. Slopes are
+    // stretched to fill the 8 bits and the stretch is handed to the shader.
+    const range = hi - lo;
+    const sx = new Float32Array(N * N), sy = new Float32Array(N * N);
+    let maxSlope = 1e-6;
+    for (let y = 0; y < N; y++) {
+        const up1 = wrap(y - 1) * N, dn1 = wrap(y + 1) * N, row = y * N;
+        for (let x = 0; x < N; x++) {
+            const k = row + x;
+            const gx = (h[row + wrap(x + 1)] - h[row + wrap(x - 1)]) / range;
+            const gy = (h[dn1 + x] - h[up1 + x]) / range;
+            sx[k] = gx; sy[k] = gy;
+            const m = Math.max(Math.abs(gx), Math.abs(gy));
+            if (m > maxSlope) maxSlope = m;
+        }
+    }
+    const data = new Uint8Array(N * N * 4);
+    for (let k = 0; k < N * N; k++) {
+        data[k * 4]     = Math.round((sx[k] / maxSlope * 0.5 + 0.5) * 255);
+        data[k * 4 + 1] = Math.round((sy[k] / maxSlope * 0.5 + 0.5) * 255);
+        data[k * 4 + 2] = 128;
+        data[k * 4 + 3] = 255;
+    }
+    const tex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+    tex.colorSpace = THREE.NoColorSpace;   // slopes, not colour
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.generateMipmaps = true;
+    // 4× is all a fine grain needs at a card's tilt; the max (often 16×)
+    // costs texture bandwidth on every pixel of every face for nothing visible.
+    tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    tex.needsUpdate = true;
+    return { tex, slope: maxSlope };
+}
+
+// Building the surface is ~a quarter-million-pixel job, so it is kept off the
+// load path: the cards start perfectly flat (slope 0 — the texture is only
+// ever a subtle difference on top of the artwork, so nothing looks missing)
+// and the real surface is swapped in once the browser is idle.
+const _flatStock = new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, THREE.RGBAFormat);
+_flatStock.needsUpdate = true;
+function loadCardStockSurface() {
+    const { tex, slope } = makeCardStockHeightTexture();
+    CARD_STOCK_UNIFORMS.uStockHeight.value = tex;
+    CARD_STOCK_UNIFORMS.uStockSlope.value = slope;
+}
+(window.requestIdleCallback || ((fn) => setTimeout(fn, 1200)))(loadCardStockSurface, { timeout: 4000 });
+
+// One set of uniforms, shared by reference with every card material, so the
+// light is moved once a frame for the whole deck.
+const CARD_STOCK_UNIFORMS = {
+    uStockHeight:  { value: _flatStock },   // the real surface arrives on idle
+    uStockSlope:   { value: 0 },            // undoes the 8-bit stretch of the slopes
+    uStockRelief:  { value: CARD_STOCK.relief },
+    uStockGain:    { value: CARD_STOCK.reliefGain },
+    uStockTheme:   { value: CARD_STOCK.themeGain[currentTheme] },
+    uStreakDir:    { value: new THREE.Vector2(
+        Math.sin(THREE.MathUtils.degToRad(CARD_STOCK.streak.angle)),
+        Math.cos(THREE.MathUtils.degToRad(CARD_STOCK.streak.angle))) },
+    uStreakShape:  { value: new THREE.Vector4(CARD_STOCK.streak.core, CARD_STOCK.streak.halo,
+        CARD_STOCK.streak.length, CARD_STOCK.streak.lead) },
+    uStreakGain:   { value: new THREE.Vector3(CARD_STOCK.streak.coreGain, CARD_STOCK.streak.haloGain,
+        CARD_STOCK.streak.fibre) },
+    uStockPool:    { value: CARD_STOCK.poolGain },
+    uStockFalloff: { value: CARD_STOCK.poolFalloff },
+    uStockSheen:   { value: CARD_STOCK.sheen },
+    uStockLight:   { value: new THREE.Vector3(0, 0, 0) },   // view space
+    uStockLightOn: { value: 0 },                            // 0 = still light, 1 = cursor
+};
+
+const CARD_STOCK_VERT_PARS = `
+varying vec3 vStockCentre;
+varying float vStockScale;
+varying vec3 vStockPos;
+varying vec3 vStockN;
+varying vec3 vStockT;
+varying vec3 vStockB;
+`;
+const CARD_STOCK_VERT = `
+vStockPos = mvPosition.xyz;
+vStockCentre = ( modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 ) ).xyz;
+vStockScale = length( mat3( modelViewMatrix ) * vec3( 1.0, 0.0, 0.0 ) );
+vStockN = normalize( normalMatrix * normal );
+vStockT = normalize( mat3( modelViewMatrix ) * vec3( 1.0, 0.0, 0.0 ) );
+vStockB = normalize( mat3( modelViewMatrix ) * vec3( 0.0, 1.0, 0.0 ) );
+`;
+const CARD_STOCK_FRAG_PARS = `
+varying vec3 vStockCentre;
+varying float vStockScale;
+varying vec3 vStockPos;
+varying vec3 vStockN;
+varying vec3 vStockT;
+varying vec3 vStockB;
+uniform vec2 uStreakDir;
+uniform vec4 uStreakShape;
+uniform vec3 uStreakGain;
+uniform sampler2D uStockHeight;
+uniform float uStockSlope;
+uniform float uStockRelief;
+uniform float uStockGain;
+uniform float uStockTheme;
+uniform float uStockPool;
+uniform float uStockFalloff;
+uniform float uStockSheen;
+uniform vec3 uStockLight;
+uniform float uStockLightOn;
+uniform vec2 uStockRepeat;
+
+vec3 stockLightDir() {
+    // The still light for touch screens: up and to the left, like a desk lamp.
+    vec3 still = normalize( vec3( -0.35, 0.55, 0.76 ) );
+    vec3 cursor = normalize( uStockLight - vStockPos );
+    return normalize( mix( still, cursor, uStockLightOn ) );
+}
+float stockPool() {
+    vec2 d = uStockLight.xy - vStockPos.xy;
+    return uStockLightOn * exp( -dot( d, d ) * uStockFalloff );
+}
+`;
+// The face: the weave tilts the normal, and only the DIFFERENCE that tilt
+// makes is applied — a flat card under the same light is left exactly as
+// painted, so the artwork's colours never shift, only the texture breathes.
+const CARD_STOCK_FRAG_FACE = `
+{
+    vec2 p = vMapUv * uStockRepeat;
+    // One lookup: the slope was worked out ahead of time (see the texture).
+    vec2 s = ( texture2D( uStockHeight, p ).rg * 2.0 - 1.0 ) * uStockSlope;
+    float hx = s.x, hy = s.y;
+    vec3 N = normalize( vStockN );
+    vec3 n = normalize( N - uStockRelief * ( hx * normalize( vStockT ) + hy * normalize( vStockB ) ) );
+    vec3 L = stockLightDir();
+    float relief = max( dot( n, L ), 0.0 ) - max( dot( N, L ), 0.0 );
+    vec3 H = normalize( L + normalize( -vStockPos ) );
+    float glint = pow( max( dot( n, H ), 0.0 ), 48.0 ) * uStockLightOn;
+    outgoingLight *= 1.0 + stockPool() * uStockPool;
+    // Into perceived lightness, so the same number reads the same on light and
+    // dark stock (see CARD_STOCK.reliefGain).
+    vec3 pl = pow( max( outgoingLight, vec3( 0.0 ) ), vec3( 1.0 / 3.0 ) );
+    // The gloss streak. Where the cursor sits on this face, in the face's own
+    // axes, pushed a little further out than the cursor itself (a reflection
+    // moves faster than the light that makes it), then a slanted line through
+    // that point: a thin bright core in a soft glow, fading out along its length.
+    vec3 T = normalize( vStockT ), B = normalize( vStockB );
+    vec3 fromCentre = vStockPos - vStockCentre;
+    vec3 litCentre  = uStockLight - vStockCentre;
+    // (divided by the card's scale, so the sizes are in card-local units)
+    vec2 here = vec2( dot( fromCentre, T ), dot( fromCentre, B ) ) / vStockScale;
+    vec2 lit  = vec2( dot( litCentre, T ),  dot( litCentre, B ) ) / vStockScale * ( 1.0 + uStreakShape.w );
+    vec2 q = here - lit;
+    float across = dot( q, vec2( uStreakDir.y, -uStreakDir.x ) );
+    float along  = dot( q, uStreakDir );
+    // (squared by hand: GLSL's pow() is undefined for a negative base)
+    float ac = across / uStreakShape.x, ah = across / uStreakShape.y, al = along / uStreakShape.z;
+    float streak = ( uStreakGain.x * exp( -ac * ac ) + uStreakGain.y * exp( -ah * ah ) )
+                 * exp( -al * al )
+                 // only on the side of the card that faces the viewer
+                 * max( dot( N, normalize( -vStockPos ) ), 0.0 )
+                 // the fibres break the line up a little, so it reads as gloss on paper
+                 * clamp( 1.0 + relief * uStreakGain.z, 0.0, 2.0 )
+                 * uStockLightOn;
+    float d = ( relief * uStockGain + glint * uStockSheen + streak ) * uStockTheme;
+    // Brightening rolls off softly toward white instead of clipping, so the
+    // near-white stock keeps its highlights; darkening is applied as is.
+    vec3 room = max( 1.0 - pl, vec3( 1e-4 ) );
+    pl = d > 0.0 ? 1.0 - room * exp( -d / room ) : pl + d;
+    outgoingLight = pl * pl * pl;
+}
+`;
+// The edge has no texture to speak of; it is just shaded by which way it faces.
+const CARD_STOCK_FRAG_EDGE = `
+{
+    vec3 L = stockLightDir();
+    outgoingLight *= 0.88 + 0.12 * max( dot( normalize( vStockN ), L ), 0.0 ) + stockPool() * uStockPool * 2.0;
+}
+`;
+
+// Adds the stock to a card material, on top of whatever patch it already has
+// (card 0's photo reveal replaces map_fragment, so the hook here is
+// opaque_fragment, which nothing else touches).
+function applyCardStock(material, { face = true, aspect = 1 } = {}) {
+    const repeat = new THREE.Vector2(CARD_STOCK.tiles * aspect, CARD_STOCK.tiles);
+    const prevCompile = material.onBeforeCompile;
+    const prevKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, r) => {
+        prevCompile.call(material, shader, r);
+        Object.assign(shader.uniforms, CARD_STOCK_UNIFORMS, { uStockRepeat: { value: repeat } });
+        shader.vertexShader = shader.vertexShader
+            .replace('#include <common>', '#include <common>\n' + CARD_STOCK_VERT_PARS)
+            .replace('#include <project_vertex>', '#include <project_vertex>\n' + CARD_STOCK_VERT);
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <common>', '#include <common>\n' + CARD_STOCK_FRAG_PARS)
+            .replace('#include <opaque_fragment>',
+                (face ? CARD_STOCK_FRAG_FACE : CARD_STOCK_FRAG_EDGE) + '\n#include <opaque_fragment>');
+    };
+    material.customProgramCacheKey = () => prevKey() + (face ? '|stock-face' : '|stock-edge');
+    material.needsUpdate = true;
+}
+
+// The band round the card's edge: the outline extruded back to the card's
+// thickness, sides only (the faces are already there, front and back).
+function makeCardEdgeGeo(cardW, cardH, radius, depth) {
+    const geo = new THREE.ExtrudeGeometry(makeRoundedCardShape(cardW, cardH, radius), {
+        depth, bevelEnabled: false, curveSegments: 8,
+    });
+    geo.translate(0, 0, -depth);
+    return geo;
+}
+const cardEdgeMats = [];
+const _hiddenCapMat = new THREE.MeshBasicMaterial({ visible: false });
+function cardEdgeColor(theme) {
+    return new THREE.Color(THEME_COLORS[theme].cardBg).multiplyScalar(CARD_STOCK.edgeShade[theme]);
+}
+function updateCardStockTheme(theme) {
+    const c = cardEdgeColor(theme);
+    cardEdgeMats.forEach((m) => m.color.copy(c));
+    CARD_STOCK_UNIFORMS.uStockTheme.value = CARD_STOCK.themeGain[theme];
+}
+
+// Where the cursor light is. Only a real mouse moves it; a finger or a pen
+// leaves the still light alone.
+const stockPointer = { x: 0, y: 0, active: false };
+window.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    stockPointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    stockPointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    stockPointer.active = true;
+}, { passive: true });
+document.documentElement.addEventListener('mouseleave', () => { stockPointer.active = false; });
+window.addEventListener('blur', () => { stockPointer.active = false; });
+
+const _stockRing = new THREE.Vector3();
+const _stockTarget = new THREE.Vector3();
+let _stockPlaced = false;
+function updateCardStockLight() {
+    const u = CARD_STOCK_UNIFORMS;
+    u.uStockLightOn.value += ((stockPointer.active ? 1 : 0) - u.uStockLightOn.value) * 0.05;
+    if (u.uStockLightOn.value < 0.001 && !stockPointer.active) return;
+    // The light floats just in front of the front card, right over the cursor.
+    _stockRing.setFromMatrixPosition(cardgroup.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+    const faceDepth = Math.max(0.4, -_stockRing.z - getCarouselRadius());
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    _stockTarget.set(
+        stockPointer.x * tanHalf * camera.aspect * faceDepth,
+        stockPointer.y * tanHalf * faceDepth,
+        -faceDepth + CARD_STOCK.lightLift,
+    );
+    if (!_stockPlaced) { u.uStockLight.value.copy(_stockTarget); _stockPlaced = true; }
+    else u.uStockLight.value.lerp(_stockTarget, 0.18);
+}
 
 // Procedural card shadow texture — soft ellipse #8D88A2 at 50%.
 // Uses a radial gradient (not ctx.filter blur) because iOS Safari ignores
@@ -1233,21 +1676,34 @@ function _placeCard(i, group) {
     group.add(shadowMesh);
     cardShadows[i] = shadowMesh;
 
-    // Add card back face using the shared back texture
+    // Card stock: the face gets the linen finish, and an edge band gives the
+    // card its thickness — the back sits that far behind the face.
     const frontMesh = group.children[0];
+    frontMesh.geometry.computeBoundingBox();
+    const bb = frontMesh.geometry.boundingBox;
+    const w = bb.max.x - bb.min.x;
+    const h = bb.max.y - bb.min.y;
+    applyCardStock(frontMesh.material, { aspect: w / h });
+
+    const edgeMat = new THREE.MeshBasicMaterial({ color: cardEdgeColor(currentTheme) });
+    applyCardStock(edgeMat, { face: false });
+    cardEdgeMats.push(edgeMat);
+    // ExtrudeGeometry's group 0 is the two caps, group 1 the sides; the caps
+    // would only cover the faces, so they are never drawn.
+    const edgeMesh = new THREE.Mesh(
+        makeCardEdgeGeo(w, h, 0.06, CARD_STOCK.thickness), [_hiddenCapMat, edgeMat]);
+    group.add(edgeMesh);
+
+    // Add card back face using the shared back texture
     backTexturePromise.then((backTex) => {
-        // Derive dimensions from the front mesh geometry
-        frontMesh.geometry.computeBoundingBox();
-        const bb = frontMesh.geometry.boundingBox;
-        const w = bb.max.x - bb.min.x;
-        const h = bb.max.y - bb.min.y;
         const geo = makeRoundedCardGeo(w, h, 0.06);
         const mat = new THREE.MeshBasicMaterial({
             map: backTex, side: THREE.FrontSide
         });
+        applyCardStock(mat, { aspect: w / h });
         const backMesh = new THREE.Mesh(geo, mat);
         backMesh.rotation.y = Math.PI;
-        backMesh.position.z = -0.001;
+        backMesh.position.z = -CARD_STOCK.thickness;
         group.add(backMesh);
     });
 
@@ -1277,15 +1733,59 @@ function _placeCard(i, group) {
 // the area, so the oversampling was the whole reason switching themes froze the
 // scene for seconds.
 //
-// Measured once at load. Resizing the window does not repaint the faces, so a
-// window dragged onto a denser display keeps the texture it was built with —
-// the floor below is what keeps that from ever looking soft.
+// The faces are drawn at very nearly the size they are shown at. A canvas much
+// bigger than its spot on screen is not sharper — the GPU has to shrink it, and
+// it does that by blending its pre-shrunk copies, which is exactly what made the
+// text and pills read soft (a 1449px face was going into ~525 real pixels).
+// Drawn ~1:1, the type lands on the screen's own pixel grid, like the page UI.
+//
+// Worked out from the scene itself — the front card's height at its distance
+// from the camera, as a share of the view — rather than a rule of thumb, so it
+// stays right at every breakpoint. Rounded up in 5% steps: a hair too big
+// shrinks cleanly, a hair too small would have to be stretched.
+//
+// And kept current. When the window is resized (or dragged onto a denser
+// screen) and the card's size on screen changes, every face is redrawn at the
+// new size — see the resize handler below.
 function cardTextureScale() {
-    const onScreenPx = 0.55 * window.innerHeight * Math.min(window.devicePixelRatio, 2);
-    const scale = (onScreenPx * 1.25) / 1449;   // 1449 is the design height
-    return Math.max(1, Math.min(2, Math.round(scale * 4) / 4));
+    const dist = camera.position.z - getCarouselRadius();
+    const viewH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist;
+    const share = (1.7 * getCardScale()) / viewH;
+    const onScreenPx = share * window.innerHeight * Math.min(window.devicePixelRatio, 2);
+    const scale = onScreenPx / 1449;   // 1449 is the design height
+    return Math.max(0.3, Math.min(2, Math.ceil(scale * 20) / 20));
 }
-const CARD_TEXTURE_SCALE = cardTextureScale();
+let CARD_TEXTURE_SCALE = cardTextureScale();
+
+// Brings a face canvas to the current scale. Resizing a canvas wipes it, so
+// this is only ever called at the top of a paint. Returns whether the size
+// changed — when it has, the GPU copy is the wrong shape and has to be dropped
+// (three.js allocates a texture's storage once, at its first size).
+function fitFaceCanvas(canvas, design) {
+    const w = Math.floor(design.w * CARD_TEXTURE_SCALE);
+    const h = Math.floor(design.h * CARD_TEXTURE_SCALE);
+    if (canvas.width === w && canvas.height === h) return false;
+    canvas.width = w;
+    canvas.height = h;
+    return true;
+}
+
+// Once a resize settles, redraw the faces if the card's size on screen has
+// moved to a new step. Through the same staggered queue a theme change uses —
+// nearest card first, one per frame — so it never locks the scene up, and the
+// card being looked at is sharp again on the very first frame.
+let _faceScaleTimer = 0;
+function refreshCardFaceScale() {
+    const next = cardTextureScale();
+    if (next === CARD_TEXTURE_SCALE) return;
+    CARD_TEXTURE_SCALE = next;
+    updateCardBackTexture(currentTheme);
+    updateCardFaceTextures(currentTheme);
+}
+window.addEventListener('resize', () => {
+    clearTimeout(_faceScaleTimer);
+    _faceScaleTimer = setTimeout(refreshCardFaceScale, 180);
+});
 
 const ABOUTME_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
 const ABOUTME_SCALE = CARD_TEXTURE_SCALE;
@@ -1474,7 +1974,10 @@ function aboutmeBuildFace(i) {
             face = { canvas: canvas, ctx: ctx, texture: texture, theme: null };
             a.faces[i] = face;
         }
+        const w0 = face.canvas.width;
         a.paint(face.ctx, currentTheme, img);
+        // Built before a resize: the canvas has just changed size under it
+        if (face.canvas.width !== w0) face.texture.dispose();
         face.theme = currentTheme;
         face.texture.needsUpdate = true;
         // Hand it to the GPU now rather than letting the renderer do it on the
@@ -1543,7 +2046,7 @@ function loadCard0() {
         // for, and index.html renders nothing in Play — so the name used
         // to paint 2% wide in the fallback sans. It also waits on every
         // other face on the page, which is the pause on the way back.
-        document.fonts.load(`700 ${80 * s}px "Play"`),
+        document.fonts.load(`700 ${80 * s}px "DM Sans"`),
         document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
         document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
         aboutmeLoads[0],
@@ -1563,6 +2066,9 @@ function loadCard0() {
         // to drift from the one on screen.
         function paint(ctx, theme, img) {
             const canvas = ctx.canvas;
+            // Drawn at the current scale, which the window can change
+            const s = CARD_TEXTURE_SCALE, r = 36 * s;
+            if (fitFaceCanvas(canvas, ABOUTME_DESIGN)) smoothing(ctx);
             const { cardBg, ink } = THEME_COLORS[theme];
 
             // Background + photo, clipped to the card's rounded corners
@@ -1642,7 +2148,7 @@ function loadCard0() {
             // Stroke first, fill over it, so the halo only ever sits outside the
             // glyphs and the letterforms keep their designed weight — 4px of
             // stroke straddling the path leaves the 2px the design shows.
-            ctx.font = `700 ${80 * s}px "Play", sans-serif`;
+            ctx.font = `700 ${80 * s}px "DM Sans", sans-serif`;
             ctx.lineJoin = 'round';
             ctx.miterLimit = 2;
             ctx.lineWidth = 4 * s;
@@ -1701,7 +2207,9 @@ function loadCard0() {
             index: 0,
             repaint: (theme) => {
                 const live = aboutmeSwap.faces[aboutmeSwap.index] || aboutmeSwap.faces[0];
+                const w0 = live.canvas.width;
                 paint(live.ctx, theme, aboutmeImages[aboutmeSwap.index] || photo);
+                if (live.canvas.width !== w0) live.texture.dispose();   // new size, new storage
                 live.theme = theme;
                 live.texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
                 // Every other face in the deck now holds the wrong theme, but
@@ -1820,7 +2328,7 @@ function loadCard1() {
     mockup.src = 'https://jhfyj.github.io/New-Website-Code/Cards/puregym-mockups.webp';
 
     Promise.all([
-        document.fonts.load(`700 ${96 * s}px "Play"`),
+        document.fonts.load(`700 ${96 * s}px "DM Sans"`),
         document.fonts.load(`italic 400 ${36 * s}px "DM Sans"`),
         document.fonts.load(`400 ${64 * s}px "DM Sans"`),
         document.fonts.load(`600 ${40 * s}px "DM Sans"`),
@@ -1829,6 +2337,9 @@ function loadCard1() {
         const r = 36 * s;
 
         function paint(theme) {
+            // Drawn at the current scale, which the window can change
+            const s = CARD_TEXTURE_SCALE, r = 36 * s;
+            fitFaceCanvas(canvas, PUREGYM_DESIGN);
             const { cardBg, ink, inkBody } = THEME_COLORS[theme];
 
             // Card stock, clipped to the card's rounded corners
@@ -1866,8 +2377,8 @@ function loadCard1() {
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
             ctx.fillStyle = ink;
-            ctx.font = `700 ${96 * s}px "Play", sans-serif`;
-            ctx.fillText('Puregym Redesign', 54 * s, 960 * s);
+            ctx.font = `700 ${96 * s}px "DM Sans", sans-serif`;
+            ctx.fillText('Puregym Redesign', 54 * s, 960 * s, 951 * s);
 
             // Description, on the same measure as every template card
             ctx.fillStyle = inkBody;
@@ -1905,7 +2416,9 @@ function loadCard1() {
         cardFaceRepaints.push({
             index: 1,
             repaint: (theme) => {
+                const w0 = canvas.width;
                 paint(theme);
+                if (canvas.width !== w0) texture.dispose();   // new size, new storage
                 texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
             },
         });
@@ -1919,6 +2432,8 @@ function loadCard1() {
         group.userData.cardIndex = 1;
         // What the face says, kept for the card → page hand-off above
         group.userData.cardTitle = 'Puregym Redesign';
+        // The bare picture, for the card → page flight (see stashCardHandoff)
+        group.userData.handoffPhoto = mockup;
         group.add(mesh);
         _placeCard(1, group);
     });
@@ -1954,6 +2469,28 @@ function tmplWrapText(ctx, text, x, y, maxWidth, lineHeight) {
     return y + lineHeight;
 }
 
+// The pill row starts at 1354 (design px); the copy's descenders stop this far
+// above it, and it never shrinks below CARD_BODY_MIN_SIZE to get there.
+const CARD_BODY_BOTTOM = 1354 - 40;
+const CARD_BODY_MIN_SIZE = 42;
+
+// How many lines tmplWrapText would draw, without drawing them.
+function tmplCountLines(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    let line = '';
+    let count = 1;
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+            count++;
+            line = words[n] + ' ';
+        } else {
+            line = testLine;
+        }
+    }
+    return count;
+}
+
 // The photo region on every card is rounded-cornered with a "folded corner"
 // cutout at top-left — that's where the "#00X" tag sits. This is traced
 // directly from Figma's own vector path (node 1060:7, the Puregym card's
@@ -1984,15 +2521,24 @@ function tmplPhotoClipPath(ctx, x, y, s, keepPath) {
 // that is only ever drawn outside the well - a big rectangle with the well cut
 // out of it - while the clip keeps the well: the frame itself never shows, and
 // the only thing that lands inside is its shadow.
+//
+// The frame is drawn well off the canvas and only its shadow is sent back. Drawn
+// in place, its inner edge sat exactly on the clip's edge, and the two
+// anti-aliased edges never cancel out: a sliver of the black frame always
+// survived as a hard dark ring round the picture. At the old 2.75× faces it
+// was a hairline nobody could see; drawn at screen size it is a whole pixel.
 function tmplPhotoInnerShadow(ctx, x, y, s) {
+    const away = ctx.canvas.width + 4000;   // device px; this ctx is never scaled
     ctx.save();
     tmplPhotoClipPath(ctx, x, y, s);
     ctx.clip();
+    ctx.translate(away, 0);
     ctx.beginPath();
     ctx.rect(x - 200 * s, y - 200 * s, 1416.66 * s, 1217 * s);
     tmplPhotoClipPath(ctx, x, y, s, true);
     ctx.shadowColor = 'rgba(0, 0, 0, 0.09)';
     ctx.shadowBlur = 32 * s;
+    ctx.shadowOffsetX = -away;
     ctx.shadowOffsetY = 4 * s;
     ctx.fillStyle = '#000';
     ctx.fill('evenodd');
@@ -2060,7 +2606,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
     }
 
     return Promise.all([
-        document.fonts.load(`700 ${96 * s}px "Play"`),
+        document.fonts.load(`700 ${96 * s}px "DM Sans"`),
         document.fonts.load(`italic 400 ${36 * s}px "DM Sans"`),
         document.fonts.load(`400 ${64 * s}px "DM Sans"`),
         document.fonts.load(`600 ${40 * s}px "DM Sans"`),
@@ -2069,6 +2615,9 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
         const r = 36 * s;
 
         function paint(theme) {
+            // Drawn at the current scale, which the window can change
+            const s = CARD_TEXTURE_SCALE, r = 36 * s;
+            fitFaceCanvas(canvas, TEMPLATE_CARD);
             const { cardBg, accent, ink, inkBody, placeholder } = THEME_COLORS[theme];
 
             ctx.save();
@@ -2108,17 +2657,32 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
             ctx.fillStyle = ink;
-            ctx.font = `700 ${96 * s}px "Play", sans-serif`;
-            ctx.fillText(title, 54 * s, 960 * s);
+            ctx.font = `700 ${96 * s}px "DM Sans", sans-serif`;
+            ctx.fillText(title, 54 * s, 960 * s, 951 * s);
 
-            ctx.font = `400 ${CARD_BODY.size * s}px "DM Sans", sans-serif`;
+            // The copy has to clear the pill row. A card with an accent line
+            // on top of a long description (The Dial) runs a line or two past
+            // the room there is, so step the size down until it all fits with
+            // a clear gap above the pills.
+            let bodySize = CARD_BODY.size;
+            let bodyLH = CARD_BODY.lineHeight;
+            while (bodySize > CARD_BODY_MIN_SIZE) {
+                ctx.font = `400 ${bodySize * s}px "DM Sans", sans-serif`;
+                const lines = (accentLine ? tmplCountLines(ctx, accentLine, CARD_BODY.width * s) : 0)
+                    + tmplCountLines(ctx, description, CARD_BODY.width * s);
+                const lastBaseline = CARD_BODY.y + (lines - 1) * bodyLH;
+                if (lastBaseline + bodySize * 0.25 <= CARD_BODY_BOTTOM) break;
+                bodySize -= 2;
+                bodyLH = bodySize * (CARD_BODY.lineHeight / CARD_BODY.size);
+            }
+            ctx.font = `400 ${bodySize * s}px "DM Sans", sans-serif`;
             let y = CARD_BODY.y * s;
             if (accentLine) {
                 ctx.fillStyle = accent;
-                y = tmplWrapText(ctx, accentLine, 54 * s, y, CARD_BODY.width * s, CARD_BODY.lineHeight * s);
+                y = tmplWrapText(ctx, accentLine, 54 * s, y, CARD_BODY.width * s, bodyLH * s);
             }
             ctx.fillStyle = inkBody;
-            tmplWrapText(ctx, description, 54 * s, y, CARD_BODY.width * s, CARD_BODY.lineHeight * s);
+            tmplWrapText(ctx, description, 54 * s, y, CARD_BODY.width * s, bodyLH * s);
 
             const pillH = 68 * s, gap = 24 * s;
             const widths = pills.map((label) => {
@@ -2158,20 +2722,22 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
         }
 
         paint(currentTheme);
-        return { canvas, paint };
+        return { canvas, paint, photo };
     });
 }
 
 function loadTemplateCard(index, opts) {
     if (COMING_SOON_INDICES.has(index)) opts = Object.assign({ comingSoon: true }, opts);
-    buildTemplateCardTexture(opts).then(({ canvas, paint }) => {
+    buildTemplateCardTexture(opts).then(({ canvas, paint, photo }) => {
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         cardFaceRepaints.push({
             index: index,
             repaint: (theme) => {
+                const w0 = canvas.width;
                 paint(theme);
+                if (canvas.width !== w0) texture.dispose();   // new size, new storage
                 texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
             },
         });
@@ -2185,6 +2751,8 @@ function loadTemplateCard(index, opts) {
         group.userData.cardIndex = index;
         // What the face says, kept for the card → page hand-off above
         group.userData.cardTitle = opts.title || '';
+        // The bare picture, for the card → page flight (see stashCardHandoff)
+        group.userData.handoffPhoto = photo || null;
         group.add(mesh);
         _placeCard(index, group);
     });
@@ -2362,7 +2930,11 @@ function loadCard8() {
     // the pixels of About Me for a card the same size on screen. The
     // pieces that needed that extra resolution — dice, chips, backs —
     // are geometry now; the cloth is a repeating tile and does not.
-    const s = ABOUTME_SCALE;
+    // A let: a resize redraws the face at the new scale (see repaint below).
+    let s = ABOUTME_SCALE;
+    // The prop slab's printed back keeps the size it was built at. It is
+    // geometry on the card, uploaded once, and too small to be worth redoing.
+    const sBack = s;
     const canvas = document.createElement('canvas');
     canvas.width = ABOUTME_DESIGN.w * s;
     canvas.height = ABOUTME_DESIGN.h * s;
@@ -2440,7 +3012,7 @@ function loadCard8() {
         if (group) {
             await new Promise((resolve) => requestAnimationFrame(resolve));
         }
-        const r = 36 * s;
+        let r = 36 * s;
         // A repeating stamp, not a portrait. 256 covers the nap at the
         // size this card is seen; 520×s was a second megapixel texture
         // uploaded for grass you cannot resolve.
@@ -2551,6 +3123,7 @@ function loadCard8() {
         const coverBack = document.createElement('canvas');
         const coverBackCtx = coverBack.getContext('2d');
         function paintCoverBack(theme) {
+            const s = sBack;
             const w = CARD_BACK_DESIGN.w * s, h = CARD_BACK_DESIGN.h * s;
             coverBack.width = w;
             coverBack.height = h;
@@ -3018,7 +3591,13 @@ function loadCard8() {
         cardFaceRepaints.push({
             index: 8,
             repaint: (theme) => {
+                // Pick up the current scale before painting; everything the
+                // paint draws reads s and r.
+                s = CARD_TEXTURE_SCALE;
+                r = 36 * s;
+                const resized = fitFaceCanvas(canvas, ABOUTME_DESIGN);
                 paint(theme);
+                if (resized) texture.dispose();   // new size, new storage
                 texture.needsUpdate = true;
                 dressProps(theme);
             },
@@ -3621,6 +4200,9 @@ const renderloop = (now = 0) => {
     // ── Update spin particles ──
     updateSpinParticles();
 
+    // The cursor light the card stock is shaded by
+    updateCardStockLight();
+
     // Render last — all positions are current, no stale-position flash possible.
     // Not while the loader still covers the canvas: a render there uploads
     // card textures on the same thread the CSS shuffle is running on.
@@ -3848,6 +4430,7 @@ function applyTheme(theme, persist = true) {
     scene.fog.color.set(THEME_COLORS[theme].fog);
     updateCardBackTexture(theme);
     updateCardFaceTextures(theme);
+    updateCardStockTheme(theme);
     const favicon = document.getElementById('favicon');
     if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }
@@ -4458,10 +5041,12 @@ function dismissLoader(delay) {
         presentAboutCard();
         loaderEl.classList.add('fade-out');
         document.body.classList.add('gradient-visible');
-        setTimeout(() => {
-            loaderEl.remove();
-            startIntro();
-        }, 700);
+        // The intro starts while the loader is still fading rather than after
+        // it has gone: the panels sit below it, so the name comes up through
+        // the last of the fade instead of after a beat of empty screen. The
+        // loader only leaves the DOM once its 0.7s fade is actually over.
+        setTimeout(startIntro, 280);
+        setTimeout(() => loaderEl.remove(), 700);
     }, delay);
 }
 
@@ -4772,7 +5357,7 @@ function playPanelNameType(panels) {
         });
         panelTypeTimer = setTimeout(step, CHAR_MS + (atLineBreak ? LINE_GAP : 0));
     }
-    panelTypeTimer = setTimeout(step, 240);
+    panelTypeTimer = setTimeout(step, 110);
 }
 
 function startIntro() {
@@ -4788,7 +5373,7 @@ function startIntro() {
         panelRevealTimeout = null;
         panels.classList.add('visible');
         playPanelNameType(panels);
-    }, 350);
+    }, 140);
 }
 
 // The view pill is the last piece of chrome. `delay` is how long after the

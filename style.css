@@ -230,10 +230,11 @@ canvas.threejs {
   text-align: right;
   max-width: clamp(120px, calc(50vw - clamp(170px, 18vw, 260px)), 260px);
   opacity: 0;
-  /* Opacity snaps on. The name is typed in (see playPanelNameType), so a
-     fade here would hide the first characters. The exit rule below puts
-     the opacity fade back when the panels leave. */
-  transition: transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
+  /* A short fade, done before the first character lands (typing starts
+     110ms after .visible, see playPanelNameType), so it softens the caret
+     arriving without hiding any of the name. The exit rule below has its
+     own, longer fade. */
+  transition: opacity 0.18s ease, transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
 }
 
 #panel-right {
@@ -484,7 +485,7 @@ body { font-family: 'DM Sans', system-ui, sans-serif; }
     text-align: center;
     width: 70vw;
     max-width: 70vw;
-    transition: transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
+    transition: opacity 0.18s ease, transform 0.65s cubic-bezier(0.2,0.8,0.2,1);
   }
 
   #about-panels.visible #panel-left {
@@ -1547,7 +1548,7 @@ html[data-restore-view="grid"] #grid-view {
 
 .gh-muted {
   display: block;
-  margin-top: 0.35em;
+  margin-top: 1em;
   color: rgba(var(--ink-rgb), 0.35);
   font-weight: 300;
   font-size: clamp(0.825rem, 1.75vw, 1.125rem);

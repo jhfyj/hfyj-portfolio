@@ -70,8 +70,10 @@ let playgroundFaceReady = false;
 // leave this reference truthy and the carousel would never start.
 // index.html decides this before first paint; see window.__introDone there.
 const introSkipped = window.__introDone === true;
-const loaderEl        = introSkipped ? null : document.getElementById('loader');
-if (introSkipped) {
+// The loading screen is gone: the cards build themselves in instead (see
+// "Card build-in"). Kept as a null so the old loader paths stay switched off.
+const loaderEl = null;
+{
     const el = document.getElementById('loader');
     if (el) el.remove();
 }
@@ -1655,12 +1657,11 @@ function _placeCard(i, group) {
     // saw that, and waiting for the last of nine textures is the pause
     // after Playground — the page is up, the ring is empty, then
     // everything appears at once. Sit each card down as it finishes.
-    group.visible = introSkipped;
-    if (introSkipped) {
-        cardIntroY[i] = 0;
-        cardHoverY[i] = 0;
-        group.position.y = 0;
-    }
+    // Hidden while the build-in still has it; its stand-in is on screen.
+    group.visible = !cbOwns(i);
+    cardIntroY[i] = 0;
+    cardHoverY[i] = 0;
+    group.position.y = 0;
 
     // Shadow beneath the card
     const shadowGeo = new THREE.PlaneGeometry(1.4, 0.5);
@@ -1684,6 +1685,7 @@ function _placeCard(i, group) {
     const w = bb.max.x - bb.min.x;
     const h = bb.max.y - bb.min.y;
     applyCardStock(frontMesh.material, { aspect: w / h });
+    cbAttach(i, group);
 
     const edgeMat = new THREE.MeshBasicMaterial({ color: cardEdgeColor(currentTheme) });
     applyCardStock(edgeMat, { face: false });
@@ -1712,11 +1714,7 @@ function _placeCard(i, group) {
     cards[i] = group;
     cardgroup.add(group);
     loadedModels++;
-    if (loaderEl) refreshLoaderTarget();
-    else if (i === 0) {
-        document.body.classList.add('gradient-visible');
-        startIntro();
-    }
+    if (i === 0) document.body.classList.add('gradient-visible');
 }
 
 // ── Card 0 — About Me ────────────────────────────────────────────────────────
@@ -1996,7 +1994,7 @@ function aboutmePrepareNext() {
 
 function startAboutmeSwap() {
     const a = aboutmeSwap;
-    if (!a.ready || a.busy) return;
+    if (!a.ready || a.busy || cbOwns(0)) return;
     const next = (a.index + 1) % ABOUTME_PHOTOS.length;
     const face = a.faces[next];
     // Not painted yet, or painted before the last theme change: the first
@@ -2728,6 +2726,8 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
 
 function loadTemplateCard(index, opts) {
     if (COMING_SOON_INDICES.has(index)) opts = Object.assign({ comingSoon: true }, opts);
+    // The copy, so the build-in can lay out this card's wireframe right away
+    cbCards[index].spec = { type: 'template', opts };
     buildTemplateCardTexture(opts).then(({ canvas, paint, photo }) => {
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -3536,6 +3536,7 @@ function loadCard8() {
             // table: it reads as a die hovering over the card rather than
             // lying on it. The sides come round with the carousel anyway.
             die.position.set(designX(spec.x), designY(spec.y), size / 2 + LIFT);
+            die.userData.buildProp = true;   // drops in during the build-in
             group.add(die);
         });
 
@@ -3565,6 +3566,7 @@ function loadCard8() {
             back.add(face);
             back.rotation.z = THREE.MathUtils.degToRad(-spec.rot);
             back.position.set(designX(spec.x), designY(spec.y), thick / 2 + LIFT);
+            back.userData.buildProp = true;
             group.add(back);
         });
 
@@ -3585,6 +3587,7 @@ function loadCard8() {
                 0,
             );
             chip.position.set(designX(spec.x), designY(spec.y), thick / 2 + LIFT);
+            chip.userData.buildProp = true;
             group.add(chip);
         });
 
@@ -3614,6 +3617,908 @@ function loadCard8() {
     paintDetail();
 }
 
+// ── Card build-in ────────────────────────────────────────────────────────────
+// There is no loading screen. The ring is on screen from the first frame and
+// every card draws itself in while its art is still arriving:
+//
+//   1. it spins in as nothing but an outline, and the outline draws itself
+//   2. the card fills in, and dashed guides draw where each piece will go
+//   3. the pieces arrive as wireframes (a hatched photo, a bar for the title,
+//      a box for the copy, the pill outlines) from off the card, up near the
+//      camera, and slap down onto their guides — each one jolts the card
+//   4. once the real face is ready, the content comes in over the wireframe:
+//      the photo unmasks, the text types itself in, the pills pop
+//
+// A slow card just waits at step 3 with its hatching drifting, which is what
+// gives the art time to load without anybody watching a progress bar.
+//
+// All of it is drawn in the card's own fragment shader from a handful of
+// uniforms, plus one small plane per flying piece. Nothing is repainted or
+// re-uploaded while it plays: the per-frame texture upload is exactly the cost
+// the About Me reveal above was moved into the shader to avoid.
+const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Back from a project page: the same build, quicker, and the ring stays put.
+// On localhost, ?buildslow=4 plays it four times slower, for looking at it.
+const CB_SLOW = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? (Number(new URLSearchParams(location.search).get('buildslow')) || 1) : 1;
+const CB_SPEED = (introSkipped ? 0.55 : 1) * CB_SLOW;
+const CB_MAX = 16;
+const CB_U = 1.7 / 1449;          // design px → card-local units
+const CB_Z0 = 0.42;               // how far off the face a piece starts
+const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4 };
+// Every duration and offset in the build, in ms, before CB_SPEED.
+const CB_T = {
+    spin: 1000, outline: 900, fillAt: 350, fill: 600,
+    guideAt: 820, guideGap: 60, guide: 420,
+    flyAt: 1300, flyGap: 115, fly: 600,
+    stagger: 130,                  // per card, by distance round the ring from the front
+    ring: 2400,                    // first visit: one turn of the ring as it all starts
+    introCap: 7000,                // the nav is never held back longer than this
+};
+
+const CB_WIRE = {
+    light: { wire: '#9DB0EC', hatch: '#B3C1F1', bar: '#E2E8FB', caret: '#5E81E2' },
+    dark:  { wire: '#8A93B8', hatch: '#6E7799', bar: '#4A4E60', caret: '#FFFA50' },
+};
+const CB_COLORS = {
+    uCbBg:    { value: new THREE.Color() },
+    uCbWire:  { value: new THREE.Color() },
+    uCbHatch: { value: new THREE.Color() },
+    uCbBar:   { value: new THREE.Color() },
+    uCbCaret: { value: new THREE.Color() },
+};
+function cbSetTheme(theme) {
+    const w = CB_WIRE[theme];
+    CB_COLORS.uCbBg.value.set(THEME_COLORS[theme].cardBg);
+    CB_COLORS.uCbWire.value.set(w.wire);
+    CB_COLORS.uCbHatch.value.set(w.hatch);
+    CB_COLORS.uCbBar.value.set(w.bar);
+    CB_COLORS.uCbCaret.value.set(w.caret);
+}
+cbSetTheme(currentTheme);
+
+// A map is what gives a material its UVs, so the stand-ins carry a white one.
+const CB_WHITE = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat);
+CB_WHITE.needsUpdate = true;
+
+// Shared by the card face and the flying pieces, so a piece looks exactly the
+// same in the air as it does once it has landed. Everything is in design px
+// (the 1059×1449 Figma frame), measured from an element's top-left.
+const CB_GLSL_COMMON = `
+uniform vec3 uCbBg;
+uniform vec3 uCbWire;
+uniform vec3 uCbHatch;
+uniform vec3 uCbBar;
+uniform vec3 uCbCaret;
+uniform vec4 uCbCut;
+float cbBox( vec2 p, vec2 b, float r ) {
+    r = min( r, min( b.x, b.y ) );
+    vec2 q = abs( p ) - b + r;
+    return length( max( q, 0.0 ) ) + min( max( q.x, q.y ), 0.0 ) - r;
+}
+// Distance to an element's outline. The photo keeps the folded corner the
+// #00X tag sits in, and on About Me / Playground the shelf the pills sit on.
+float cbShape( float kind, vec2 q, vec2 size, vec2 origin ) {
+    vec2 h = size * 0.5;
+    float r = kind < 0.5 ? 24.0 : ( kind < 1.5 ? min( h.y, 10.0 ) : ( kind < 3.5 ? 14.0 : h.y ) );
+    float d = cbBox( q - h, h, r );
+    if ( kind < 0.5 ) {
+        float ny = q.x < 118.0 ? 58.5 : ( q.x < 210.0 ? 58.5 * ( 1.0 - ( q.x - 118.0 ) / 92.0 ) : -1e4 );
+        d = max( d, ( ny - q.y ) * ( q.x < 118.0 ? 1.0 : 0.84 ) );
+        if ( uCbCut.z > uCbCut.x ) {
+            vec2 ch = ( uCbCut.zw - uCbCut.xy ) * 0.5;
+            d = max( d, -cbBox( origin + q - uCbCut.xy - ch, ch, 0.0 ) );
+        }
+    }
+    return d;
+}
+float cbStroke( float d, float px ) {
+    return 1.0 - smoothstep( 0.55 * px, 1.25 * px, abs( d ) );
+}
+float cbInside( float d, float px ) {
+    return 1.0 - smoothstep( -0.5 * px, 0.5 * px, d );
+}
+// One element's wireframe: rgb plus how much of it there is.
+vec4 cbWire( float kind, vec2 q, vec2 size, vec2 origin, float draw, float px, float march ) {
+    float d = cbShape( kind, q, size, origin );
+    float edge = cbStroke( d, px );
+    if ( kind < 0.5 ) {
+        float inside = cbInside( d, px );
+        float sp = 48.0;
+        float s = abs( fract( ( q.x + q.y + march ) / sp ) - 0.5 ) * sp * 0.7071;
+        float stripe = 1.0 - smoothstep( 0.5 * px, 1.2 * px, s );
+        float sweep = 1.0 - smoothstep( draw - 0.03, draw, ( q.x + q.y ) / ( size.x + size.y ) );
+        return vec4( mix( uCbHatch, uCbWire, edge ), max( edge, stripe * inside * sweep * 0.85 ) );
+    }
+    if ( kind < 1.5 ) {
+        return vec4( mix( uCbBar, uCbWire, edge * 0.6 ), max( cbInside( d, px ), edge ) );
+    }
+    if ( kind < 2.5 ) return vec4( uCbWire, 0.0 );
+    return vec4( uCbWire, edge );
+}
+`;
+
+const CB_GLSL_FACE = `
+uniform float uCbOn;
+uniform float uCbHasMap;
+uniform float uCbHasAlt;
+uniform sampler2D uCbAlt;
+uniform vec4 uCbCard;   // outline drawn, outline alpha, fill, hatch drift
+uniform int uCbCount;
+uniform vec4 uCbRect[ ${CB_MAX} ];
+uniform vec4 uCbA[ ${CB_MAX} ];   // kind, guide drawn, landed, content revealed
+uniform vec4 uCbB[ ${CB_MAX} ];   // in-flight offset x/y, height (-1 = not flying), landing pulse
+vec2 cbUv( vec2 p ) { return vec2( p.x / 1059.0, 1.0 - p.y / 1449.0 ); }
+float cbBackOut( float t ) { float u = t - 1.0; return 1.0 + 2.70158 * u * u * u + 1.70158 * u * u; }
+vec4 cbFace( vec4 inCol, vec2 uv ) {
+    if ( uCbOn < 0.5 ) return inCol;
+    vec2 p = vec2( uv.x * 1059.0, ( 1.0 - uv.y ) * 1449.0 );
+    float px = max( 0.7071 * length( fwidth( p ) ), 0.3 );
+    vec2 gx = dFdx( uv ), gy = dFdy( uv );
+    vec3 mapCol = uCbHasMap > 0.5 ? inCol.rgb : uCbBg;
+    float march = uCbCard.w;
+
+    // Where the art is, and where text has not been typed yet
+    bool inEl = false;
+    bool hidText = false;
+    for ( int i = 0; i < ${CB_MAX}; i++ ) {
+        if ( i >= uCbCount ) break;
+        vec4 R = uCbRect[ i ];
+        vec4 A = uCbA[ i ];
+        vec2 q = p - R.xy;
+        if ( q.x >= -6.0 && q.y >= -6.0 && q.x <= R.z + ( A.x > 0.5 && A.x < 2.5 ? 14.0 : 6.0 ) && q.y <= R.w + 6.0 ) {
+            inEl = true;
+            if ( A.x > 0.5 && A.x < 2.5 && A.w < 0.999 && p.x > R.x + A.w * R.z ) hidText = true;
+        }
+    }
+    vec3 c = inEl ? uCbBg : mapCol;
+    float lineA = 0.0;
+
+    for ( int i = 0; i < ${CB_MAX}; i++ ) {
+        if ( i >= uCbCount ) break;
+        vec4 R = uCbRect[ i ];
+        vec4 A = uCbA[ i ];
+        vec4 B = uCbB[ i ];
+        vec2 q = p - R.xy;
+        vec2 size = R.zw;
+        float kind = A.x;
+        if ( A.z > 0.5 ) {
+            if ( kind < 0.5 ) {
+                // The photo: hatched until it unmasks along a soft diagonal,
+                // settling from a slight zoom as it does.
+                float d = cbShape( 0.0, q, size, R.xy );
+                float inside = cbInside( d, px );
+                if ( inside > 0.0 ) {
+                    float diag = ( q.x / size.x ) * 0.6 + ( q.y / size.y ) * 0.4;
+                    float e = A.w * 1.24 - 0.12;
+                    float m = 1.0 - smoothstep( e - 0.12, e, diag );
+                    vec3 content = uCbBg;
+                    if ( m > 0.0 && uCbHasMap > 0.5 ) {
+                        float z = 1.0 + 0.08 * ( 1.0 - A.w ) * ( 1.0 - A.w );
+                        vec2 cc = R.xy + size * 0.5;
+                        vec2 sp = cc + ( p - cc ) / z;
+                        if ( hidText && uCbHasAlt > 0.5 ) content = textureGrad( uCbAlt, cbUv( sp ), gx / z, gy / z ).rgb;
+                        else content = textureGrad( map, cbUv( sp ), gx / z, gy / z ).rgb;
+                    }
+                    vec4 w = cbWire( 0.0, q, size, R.xy, 1.0, px, march );
+                    vec3 wired = mix( uCbBg, w.rgb, w.a );
+                    c = mix( c, mix( wired, content, m ), inside );
+                }
+                float ea = cbStroke( d, px ) * ( 1.0 - A.w );
+                c = mix( c, uCbWire, ea );
+                lineA = max( lineA, ea );
+            } else if ( kind < 2.5 ) {
+                // Text types in from the left, a caret riding the edge
+                if ( q.x >= -4.0 && q.y >= -6.0 && q.x <= size.x + 14.0 && q.y <= size.y + 6.0 ) {
+                    float edgeX = R.x + A.w * size.x;
+                    if ( A.w >= 0.999 || p.x <= edgeX ) c = mapCol;
+                    else if ( kind < 1.5 ) {
+                        vec4 w = cbWire( 1.0, q, size, R.xy, 1.0, px, march );
+                        c = mix( c, w.rgb, w.a );
+                        lineA = max( lineA, w.a );
+                    }
+                    if ( A.w > 0.001 && A.w < 0.999 ) {
+                        float hw = max( 2.5, 0.9 * px );
+                        float ca = 1.0 - smoothstep( hw, hw + px, abs( p.x - edgeX - hw ) );
+                        ca *= step( -2.0, q.y ) * step( q.y, size.y + 2.0 );
+                        c = mix( c, uCbCaret, ca );
+                    }
+                }
+            } else if ( kind < 3.5 ) {
+                vec4 w = cbWire( 3.0, q, size, R.xy, 1.0, px, march );
+                float a = w.a * ( 1.0 - A.w );
+                c = mix( c, w.rgb, a );
+                lineA = max( lineA, a );
+            } else {
+                // Pills pop out of their outline
+                if ( A.w > 0.0 && uCbHasMap > 0.5 ) {
+                    float sc = max( mix( 0.55, 1.0, cbBackOut( A.w ) ), 0.05 );
+                    vec2 cc = R.xy + size * 0.5;
+                    vec2 sp = cc + ( p - cc ) / sc;
+                    float d2 = cbShape( 4.0, sp - R.xy, size, R.xy );
+                    float pin = 1.0 - smoothstep( 1.5, 1.5 + px, d2 );
+                    vec3 pc = textureGrad( map, cbUv( sp ), gx / sc, gy / sc ).rgb;
+                    c = mix( c, pc, pin * clamp( A.w * 3.0, 0.0, 1.0 ) );
+                }
+                vec4 w = cbWire( 4.0, q, size, R.xy, 1.0, px, march );
+                float a = w.a * ( 1.0 - smoothstep( 0.0, 0.45, A.w ) );
+                c = mix( c, w.rgb, a );
+                lineA = max( lineA, a );
+            }
+            if ( B.w > 0.0 ) {
+                // The moment it lands: a quick bloom round its edge
+                float d = cbBox( q - size * 0.5, size * 0.5, 14.0 );
+                float glow = ( 1.0 - smoothstep( 0.0, 8.0 + 34.0 * ( 1.0 - B.w ), abs( d ) ) ) * B.w * 0.4;
+                c = mix( c, uCbWire, glow );
+                lineA = max( lineA, glow );
+            }
+        } else if ( A.y > 0.001 && ( kind < 1.5 || kind > 2.5 ) ) {
+            // Dashed guide where the piece will land, drawn round clockwise
+            float d = cbShape( kind, q, size, R.xy );
+            vec2 h = size * 0.5;
+            vec2 rel = q - h;
+            float dc = abs( rel.x ) / h.x > abs( rel.y ) / h.y ? q.y : q.x;
+            float dash = step( fract( dc / 26.0 ), 0.55 );
+            float t = fract( atan( rel.y, rel.x ) / 6.28318 + 0.375 );
+            float a = cbStroke( d, px ) * dash * step( t, A.y ) * 0.6;
+            c = mix( c, uCbWire, a );
+            lineA = max( lineA, a );
+        }
+    }
+
+    // Shadows of the pieces still in the air: wide and faint up high, small
+    // and dark just before they land.
+    for ( int i = 0; i < ${CB_MAX}; i++ ) {
+        if ( i >= uCbCount ) break;
+        vec4 B = uCbB[ i ];
+        if ( B.z < 0.0 || uCbA[ i ].z > 0.5 ) continue;
+        vec4 R = uCbRect[ i ];
+        vec2 off = B.xy + vec2( 40.0, 70.0 ) * B.z;
+        float blur = 6.0 + 80.0 * B.z;
+        float d = cbBox( p - R.xy - off - R.zw * 0.5, R.zw * 0.5, 18.0 );
+        float sa = ( 0.05 + 0.15 * ( 1.0 - B.z ) ) * ( 1.0 - smoothstep( -blur, blur, d ) );
+        c *= 1.0 - sa;
+        lineA = max( lineA, sa );
+    }
+
+    // The card's own outline, drawn round from the top left
+    {
+        vec2 h = vec2( 529.5, 724.5 );
+        vec2 rel = p - h;
+        float d = cbBox( rel, h - 2.5, 50.0 );
+        float t = fract( atan( rel.y, rel.x ) / 6.28318 + 0.375 );
+        float a = cbStroke( d, px ) * step( t, uCbCard.x ) * uCbCard.y;
+        c = mix( c, uCbWire, a );
+        lineA = max( lineA, a );
+    }
+    return vec4( c, max( uCbCard.z, lineA ) );
+}
+`;
+
+const CB_GLSL_FLY = `
+uniform float uFlyKind;
+uniform vec2 uFlySize;
+uniform vec2 uFlyOrigin;
+uniform float uFlyDraw;
+uniform float uFlyAlpha;
+uniform float uFlyPad;
+vec4 cbFly( vec2 uv ) {
+    vec2 full = uFlySize + 2.0 * uFlyPad;
+    vec2 q = vec2( uv.x, 1.0 - uv.y ) * full - uFlyPad;
+    float px = max( 0.7071 * length( fwidth( q ) ), 0.3 );
+    vec4 w = cbWire( uFlyKind, q, uFlySize, uFlyOrigin, uFlyDraw, px, 0.0 );
+    // A sheet of the card's own stock under the lines, so it reads as a
+    // piece of paper in the air rather than lines floating on nothing.
+    float sheet = cbInside( cbShape( uFlyKind, q, uFlySize, uFlyOrigin ), px ) * 0.9;
+    return vec4( mix( uCbBg, w.rgb, w.a ), max( sheet, w.a ) * uFlyAlpha );
+}
+`;
+
+function cbPatchFace(material, U) {
+    const prevCompile = material.onBeforeCompile;
+    const prevKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, r) => {
+        prevCompile.call(material, shader, r);
+        Object.assign(shader.uniforms, CB_COLORS, U);
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <map_pars_fragment>',
+                '#include <map_pars_fragment>\n' + CB_GLSL_COMMON + CB_GLSL_FACE)
+            .replace('#include <color_fragment>',
+                '#ifdef USE_MAP\n\tdiffuseColor = cbFace( diffuseColor, vMapUv );\n#endif\n#include <color_fragment>');
+    };
+    material.customProgramCacheKey = () => prevKey() + '|cb-face';
+    material.needsUpdate = true;
+}
+
+function cbClamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+function cbEaseInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+// One record per card, made now so the loaders can hand their cards over
+// (and the templates their copy) before the build itself starts.
+function cbMakeUniforms() {
+    const v4 = () => Array.from({ length: CB_MAX }, () => new THREE.Vector4());
+    return {
+        uCbOn:     { value: 1 },
+        uCbHasMap: { value: 0 },
+        uCbHasAlt: { value: 0 },
+        uCbAlt:    { value: CB_WHITE },
+        uCbCard:   { value: new THREE.Vector4(0, 1, 0, 0) },
+        uCbCut:    { value: new THREE.Vector4(0, 0, 0, 0) },
+        uCbCount:  { value: 0 },
+        uCbRect:   { value: v4() },
+        uCbA:      { value: v4() },
+        uCbB:      { value: v4() },
+    };
+}
+const cbCards = Array.from({ length: cardCount }, (_, i) => ({
+    i, U: cbMakeUniforms(), spec: null, real: null, ghost: null, els: [],
+    started: false, takenOver: false, ready: false, prepQueued: false,
+    content: 0, finished: !CB_ENABLED, hit: 0, props: [],
+}));
+cbCards[0].spec = { type: 'aboutme' };
+cbCards[1].spec = { type: 'puregym' };
+cbCards[8].spec = { type: 'playground' };
+let cbRunning = false;
+let cbIntroDone = false;
+let cbStartTime = 0;
+let cbFront = 0;
+const cbPrepQueue = [];
+
+// Whether the build still has this card. Until it lets go, the card stays
+// hidden behind its stand-in and nothing else may show it.
+function cbOwns(i) { return !cbCards[i].finished; }
+
+// _placeCard hands every card over here as it finishes loading.
+function cbAttach(i, group) {
+    const st = cbCards[i];
+    if (st.finished) return;
+    cbPatchFace(group.children[0].material, st.U);
+    group.visible = false;
+    st.real = group;
+}
+
+// ── Where everything sits on each face, in design px ──
+// Read off the same numbers the painters above draw with, so the wireframe
+// lands exactly where the art will be.
+const cbMeasure = document.createElement('canvas').getContext('2d');
+// Measured at the size the faces are actually painted at, not the design
+// size: DM Sans is optically sized and canvas picks that axis from the px
+// size, so a 96px measurement comes out narrower than the ~40px the card
+// really draws, and the wireframe ends a letter short of the title.
+let cbScale = 1;
+function cbSetFont(font) {
+    cbMeasure.font = font.replace(/(\d+(?:\.\d+)?)px/, (m, n) => (Number(n) * cbScale) + 'px');
+}
+function cbW(text) { return cbMeasure.measureText(text).width / cbScale; }
+function cbTextWidth(text, font, spacing) {
+    cbSetFont(font);
+    if ('letterSpacing' in cbMeasure) cbMeasure.letterSpacing = spacing || '0px';
+    return cbW(text);
+}
+// A line of text drawn from an alphabetic baseline, as a box round its letters.
+function cbTextRect(text, font, x, baseline, align, size, maxW, spacing) {
+    let w = cbTextWidth(text, font, spacing);
+    if (maxW) w = Math.min(w, maxW);
+    return { x: align === 'center' ? x - w / 2 : x, y: baseline - size * 0.76, w, h: size * 0.98, chars: text.length };
+}
+// drawBoxedText's baseline, for the cards that place type by its line box
+function cbBoxedBaseline(text, font, y, h) {
+    cbSetFont(font);
+    const m = cbMeasure.measureText(text);
+    const inner = (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent) / cbScale;
+    return y + (h - inner) / 2 + m.fontBoundingBoxAscent / cbScale;
+}
+function cbWrap(text, maxW) {
+    const words = text.split(' ');
+    const out = [];
+    let line = '';
+    for (let n = 0; n < words.length; n++) {
+        const test = line + words[n] + ' ';
+        if (cbW(test) > maxW && n > 0) {
+            out.push(line.trim());
+            line = words[n] + ' ';
+        } else {
+            line = test;
+        }
+    }
+    out.push(line.trim());
+    return out;
+}
+function cbBoxAround(lines) {
+    const pad = 16;
+    const x0 = Math.min(...lines.map((r) => r.x)) - pad;
+    const y0 = Math.min(...lines.map((r) => r.y)) - pad;
+    const x1 = Math.max(...lines.map((r) => r.x + r.w)) + pad;
+    const y1 = Math.max(...lines.map((r) => r.y + r.h)) + pad;
+    return { kind: CB.BOX, role: 'box', x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function cbTag(text, font, x, w) {
+    const tw = cbTextWidth(text, font);
+    return { kind: CB.BAR, role: 'tag', x: x + w / 2 - tw / 2, y: 28, w: tw, h: 34, chars: text.length };
+}
+
+// Template cards and Puregym share one layout: photo well, tag, title, copy, pills.
+function cbCardLayout({ tag, title, accentLine, description, pills, fit, pillBoxes }) {
+    const els = [{ kind: CB.IMG, role: 'img', x: 21, y: 20, w: 1016.663, h: 817 }];
+    if (tag) {
+        const w = cbTextWidth(tag, 'italic 400 36px "DM Sans", sans-serif');
+        els.push({ kind: CB.BAR, role: 'tag', x: 100.5 - w / 2, y: 28, w, h: 34, chars: tag.length });
+    }
+    els.push(Object.assign({ kind: CB.BAR, role: 'title' },
+        cbTextRect(title, '700 96px "DM Sans", sans-serif', 54, 960, 'left', 96, 951)));
+
+    const W = CARD_BODY.width;
+    let size = CARD_BODY.size, lh = CARD_BODY.lineHeight;
+    if (fit) {
+        while (size > CARD_BODY_MIN_SIZE) {
+            cbSetFont(`400 ${size}px "DM Sans", sans-serif`);
+            const n = (accentLine ? cbWrap(accentLine, W).length : 0) + cbWrap(description, W).length;
+            if (CARD_BODY.y + (n - 1) * lh + size * 0.25 <= CARD_BODY_BOTTOM) break;
+            size -= 2;
+            lh = size * (CARD_BODY.lineHeight / CARD_BODY.size);
+        }
+    }
+    const font = `400 ${size}px "DM Sans", sans-serif`;
+    cbSetFont(font);
+    if ('letterSpacing' in cbMeasure) cbMeasure.letterSpacing = '0px';
+    const text = [...(accentLine ? cbWrap(accentLine, W) : []), ...cbWrap(description, W)];
+    let y = CARD_BODY.y;
+    const lines = text.map((line) => {
+        const r = Object.assign({ kind: CB.LINE, role: 'line' }, cbTextRect(line, font, 54, y, 'left', size));
+        y += lh;
+        return r;
+    });
+    els.push(cbBoxAround(lines), ...lines);
+
+    if (pillBoxes) {
+        pillBoxes.forEach((b) => els.push({ kind: CB.PILL, role: 'pill', x: b.x, y: 1354, w: b.w, h: 68 }));
+    } else {
+        const widths = pills.map((label) => cbTextWidth(label, '600 40px "DM Sans", sans-serif') + 80);
+        const total = widths.reduce((a, b) => a + b, 0) + 24 * (pills.length - 1);
+        let x = 1059 - 21 - total;
+        widths.forEach((w) => { els.push({ kind: CB.PILL, role: 'pill', x, y: 1354, w, h: 68 }); x += w + 24; });
+    }
+    return { els, cut: null };
+}
+
+function cbLayout(spec) {
+    if (spec.type === 'template') {
+        const o = spec.opts;
+        return cbCardLayout({ tag: o.tag, title: o.title, accentLine: o.accentLine,
+            description: o.description, pills: o.pills, fit: true });
+    }
+    if (spec.type === 'puregym') {
+        return cbCardLayout({
+            tag: '#003', title: 'Puregym Redesign',
+            description: 'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
+            fit: false,
+            pillBoxes: [{ x: 218, w: 242 }, { x: 472, w: 335 }, { x: 819, w: 219 }],
+        });
+    }
+    const pillK = 40 / ABOUTME_PILL_FONT_PX;
+    const tagFont = 'italic 400 36px "Inter", "DM Sans", sans-serif';
+    if (spec.type === 'aboutme') {
+        const nameFont = '700 80px "DM Sans", sans-serif';
+        const base = cbBoxedBaseline('Jennifer Huang', nameFont, 35, 93);
+        const els = [
+            { kind: CB.IMG, role: 'img', x: 21, y: 20, w: 1017, h: 1404 },
+            cbTag('#000', tagFont, 56, 91),
+            Object.assign({ kind: CB.BAR, role: 'title' },
+                cbTextRect('Jennifer Huang', nameFont, 205, base, 'left', 80)),
+        ];
+        ABOUTME_PILLS.forEach((pl) => els.push({ kind: CB.PILL, role: 'pill',
+            x: pl.x, y: ABOUTME_PILL_Y, w: pl.w, h: ABOUTME_PILL_H }));
+        return { els, cut: [250, 1326, 1060, 1450] };
+    }
+    // Playground
+    const widths = PLAYGROUND_PILLS.map((label) =>
+        cbTextWidth(label, `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`) * pillK + 80);
+    const rowW = widths.reduce((a, b) => a + b, 0) + 12 * (widths.length - 1);
+    const rowX = 1059 - 21 - rowW;
+    const hug = ABOUTME_PILLS[0].x - (ABOUTME_CUT_ORIGIN_X - ABOUTME_CUT_FAR_X);
+    const farX = ABOUTME_CUT_ORIGIN_X - (rowX - hug);
+    const k = Math.max(0.55, Math.min(1, farX / ABOUTME_CUT_FAR_X));
+    const cutLeft = ABOUTME_CUT_ORIGIN_X - ABOUTME_CUT_FAR_X * k;
+    const titleFont = '400 144px "DM Sans", sans-serif';
+    const tagline = 'where you can actually play';
+    const tagLine = Object.assign({ kind: CB.LINE, role: 'line' },
+        cbTextRect(tagline, '400 46px "Mynerve", cursive', 529.5, 743, 'center', 46, 0, '0.01em'));
+    const els = [
+        { kind: CB.IMG, role: 'img', x: 21, y: 20, w: 1017, h: 1404 },
+        cbTag('#0000', tagFont, 48, 118),
+        Object.assign({ kind: CB.BAR, role: 'title' },
+            cbTextRect('Playground', titleFont, 529.5, 681, 'center', 144, 0, '-0.02em')),
+        cbBoxAround([tagLine]),
+        tagLine,
+    ];
+    let x = rowX;
+    widths.forEach((w) => {
+        els.push({ kind: CB.PILL, role: 'pill', x, y: ABOUTME_PILL_Y, w, h: ABOUTME_PILL_H });
+        x += w + 12;
+    });
+    return { els, cut: [cutLeft + 30, 1326, 1060, 1450] };
+}
+
+// ── Stand-ins and flying pieces ──
+function cbMakeGhost(st) {
+    const aspect = 1059 / 1449;
+    const cardH = 1.7, cardW = cardH * aspect;
+    const mat = new THREE.MeshBasicMaterial({
+        map: CB_WHITE, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    });
+    applyCardStock(mat, { aspect });
+    cbPatchFace(mat, st.U);
+    const mesh = new THREE.Mesh(makeRoundedCardGeo(cardW, cardH, 0.06), mat);
+    mesh.raycast = () => {};
+    const g = new THREE.Group();
+    g.rotation.order = 'YXZ';
+    g.add(mesh);
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.5),
+        new THREE.MeshBasicMaterial({ map: cardShadowTex, transparent: true, depthWrite: false, opacity: 0 }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -1.3;
+    shadow.renderOrder = -1;
+    shadow.raycast = () => {};
+    g.add(shadow);
+    st.ghostShadow = shadow;
+    g.visible = false;
+    cardgroup.add(g);
+    return g;
+}
+
+function cbMakeFlyer(st, el) {
+    const pad = 8;
+    const FU = {
+        uFlyKind:   { value: el.kind },
+        uFlySize:   { value: new THREE.Vector2(el.w, el.h) },
+        uFlyOrigin: { value: new THREE.Vector2(el.x, el.y) },
+        uFlyDraw:   { value: 0 },
+        uFlyAlpha:  { value: 0 },
+        uFlyPad:    { value: pad },
+    };
+    const mat = new THREE.MeshBasicMaterial({ map: CB_WHITE, transparent: true, depthWrite: false });
+    mat.onBeforeCompile = (shader) => {
+        Object.assign(shader.uniforms, CB_COLORS, { uCbCut: st.U.uCbCut }, FU);
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <map_pars_fragment>',
+                '#include <map_pars_fragment>\n' + CB_GLSL_COMMON + CB_GLSL_FLY)
+            .replace('#include <color_fragment>',
+                '#ifdef USE_MAP\n\tdiffuseColor = cbFly( vMapUv );\n#endif\n#include <color_fragment>');
+    };
+    mat.customProgramCacheKey = () => 'cb-fly';
+    const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry((el.w + 2 * pad) * CB_U, (el.h + 2 * pad) * CB_U), mat);
+    mesh.raycast = () => {};
+    mesh.visible = false;
+    mesh.renderOrder = 3;
+    el.mesh = mesh;
+    el.FU = FU;
+    const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
+    el.rest = new THREE.Vector3((cx - 529.5) * CB_U, (724.5 - cy) * CB_U, 0.004);
+    // Out from the middle of the card, past its edge
+    let dx = cx - 529.5, dy = cy - 724.5;
+    const len = Math.hypot(dx, dy);
+    if (len < 60) { dx = 0; dy = -1; } else { dx /= len; dy /= len; }
+    const dist = 280 + Math.random() * 140;
+    el.off = { x: dx * dist + (Math.random() - 0.5) * 90, y: dy * dist + (Math.random() - 0.5) * 90 };
+    el.rot0 = (Math.random() - 0.5) * 0.5;
+}
+
+// ── Start ──
+async function cbStart() {
+    if (!CB_ENABLED) return;
+    cbRunning = true;
+    if (!introSkipped) introPhase = 'building';
+    document.body.classList.add('gradient-visible');
+    // The layout is measured, so the faces it measures with have to be in.
+    // Capped: a font that never arrives must not hold the ring empty.
+    await Promise.race([
+        Promise.all([
+            '700 96px "DM Sans"', '400 56px "DM Sans"', '600 40px "DM Sans"',
+            'italic 400 36px "DM Sans"', 'italic 400 36px "Inter"', '700 80px "DM Sans"',
+            '400 144px "DM Sans"', '400 46px "Mynerve"', `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`,
+        ].map((f) => document.fonts.load(f).catch(() => {}))),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+    ]);
+
+    const k = CB_SPEED;
+    const apc = (Math.PI * 2) / cardCount;
+    cbFront = ((Math.round(-cardgroup.rotation.y / apc) % cardCount) + cardCount) % cardCount;
+    cbStartTime = performance.now();
+    cbScale = CARD_TEXTURE_SCALE;
+
+    // First visit: the ring makes one turn while everything spins in.
+    if (!introSkipped) {
+        introAnimStartTime = cbStartTime;
+        introAnimEndRot = cardgroup.rotation.y;
+        introAnimStartRot = introAnimEndRot + Math.PI * 2;
+        introAnimDuration = CB_T.ring;
+        introAnimActive = true;
+        targetRotation = null;
+        cardgroup.rotation.y = introAnimStartRot;
+    }
+
+    cbCards.forEach((st) => {
+        if (st.finished) return;
+        const spec = st.spec || { type: 'template', opts: { title: '', description: '', pills: [] } };
+        const { els, cut } = cbLayout(spec);
+        st.els = els.slice(0, CB_MAX);
+        const U = st.U;
+        if (cut) U.uCbCut.value.set(cut[0], cut[1], cut[2], cut[3]);
+        U.uCbCount.value = st.els.length;
+        st.ghost = cbMakeGhost(st);
+        let gi = 0, fi = 0;
+        st.flightsEnd = 0;
+        const box = st.els.find((el) => el.kind === CB.BOX);
+        st.els.forEach((el, j) => {
+            U.uCbRect.value[j].set(el.x, el.y, el.w, el.h);
+            U.uCbA.value[j].set(el.kind, 0, 0, 0);
+            U.uCbB.value[j].set(0, 0, -1, 0);
+            el.j = j;
+            el.placed = false;
+            if (el.kind !== CB.LINE) {
+                el.g0 = (CB_T.guideAt + gi++ * CB_T.guideGap) * k;
+                el.fly = true;
+                el.f0 = (CB_T.flyAt + fi++ * CB_T.flyGap) * k;
+                el.fdur = CB_T.fly * k;
+                st.flightsEnd = Math.max(st.flightsEnd, el.f0 + el.fdur);
+                cbMakeFlyer(st, el);
+                st.ghost.add(el.mesh);
+            } else {
+                el.box = box;
+            }
+        });
+        const ring = Math.min((st.i - cbFront + cardCount) % cardCount, (cbFront - st.i + cardCount) % cardCount);
+        st.t0 = cbStartTime + ring * CB_T.stagger * k;
+        st.started = true;
+    });
+}
+
+// The face is in. Cards with type over their photo (About Me, Playground)
+// also need the photo without the type, so the half that has not been typed
+// yet shows the picture rather than letters that are still to come.
+function cbPrep(st) {
+    if (st.finished) return;
+    if (st.i === 0 || st.i === 8) {
+        const entry = cardFaceRepaints.find((e) => e.index === st.i);
+        const canvas = st.real.children[0].material.map.image;
+        if (entry && canvas && canvas.getContext) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillText = function () {};
+            ctx.strokeText = function () {};
+            try { entry.repaint(currentTheme); } finally { delete ctx.fillText; delete ctx.strokeText; }
+            const alt = document.createElement('canvas');
+            alt.width = canvas.width;
+            alt.height = canvas.height;
+            alt.getContext('2d').drawImage(canvas, 0, 0);
+            entry.repaint(currentTheme);
+            const tex = new THREE.CanvasTexture(alt);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            st.U.uCbAlt.value = tex;
+            st.U.uCbHasAlt.value = 1;
+        }
+    }
+    if (st.i === 8) {
+        st.props = st.real.children.filter((c) => c.userData.buildProp);
+        st.props.forEach((p) => {
+            p.userData.cbRest = { pos: p.position.clone(), scale: p.scale.clone() };
+        });
+    }
+    st.ready = true;
+}
+
+function cbTakeover(st) {
+    st.takenOver = true;
+    st.real.rotation.order = 'YXZ';
+    st.real.visible = true;
+    st.els.forEach((el) => { if (el.mesh) st.real.add(el.mesh); });
+    const g = st.ghost;
+    st.ghost = null;
+    if (g) {
+        cardgroup.remove(g);
+        g.children.forEach((c) => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); });
+    }
+}
+
+function cbFinishCard(st) {
+    st.finished = true;
+    const U = st.U;
+    U.uCbOn.value = 0;
+    if (U.uCbHasAlt.value) {
+        U.uCbAlt.value.dispose();
+        U.uCbAlt.value = CB_WHITE;
+        U.uCbHasAlt.value = 0;
+    }
+    st.els.forEach((el) => {
+        if (!el.mesh) return;
+        if (el.mesh.parent) el.mesh.parent.remove(el.mesh);
+        el.mesh.geometry.dispose();
+        el.mesh.material.dispose();
+        el.mesh = null;
+    });
+    st.props.forEach((p) => {
+        p.visible = true;
+        p.position.copy(p.userData.cbRest.pos);
+        p.scale.copy(p.userData.cbRest.scale);
+    });
+    const g = st.real;
+    if (g) {
+        g.rotation.order = 'XYZ';
+        g.rotation.x = 0;
+        g.rotation.y = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
+        g.scale.setScalar(getCardScale());
+        g.visible = true;
+    }
+}
+
+// The nav, the socials and the view switch, once the front card is built.
+function cbFinishIntro() {
+    if (cbIntroDone) return;
+    cbIntroDone = true;
+    if (introSkipped || introPhase === 'done') return;
+    introPhase = 'done';
+    markIntroPlayed();
+    const sl = document.getElementById('social-links');
+    if (sl) setTimeout(() => sl.classList.add('ui-intro-visible'), 60);
+    const tn = document.getElementById('top-nav');
+    if (tn) setTimeout(() => tn.classList.add('visible'), 160);
+    revealViewToggle(700);
+}
+
+// What the content does once the face is ready, in ms from that moment.
+function cbPlanContent(st) {
+    const k = CB_SPEED;
+    const plan = [];
+    let cursor = 0, pill = 0;
+    const titleAt = 360 * k;
+    st.els.forEach((el) => {
+        if (el.role === 'img') plan.push({ el, start: 0, dur: 760 * k, type: false });
+        else if (el.role === 'tag') plan.push({ el, start: 120 * k, dur: Math.min(500, Math.max(160, el.chars * 38)) * k, type: true });
+        else if (el.role === 'title') plan.push({ el, start: titleAt, dur: Math.min(900, Math.max(300, el.chars * 45)) * k, type: true });
+        else if (el.role === 'pill') plan.push({ el, start: (560 + pill++ * 110) * k, dur: 460 * k, type: false });
+    });
+    cursor = titleAt + 260 * k;
+    st.els.forEach((el) => {
+        if (el.role !== 'line') return;
+        const dur = Math.min(900, Math.max(160, el.chars * 12)) * k;
+        plan.push({ el, start: cursor, dur, type: true });
+        cursor += dur + 40 * k;
+    });
+    const box = st.els.find((el) => el.role === 'box');
+    if (box) plan.push({ el: box, start: cursor + 60 * k, dur: 320 * k, type: false });
+    st.props.forEach((p, n) => plan.push({ prop: p, start: (300 + n * 140) * k, dur: 620 * k }));
+    st.plan = plan;
+    st.contentEnd = plan.reduce((m, it) => Math.max(m, it.start + it.dur), 0) + 120 * k;
+}
+
+function cbStep(st, now) {
+    const U = st.U, k = CB_SPEED;
+    if (st.real && !st.prepQueued && cardFaceRepaints.some((e) => e.index === st.i)) {
+        st.prepQueued = true;
+        cbPrepQueue.push(st);
+    }
+    // Playground's pieces are geometry, added whenever its detail finishes;
+    // they stay off the card until it is their turn.
+    if (st.real && !st.content) {
+        st.real.children.forEach((c) => { if (c.userData.buildProp) c.visible = false; });
+    }
+    const t = now - st.t0;
+    if (t < 0) return;
+
+    // Spin in, outline, fill
+    const e = easeOutCubic(cbClamp(t / (CB_T.spin * k)));
+    const spin = -Math.PI * 2 * (1 - e);
+    const thump = st.hit ? Math.exp(-(now - st.hit) / 120) : 0;
+    const sc = getCardScale() * (0.88 + 0.12 * e) * (1 - 0.018 * thump);
+    const ang = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
+    const tilt = -0.06 * thump;
+    const fill = cbClamp((t - CB_T.fillAt * k) / (CB_T.fill * k));
+    U.uCbCard.value.x = cbEaseInOut(cbClamp(t / (CB_T.outline * k)));
+    U.uCbCard.value.z = fill;
+    if (st.ghost) {
+        const r = getCarouselRadius();
+        const g = st.ghost;
+        g.visible = true;
+        g.position.set(Math.sin(ang) * r, 0, Math.cos(ang) * r);
+        g.rotation.set(tilt, ang + spin, 0);
+        g.scale.setScalar(sc);
+        st.ghostShadow.material.opacity = fill * THEME_COLORS[currentTheme].shadow;
+    }
+    if (st.real && !st.takenOver && fill >= 1) cbTakeover(st);
+    if (st.takenOver) {
+        st.real.rotation.x = tilt;
+        st.real.rotation.y = ang + spin;
+        st.real.scale.setScalar(sc);
+    }
+
+    // Guides, then the pieces fly in and land on them
+    st.els.forEach((el) => {
+        const A = U.uCbA.value[el.j], B = U.uCbB.value[el.j];
+        if (el.kind === CB.LINE) {
+            if (el.box && el.box.placed) A.z = 1;
+            return;
+        }
+        A.y = cbClamp((t - el.g0) / (CB_T.guide * k));
+        if (!el.placed) {
+            if (t < el.f0) { B.z = -1; if (el.mesh) el.mesh.visible = false; return; }
+            const u = cbClamp((t - el.f0) / el.fdur);
+            if (u >= 1) {
+                el.placed = true;
+                el.hitAt = now;
+                st.hit = now;
+                A.z = 1;
+                B.set(0, 0, -1, 1);
+                if (el.mesh) el.mesh.visible = false;
+                return;
+            }
+            const eo = easeOutCubic(u);
+            const zf = 1 - Math.pow(u, 2.4);
+            const m = el.mesh;
+            m.visible = true;
+            m.position.set(el.rest.x + el.off.x * (1 - eo) * CB_U,
+                el.rest.y - el.off.y * (1 - eo) * CB_U, el.rest.z + CB_Z0 * zf);
+            m.rotation.z = el.rot0 * (1 - eo);
+            m.scale.setScalar(1 + 0.18 * zf);
+            el.FU.uFlyAlpha.value = cbClamp(u / 0.18);
+            el.FU.uFlyDraw.value = cbClamp(u / 0.65);
+            B.set(el.off.x * (1 - eo), el.off.y * (1 - eo), zf, 0);
+        } else {
+            B.w = Math.max(0, Math.exp(-(now - el.hitAt) / 150) - 0.02);
+        }
+    });
+
+    // Waiting on the art: the hatching drifts so it reads as still working
+    if (!st.content) {
+        const waitFrom = st.flightsEnd + 300 * k;
+        if (t > waitFrom) U.uCbCard.value.w = (t - waitFrom) * 0.035;
+        if (st.ready && st.takenOver && t >= st.flightsEnd + 160 * k) {
+            st.content = now;
+            U.uCbHasMap.value = 1;
+            cbPlanContent(st);
+        }
+        return;
+    }
+
+    // The real face comes in
+    const tc = now - st.content;
+    st.plan.forEach((it) => {
+        const u = cbClamp((tc - it.start) / it.dur);
+        if (it.prop) {
+            const p = it.prop, rest = p.userData.cbRest;
+            p.visible = u > 0;
+            const zf = 1 - Math.pow(u, 2.4);
+            p.position.set(rest.pos.x, rest.pos.y, rest.pos.z + CB_Z0 * 1.2 * zf);
+            p.scale.copy(rest.scale).multiplyScalar(1 + 0.35 * zf);
+            if (u >= 1 && !it.landed) { it.landed = true; st.hit = now; }
+            return;
+        }
+        const A = U.uCbA.value[it.el.j];
+        if (it.type) A.w = it.el.chars ? Math.floor(u * it.el.chars + 1e-6) / it.el.chars : u;
+        else A.w = it.el.role === 'img' ? cbEaseInOut(u) : u;
+    });
+    if (tc >= st.contentEnd) {
+        if (st.i === cbFront) cbFinishIntro();
+        const of = cbClamp((tc - st.contentEnd) / (380 * k));
+        U.uCbCard.value.y = 1 - of;
+        if (of >= 1) cbFinishCard(st);
+    }
+}
+
+function cbUpdate() {
+    if (!cbRunning) return;
+    const now = performance.now();
+    let live = false;
+    cbCards.forEach((st) => {
+        if (st.finished || !st.started) return;
+        live = true;
+        cbStep(st, now);
+    });
+    // One face's prep per frame, so two of them never land in the same one
+    if (cbPrepQueue.length) cbPrep(cbPrepQueue.shift());
+    if (!cbIntroDone && cbStartTime && now - cbStartTime > CB_T.introCap * CB_SPEED) cbFinishIntro();
+    if (!live && cbStartTime) cbRunning = false;
+}
+
 loadCard0();
 loadCard1();
 loadCard2();
@@ -3625,6 +4530,7 @@ loadCard7();
 loadCard8();
 
 scene.add(cardgroup);
+cbStart();
 
 // Scroll handling
 window.addEventListener("wheel", (e) => {
@@ -4200,6 +5106,10 @@ const renderloop = (now = 0) => {
     // ── Update spin particles ──
     updateSpinParticles();
 
+    // The cards drawing themselves in. Last, so it has the final say on the
+    // transforms it is animating this frame.
+    cbUpdate();
+
     // The cursor light the card stock is shaded by
     updateCardStockLight();
 
@@ -4431,6 +5341,7 @@ function applyTheme(theme, persist = true) {
     updateCardBackTexture(theme);
     updateCardFaceTextures(theme);
     updateCardStockTheme(theme);
+    cbSetTheme(theme);
     const favicon = document.getElementById('favicon');
     if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
 }
@@ -5457,7 +6368,8 @@ function skipIntro() {
     // Instantly show all cards and jump straight to interactive state
     cards.forEach((c, i) => {
         if (!c) return;
-        c.visible = true;
+        // A card still building in shows itself when it is finished
+        if (!cbOwns(i)) c.visible = true;
         cardIntroY[i] = 0;
         cardHoverY[i] = 0;
         c.position.y = 0;
@@ -5481,7 +6393,9 @@ function skipIntro() {
 // A return visit used to sit in 'idle' until the last card called
 // startIntro. Unlock the chrome now so the nav is there for the fade-in,
 // not waiting on the same Promise as the faces.
-if (introSkipped) {
+// On a first visit the build-in reveals the chrome once the front card is in
+// (cbFinishIntro). Reduced motion gets no build at all, so it lands straight in.
+if (introSkipped || !CB_ENABLED) {
     document.body.classList.add('gradient-visible');
     skipIntro();
 }

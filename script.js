@@ -1,11 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-// ── Theme (light ↔ dark) ──────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Theme (light Ã¢â€ â€ dark) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const THEME_KEY = 'theme';
 // Only an explicit press is ever stored, so with nothing written down the OS
 // preference is what to honour. This has to resolve exactly the way the <head>
-// block in index.html and the other eight pages do — the whole point of the
+// block in index.html and the other eight pages do Ã¢â‚¬â€ the whole point of the
 // shared key is that every page reaches the same answer, and a home page that
 // pinned itself to light while every other page followed the OS was a visible
 // disagreement the moment a dark-mode reader left the carousel.
@@ -20,7 +20,7 @@ function getStoredTheme() {
 let currentTheme = getStoredTheme();
 document.documentElement.setAttribute('data-theme', currentTheme);
 
-// Light-mode paper stock for every card drawn in code — faces and backs alike;
+// Light-mode paper stock for every card drawn in code Ã¢â‚¬â€ faces and backs alike;
 // the dark stock lives in THEME_COLORS below. Card 8 (playground) is a
 // still of the table, so its face does not follow the stock.
 const CARD_BG = '#F7F5F5';
@@ -29,7 +29,7 @@ const CARD_BG = '#F7F5F5';
 // light entry is the literal the card art was already drawn with, so light
 // mode renders exactly as before; the dark entries are the tones that clear
 // the dark stock. Photos and anything sitting on top of one keep their own
-// colors — only the stock and the ink drawn on it follow the theme.
+// colors Ã¢â‚¬â€ only the stock and the ink drawn on it follow the theme.
 const THEME_COLORS = {
     light: {
         fog: 0xFCFCFE, accent: '#5E81E2', cardBg: CARD_BG, shadow: 1,
@@ -46,7 +46,7 @@ const THEME_COLORS = {
 
 // Scene
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(THEME_COLORS[currentTheme].fog, 3, 7); // subtle fog — back cards fade toward bg color
+scene.fog = new THREE.Fog(THEME_COLORS[currentTheme].fog, 3, 7); // subtle fog Ã¢â‚¬â€ back cards fade toward bg color
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const cardgroup = new THREE.Group();
@@ -97,7 +97,7 @@ const SETTLE_HOLD_MS = 180;
 
 // Faces plus the playground cloth. The cloth's stand-in sits down early,
 // so loadedModels alone would end the shuffle while that paint was still
-// ahead — which is the hitch.
+// ahead Ã¢â‚¬â€ which is the hitch.
 function refreshLoaderTarget() {
     if (!loaderEl) return;
     const total = cardCount + 1;
@@ -106,12 +106,12 @@ function refreshLoaderTarget() {
     loaderTarget = ready ? 100 : (step / total) * 100;
 }
 
-// ── Where-you-left-off state (view + position within it) ─────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Where-you-left-off state (view + position within it) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Clicking into a project is a round trip, not an exit: coming back should put
 // the visitor where they were, not at the top of a view they weren't even on.
 //
 // sessionStorage, not localStorage, on purpose. This is "a moment ago", scoped
-// to one tab's browsing session — a visitor who comes back next week should get
+// to one tab's browsing session Ã¢â‚¬â€ a visitor who comes back next week should get
 // the carousel and the intro again, because that's the first impression, not a
 // setting they chose. Every access is wrapped: Safari's private mode throws on
 // the getter itself rather than returning null.
@@ -123,7 +123,7 @@ const VIEW_STATE_KEY = 'homeViewState';
 const VIEW_STATE_VERSION = 1;
 
 // Kept in memory and written from here, rather than read back off the DOM at
-// write time — the throttled writer below runs from the render loop, which
+// write time Ã¢â‚¬â€ the throttled writer below runs from the render loop, which
 // starts before the grid's own consts exist further down this file.
 const viewState = {
     v: VIEW_STATE_VERSION,
@@ -133,7 +133,7 @@ const viewState = {
 };
 
 // The angle is sampled from the render loop, so what gets stored is wherever
-// the ring happened to be at that moment — mid-drag, mid-fling, part-way
+// the ring happened to be at that moment Ã¢â‚¬â€ mid-drag, mid-fling, part-way
 // through the snap easing, or anywhere at all in the idle auto-rotate, which
 // drifts continuously and never snaps. Restoring any of those literally is how
 // a visitor comes back resting between two cards. Rounding to the nearest whole
@@ -185,7 +185,7 @@ function writeViewState() {
 // pointer rate, so those two go through here instead of writing directly:
 // leading edge plus a trailing write, so the value that actually gets stored is
 // where the motion came to rest, not wherever it happened to be 250ms in.
-// beforeunload isn't a substitute — it's skipped outright on mobile Safari and
+// beforeunload isn't a substitute Ã¢â‚¬â€ it's skipped outright on mobile Safari and
 // whenever the tab is discarded, which is exactly the trip we're saving for.
 function schedulePersist() {
     const now = performance.now();
@@ -200,7 +200,7 @@ function schedulePersist() {
 const restoredState = introSkipped ? readViewState() : null;
 
 // The carousel's angle is a single accumulating number that every input funnels
-// into (wheel, drag, scrubber, keyboard, the snap easing) — so restoring which
+// into (wheel, drag, scrubber, keyboard, the snap easing) Ã¢â‚¬â€ so restoring which
 // card faced the viewer is just putting that number back before the first
 // render, which is why this sits up here next to the group rather than down
 // with the view restore. Gated on introSkipped so a genuinely fresh visit is
@@ -213,7 +213,7 @@ if (restoredState) {
     cardgroup.rotation.y = restoredState.rotation;
 }
 
-// ── Sound effects — synthesized with Web Audio, no audio files ───────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Sound effects Ã¢â‚¬â€ synthesized with Web Audio, no audio files Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 let audioCtx = null;
 let noiseBuf = null;
 
@@ -231,18 +231,18 @@ function ensureAudio() {
     return audioCtx;
 }
 
-// Browsers only allow audio after a user gesture — unlock on the first one
+// Browsers only allow audio after a user gesture Ã¢â‚¬â€ unlock on the first one
 ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
     window.addEventListener(ev, ensureAudio, { once: true, passive: true }));
 
-// Filtered-noise burst — shared basis of all the sounds.
+// Filtered-noise burst Ã¢â‚¬â€ shared basis of all the sounds.
 // Optional second filter (lp) softens the top end so bursts read as soft
 // rustle/texture rather than a sharp percussive hit.
 function playNoise(opts) {
     const ctx = ensureAudio();
     if (!ctx) return;
     if (ctx.state !== 'running') {
-        // Context is still resuming from its very first gesture (async) — retry
+        // Context is still resuming from its very first gesture (async) Ã¢â‚¬â€ retry
         // once it's ready instead of dropping the sound, but only if that
         // happens soon, so a long-delayed gesture doesn't trigger a stale sound.
         const requestedAt = performance.now();
@@ -277,7 +277,7 @@ function playNoise(opts) {
     src.start(t, Math.random() * 0.5, dur + 0.1);
 }
 
-// Sound disabled for now — comment/uncomment the bodies below to toggle.
+// Sound disabled for now Ã¢â‚¬â€ comment/uncomment the bodies below to toggle.
 const sfx = {
     tick()   { /* playNoise({ dur: 0.03,  vol: 0.015, type: 'bandpass', freq: 2600, q: 5,   attack: 0.001 }); */ }, // ratchet click as ticker passes a card
     click()  { /* playNoise({ dur: 0.045, vol: 0.015, type: 'bandpass', freq: 1200, q: 3,   attack: 0.004 }); */ }, // subtle press
@@ -293,7 +293,7 @@ function playWhooshThrottled() {
 }
 
 // The rustle is off with the rest of sfx, so this stays cold until
-// playPaperSample() is actually called — the wav is a third-party fetch
+// playPaperSample() is actually called Ã¢â‚¬â€ the wav is a third-party fetch
 // that was racing the cards for no reason.
 let paperBuffer = null;
 let paperFetch = null;
@@ -330,7 +330,7 @@ function playPaperSample() {
         });
         return;
     }
-    const sliceDur = 0.4 + Math.random() * 0.2; // 400–600ms snippet — slower, more drawn out
+    const sliceDur = 0.4 + Math.random() * 0.2; // 400Ã¢â‚¬â€œ600ms snippet Ã¢â‚¬â€ slower, more drawn out
     const maxStart = Math.max(0, paperBuffer.duration - sliceDur - 0.05);
     const offset = Math.random() * maxStart;
 
@@ -341,13 +341,13 @@ function playPaperSample() {
     for (let i = startSample; i < startSample + sliceSamples; i++) sumSq += data[i] * data[i];
     const rms = Math.sqrt(sumSq / sliceSamples) || 0.0001;
 
-    const TARGET_RMS = 0.0004; // consistent perceived loudness across all plays — tune this to taste
+    const TARGET_RMS = 0.0004; // consistent perceived loudness across all plays Ã¢â‚¬â€ tune this to taste
     const gainMul = Math.min(TARGET_RMS / rms, 2.5); // upper clamp only, so TARGET_RMS can go arbitrarily quiet
 
     const t = ctx.currentTime;
     const src = ctx.createBufferSource();
     src.buffer = paperBuffer;
-    src.playbackRate.value = 0.78 + Math.random() * 0.1; // slowed down — reads as heavier/lazier, not a quick flick
+    src.playbackRate.value = 0.78 + Math.random() * 0.1; // slowed down Ã¢â‚¬â€ reads as heavier/lazier, not a quick flick
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(gainMul, t + 0.08); // slower attack
@@ -356,7 +356,7 @@ function playPaperSample() {
     src.start(t, offset, sliceDur + 0.05);
 }
 
-// Suppresses the hover paper sound while actively scrolling — wheel/swipe
+// Suppresses the hover paper sound while actively scrolling Ã¢â‚¬â€ wheel/swipe
 // handlers reset hoveredCard every tick, so mouse jitter mid-scroll would
 // otherwise re-trigger a "new hover" on every tick and stack the sound.
 let lastScrollMs = 0;
@@ -366,7 +366,7 @@ function isRecentlyScrolling() {
 }
 
 // updateScrubber() runs every rAF frame, and during a fast scroll the active
-// card can change on nearly every frame — without a floor on the gap between
+// card can change on nearly every frame Ã¢â‚¬â€ without a floor on the gap between
 // plays that becomes a dense, overlapping buzz instead of distinct ticks.
 let lastTickMs = 0;
 const TICK_MIN_GAP_MS = 55;
@@ -392,20 +392,20 @@ let dragStartY = 0;
 let hasDragged = false;
 const DRAG_THRESHOLD = 5;
 
-// ── Momentum after a fast drag/swipe release ─────────────────────────────────
-// A quick flick should keep spinning — for a few seconds, potentially several
-// laps — before friction brings it to a stop and it eases onto the nearest
+// Ã¢â€â‚¬Ã¢â€â‚¬ Momentum after a fast drag/swipe release Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// A quick flick should keep spinning Ã¢â‚¬â€ for a few seconds, potentially several
+// laps Ã¢â‚¬â€ before friction brings it to a stop and it eases onto the nearest
 // card, instead of stopping dead the instant the finger lifts.
 let isFlinging = false;
 let flingVelocity = 0;             // radians/frame, applied while flinging
 let pointerRotSamples = [];        // rolling {t, rot} samples while dragging (mouse or touch)
-const FLING_FRICTION = 0.97;       // per-frame velocity decay once released — slow, so a
+const FLING_FRICTION = 0.97;       // per-frame velocity decay once released Ã¢â‚¬â€ slow, so a
                                     // strong flick visibly coasts for a few seconds
-const FLING_MIN_VELOCITY = 0.002;  // rad/frame — below this, stop flinging and snap
-const FLING_START_VELOCITY = 0.006;// rad/frame — release speed needed to trigger a fling at all
-const FLING_VELOCITY_CAP = 0.45;   // rad/frame — clamp absurd flick speeds
+const FLING_MIN_VELOCITY = 0.002;  // rad/frame Ã¢â‚¬â€ below this, stop flinging and snap
+const FLING_START_VELOCITY = 0.006;// rad/frame Ã¢â‚¬â€ release speed needed to trigger a fling at all
+const FLING_VELOCITY_CAP = 0.45;   // rad/frame Ã¢â‚¬â€ clamp absurd flick speeds
 const FRAME_MS = 16.7;             // normalizes irregular event timing to "per frame"
-const VELOCITY_WINDOW_MS = 100;    // how far back we look to estimate release velocity —
+const VELOCITY_WINDOW_MS = 100;    // how far back we look to estimate release velocity Ã¢â‚¬â€
                                     // a short rolling window (not a single last-sample delta,
                                     // which lags behind and underestimates genuine fast flicks)
 
@@ -426,7 +426,7 @@ function velocityFromSamples(samples) {
     return ((last.rot - first.rot) / dt) * FRAME_MS;
 }
 
-// velocity: rad/frame estimate at release. Fast enough → let momentum carry
+// velocity: rad/frame estimate at release. Fast enough Ã¢â€ â€™ let momentum carry
 // the spin (possibly several laps); otherwise ease straight to the nearest card.
 function startFlingOrSnap(velocity) {
     const v = THREE.MathUtils.clamp(velocity, -FLING_VELOCITY_CAP, FLING_VELOCITY_CAP);
@@ -440,12 +440,12 @@ function startFlingOrSnap(velocity) {
     }
 }
 
-// Scrubber drag flag — declared here so canvas handlers can check it
+// Scrubber drag flag Ã¢â‚¬â€ declared here so canvas handlers can check it
 let scrubberDragging = false;
 
 // Auto-rotate after idle
 const IDLE_TIMEOUT = 5000;       // 5 seconds of no interaction
-const AUTO_ROTATE_SPEED = 0.0018; // radians per frame (~0.1°)
+const AUTO_ROTATE_SPEED = 0.0018; // radians per frame (~0.1Ã‚Â°)
 let lastInteractionTime = performance.now();
 let autoRotating = false;
 
@@ -480,12 +480,12 @@ window.matchMedia('(pointer: fine)').addEventListener('change', (e) => { hasFine
 const cardHoverY = new Array(cardCount).fill(0); // per-card hover lift
 const cardShadows = new Array(cardCount).fill(null); // per-card shadow mesh
 
-// Card-0 mouse-follow tilt — active during waitForScroll phase
+// Card-0 mouse-follow tilt Ã¢â‚¬â€ active during waitForScroll phase
 let card0TiltTargX = 0, card0TiltTargY = 0; // mouse-driven targets (radians)
 let card0TiltCurrX = 0, card0TiltCurrY = 0; // smoothly lerped current values
-const CARD0_TILT_MAX = 0.24;  // ~10° max tilt in either axis
+const CARD0_TILT_MAX = 0.24;  // ~10Ã‚Â° max tilt in either axis
 const CARD0_TILT_SPEED = 0.07;
-// Full lean grows the ground shadow by this fraction. Position stays put —
+// Full lean grows the ground shadow by this fraction. Position stays put Ã¢â‚¬â€
 // a shadow doesn't travel with the card's axes, only its size does.
 const CARD0_SHADOW_LEAN_SCALE = 0.22;
 const _shadowTiltEuler = new THREE.Euler(0, 0, 0, 'XYZ');
@@ -507,13 +507,13 @@ function pinCardShadow(shadow, tiltX, tiltY, groundY) {
 }
 
 // --- Intro animation state ---
-// 'idle' → 'waitForScroll' (About Me visible) → 'dealing' → 'done'
+// 'idle' Ã¢â€ â€™ 'waitForScroll' (About Me visible) Ã¢â€ â€™ 'dealing' Ã¢â€ â€™ 'done'
 let introPhase = 'idle';
-const cardIntroY = new Array(cardCount).fill(0); // per-card Y offset above normal (eases → 0)
+const cardIntroY = new Array(cardCount).fill(0); // per-card Y offset above normal (eases Ã¢â€ â€™ 0)
 
 // Per-card drop animation timing (performance.now() when drop started, -Infinity = not started)
 const cardDropStartTime = new Array(cardCount+1).fill(-Infinity);
-const CARD_DROP_DURATION = 500; // ms — linear drop, matches step interval
+const CARD_DROP_DURATION = 500; // ms Ã¢â‚¬â€ linear drop, matches step interval
 const CARD_DROP_START_Y = 12;   // how high above normal each card starts
 // Precomputed ms offset from introAnimStartTime at which each card should start dropping.
 // Set by triggerDealing(); checked every frame to avoid setTimeout jitter.
@@ -550,7 +550,7 @@ const renderer = new THREE.WebGLRenderer({
     alpha: true,
 });
 
-// Pixel ratio first — setSize sizes the backing store using whatever ratio is
+// Pixel ratio first Ã¢â‚¬â€ setSize sizes the backing store using whatever ratio is
 // set at the time, so setting it afterwards leaves the scene rendering at 1x.
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -587,7 +587,7 @@ cursorStyle.textContent = `
        This rule is the one that wins: style.css also has a #card-cursor block
        with the same properties, and this one is injected at runtime, so at
        equal specificity it comes later and takes the cascade. Anything about
-       the pill's own box has to be changed HERE — a change to the copy in
+       the pill's own box has to be changed HERE Ã¢â‚¬â€ a change to the copy in
        style.css is dead unless it carries a class (.is-soon does, which is why
        the accent fill works at all). */
     transition:
@@ -654,7 +654,7 @@ cardCursorLabel.textContent = 'open project';
 cardCursor.appendChild(cardCursorLabel);
 
 // The one label that is a state rather than an instruction, so the pill fills
-// with the theme's accent when it is showing — see #card-cursor.is-soon.
+// with the theme's accent when it is showing Ã¢â‚¬â€ see #card-cursor.is-soon.
 const COMING_SOON_LABEL = 'coming soon';
 
 // How long .cc-label takes to fade out, kept in step with style.css. The words
@@ -704,7 +704,7 @@ document.body.appendChild(dotCursor);
 const ambientLight = new THREE.AmbientLight(0xffffff, 2);
 scene.add(ambientLight);
 
-// ── Ember particles ──────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Ember particles Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const PARTICLE_COUNT = 130;
 const pPositions  = new Float32Array(PARTICLE_COUNT * 3);
 const pColors     = new Float32Array(PARTICLE_COUNT * 3);
@@ -715,7 +715,7 @@ const pStartX     = new Float32Array(PARTICLE_COUNT);
 const pStartZ     = new Float32Array(PARTICLE_COUNT);
 const pBirthTime  = new Float32Array(PARTICLE_COUNT); // ms, negative = pre-spawned
 
-// Palette matching the CSS gradient colours — warm-heavy to match bottom glow
+// Palette matching the CSS gradient colours Ã¢â‚¬â€ warm-heavy to match bottom glow
 const EMBER_PALETTE = [
     [0.863, 0.290, 0.149], // #dc4a26 warm red-orange
     [0.792, 0.541, 0.016], // #ca8a04 amber
@@ -766,7 +766,7 @@ function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
 }
 
-// Inverse of easeOutCubic — given a rotation fraction y, returns the time t
+// Inverse of easeOutCubic Ã¢â‚¬â€ given a rotation fraction y, returns the time t
 // at which easeOutCubic(t) = y.  Used to sync card drops with the rotation curve.
 function easeOutCubicInverse(y) {
     return 1 - Math.cbrt(1 - y);
@@ -777,18 +777,18 @@ function easeOutCubicInverse(y) {
 const texLoader = new THREE.TextureLoader();
 texLoader.crossOrigin = 'anonymous';
 
-// ── Card back texture (theme-aware, drawn procedurally) ──────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card back texture (theme-aware, drawn procedurally) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Mirrors the Figma card-back frames: light bg + blue border in light mode,
 // dark bg + yellow border in dark mode, with the HFYJ mark recolored to match.
 const CARD_BACK_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame
-// Same reasoning as the faces — see cardTextureScale() below.
+// Same reasoning as the faces Ã¢â‚¬â€ see cardTextureScale() below.
 const CARD_BACK_SCALE = () => CARD_TEXTURE_SCALE;
 
 const hfyjMarkImg = new Image();
 hfyjMarkImg.src = './assets/hfyj-mark.svg';
 const hfyjMarkReady = new Promise((resolve) => { hfyjMarkImg.onload = resolve; });
 
-// Recolors a same-shape image by compositing a solid fill through its alpha —
+// Recolors a same-shape image by compositing a solid fill through its alpha Ã¢â‚¬â€
 // lets one logo asset serve both the blue (light) and yellow (dark) card backs.
 function tintedImage(img, w, h, color) {
     const off = document.createElement('canvas');
@@ -803,8 +803,8 @@ function tintedImage(img, w, h, color) {
 }
 
 // Every card shows the same back, so there is one canvas and one texture for
-// all of them. Painting into that same canvas — rather than building a fresh
-// CanvasTexture per theme change, as this used to — means a theme change costs
+// all of them. Painting into that same canvas Ã¢â‚¬â€ rather than building a fresh
+// CanvasTexture per theme change, as this used to Ã¢â‚¬â€ means a theme change costs
 // one re-upload instead of one allocation plus nine material invalidations, and
 // stops leaking the previous texture on every toggle.
 const cardBackCanvas = document.createElement('canvas');
@@ -870,7 +870,7 @@ function updateCardBackTexture(theme) {
     // storage is fixed at its first size.
     if (cardBackCanvas.width !== w0) cardBackTexture.dispose();
     // The materials already point at this texture object, so nothing about them
-    // has changed — marking them dirty would only push every card back through
+    // has changed Ã¢â‚¬â€ marking them dirty would only push every card back through
     // program resolution for a texture swap that never happened.
     cardBackTexture.needsUpdate = true;
 }
@@ -879,12 +879,12 @@ function updateCardBackTexture(theme) {
 // own images and layout, so what's registered here is a repaint closure rather
 // than a material: it redraws that card's canvas in the new theme from assets
 // its loader has already resolved. Cards register as they finish loading, so a
-// toggle that lands mid-load only skips faces that haven't drawn yet — and
+// toggle that lands mid-load only skips faces that haven't drawn yet Ã¢â‚¬â€ and
 // those draw in currentTheme, which applyTheme has already set.
 const cardFaceRepaints = [];
 
 // Repainting every face in one go means re-uploading all nine card textures in
-// the same frame — tens of megabytes of texture traffic at once, which the
+// the same frame Ã¢â‚¬â€ tens of megabytes of texture traffic at once, which the
 // driver takes long enough over that the scene visibly locks. The work itself
 // is unavoidable; doing it all in one frame is not.
 //
@@ -917,37 +917,37 @@ function updateCardFaceTextures(theme) {
     step();   // the card in focus flips on this frame, not the next one
 }
 
-// Pre-load shared card back texture — resolves as a promise so card loaders can await it
+// Pre-load shared card back texture Ã¢â‚¬â€ resolves as a promise so card loaders can await it
 const backTexturePromise = hfyjMarkReady.then(() => makeCardBackTexture(currentTheme));
 
-// Page URLs for each card — edit these to match your Framer pages
+// Page URLs for each card Ã¢â‚¬â€ edit these to match your Framer pages
 const CARD_URLS = [
-    "aboutme.html",                        // 0 — About Me
-    "puregym.html",                        // 1 — Puregym
-    "techatnyu.html",                      // 2 — tech@nyu
-    "clarusai.html",                       // 3 — Clarus AI
-    "povi.html",                           // 4 — POVI
-    "the-dial.html",                       // 5 — The Dial
-    "bmw.html",                            // 6 — BMW Designworks
-    "#",                                    // 7 — Nenos Inc. (Coming Soon)
-    // 8 — Playground. Local now: playground.html is the built page, and it is
+    "aboutme.html",                        // 0 Ã¢â‚¬â€ About Me
+    "puregym.html",                        // 1 Ã¢â‚¬â€ Puregym
+    "techatnyu.html",                      // 2 Ã¢â‚¬â€ tech@nyu
+    "clarusai.html",                       // 3 Ã¢â‚¬â€ Clarus AI
+    "povi.html",                           // 4 Ã¢â‚¬â€ POVI
+    "the-dial.html",                       // 5 Ã¢â‚¬â€ The Dial
+    "bmw.html",                            // 6 Ã¢â‚¬â€ BMW Designworks
+    "#",                                    // 7 Ã¢â‚¬â€ Nenos Inc. (Coming Soon)
+    // 8 Ã¢â‚¬â€ Playground. Local now: playground.html is the built page, and it is
     // the one this site should be sending people to. It used to point at the
     // live Framer site because there was nothing here to point at.
     "playground.html",
 ];
 
-// Cards with no real destination page yet — hovering shows "coming soon" and
+// Cards with no real destination page yet Ã¢â‚¬â€ hovering shows "coming soon" and
 // clicking the front card is a no-op instead of navigating. Keep in sync with
 // the "#" placeholders above.
 const COMING_SOON_INDICES = new Set([7]);
 
 
-// ── Card → page hand-off ─────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card Ã¢â€ â€™ page hand-off Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 //
 // Opening a card should read as the card *becoming* the page behind it: its
 // artwork travelling to where that case page's hero sits, its title to where
-// the <h1> sits. The View Transitions API cannot do this — the card is drawn in
-// WebGL, so there is no element to give a view-transition-name to — and in any
+// the <h1> sits. The View Transitions API cannot do this Ã¢â‚¬â€ the card is drawn in
+// WebGL, so there is no element to give a view-transition-name to Ã¢â‚¬â€ and in any
 // case this page has no idea where the destination's hero will land, because
 // every case page sets its own column width and its own hero aspect.
 //
@@ -958,7 +958,7 @@ const COMING_SOON_INDICES = new Set([7]);
 //
 // The key and the shape below are card-transition.js's. If the two ever
 // diverge the stash is simply ignored and the case page loads exactly as it
-// does without one — which is also what happens on a typed URL, a reload, or
+// does without one Ã¢â‚¬â€ which is also what happens on a typed URL, a reload, or
 // under prefers-reduced-motion.
 const HANDOFF_KEY = 'hfyj:card-transition';
 // Nothing is stashed for the trip back. The same geometry used to be kept
@@ -966,7 +966,7 @@ const HANDOFF_KEY = 'hfyj:card-transition';
 // came out of; going home is a plain fade now, which needs to know nothing
 // about where the card is.
 
-// Every project card face is drawn into the same 1059×1449 design frame (see
+// Every project card face is drawn into the same 1059Ãƒâ€”1449 design frame (see
 // TEMPLATE_CARD and PUREGYM_DESIGN, which agree), so the photo well and the
 // title sit in the same place on all of them. Held as fractions of the face so
 // they survive whatever size the card happens to be projected at.
@@ -990,13 +990,13 @@ const PLAYGROUND_INDEX = 8;
 // so the live cloth does not cover the stock chrome. The flight starts
 // from this same box.
 const PLAYGROUND_FACE_LAYOUT = {
-    // The grass opening on the cover still — where the live table grows
+    // The grass opening on the cover still Ã¢â‚¬â€ where the live table grows
     // from when the card opens.
     photo: { x: 21 / 1059, y: 20 / 1449, w: 1017 / 1059, h: 1332 / 1449 },
 };
 
 // Both halves have to name the destination the same way, and they only share a
-// URL. Last path segment, minus any .html — so "puregym.html" here and
+// URL. Last path segment, minus any .html Ã¢â‚¬â€ so "puregym.html" here and
 // "/puregym" as served in production both come out as "puregym".
 function handoffSlug(url) {
     const last = url.split('#')[0].split('?')[0].split('/').pop() || '';
@@ -1005,7 +1005,7 @@ function handoffSlug(url) {
 
 // The card face's box on screen. The front card sits very nearly square-on to
 // the camera, so projecting its four corners and taking their bounding box is
-// the rectangle a reader would draw around it — a pixel or two off the true
+// the rectangle a reader would draw around it Ã¢â‚¬â€ a pixel or two off the true
 // perspective quad, and a rectangle is what the destination can FLIP from.
 function projectCardFaceRect(group) {
     const mesh = group.children[0];
@@ -1044,13 +1044,13 @@ function stashCardHandoff(index, url) {
             // Only the picture travels, never the card around it. The photo is
             // the part that becomes the hero; 900px across is past the size it
             // is ever painted at, and keeps the base64 inside sessionStorage's
-            // budget — which is spent in UTF-16, so every character costs two
+            // budget Ã¢â‚¬â€ which is spent in UTF-16, so every character costs two
             // bytes.
             //
             // Drawn fresh from the card's own source image rather than cut out
             // of the painted face. The face has the folded corner in the
             // well's top-left with the "#00X" tag printed on it, and a crop of
-            // the face carried both into the flight — the tag would grow with
+            // the face carried both into the flight Ã¢â‚¬â€ the tag would grow with
             // the picture on its way to the hero. From the source it is just the
             // picture, framed exactly as the well frames it, and at the source's
             // own resolution rather than the face's (which is drawn only as big
@@ -1109,7 +1109,7 @@ function stashCardHandoff(index, url) {
             };
         }
         sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(stash));
-    } catch (err) { /* private mode, or no room — the case page copes either way */ }
+    } catch (err) { /* private mode, or no room Ã¢â‚¬â€ the case page copes either way */ }
 }
 
 // The one place a card actually opens its page. Both the click and the
@@ -1125,7 +1125,7 @@ function openCard(index) {
 }
 
 
-// Responsive card scale — steps down at medium and narrow screens
+// Responsive card scale Ã¢â‚¬â€ steps down at medium and narrow screens
 function getCardScale() {
     if (window.innerWidth <= 768)  return 0.68;
     if (window.innerWidth <= 1100) return 0.72;
@@ -1133,7 +1133,7 @@ function getCardScale() {
     return 0.78;
 }
 
-// Carousel ring radius — proportional to card scale so spacing stays consistent
+// Carousel ring radius Ã¢â‚¬â€ proportional to card scale so spacing stays consistent
 function getCarouselRadius() {
     if (window.innerWidth <= 768)  return 1.75;
     if (window.innerWidth <= 1100) return 1.85;
@@ -1142,11 +1142,11 @@ function getCarouselRadius() {
 }
 
 // Builds a flat card with rounded corners (like a playing card).
-// Only the 4 corner edges are curved — top/bottom/left/right stay straight.
+// Only the 4 corner edges are curved Ã¢â‚¬â€ top/bottom/left/right stay straight.
 function makeRoundedCardGeo(cardW, cardH, radius) {
     const hw = cardW / 2, hh = cardH / 2;
     const geo = new THREE.ShapeGeometry(makeRoundedCardShape(cardW, cardH, radius));
-    // ShapeGeometry UVs are raw x/y — remap to [0,1] so textures display correctly
+    // ShapeGeometry UVs are raw x/y Ã¢â‚¬â€ remap to [0,1] so textures display correctly
     const uvAttr = geo.attributes.uv;
     const posAttr = geo.attributes.position;
     for (let i = 0; i < uvAttr.count; i++) {
@@ -1177,7 +1177,7 @@ function makeRoundedCardShape(cardW, cardH, radius) {
     return shape;
 }
 
-// Shared grain texture — subtle paper/card surface bump, created once and reused
+// Shared grain texture Ã¢â‚¬â€ subtle paper/card surface bump, created once and reused
 function makeGrainTexture(size = 128) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
@@ -1196,11 +1196,11 @@ function makeGrainTexture(size = 128) {
 }
 const grainTex = makeGrainTexture();
 
-// ── Card stock ───────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card stock Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Three things make the cards read as printed cards rather than flat pictures:
 //
-//   1. An embossed linen finish — the fine basket weave pressed into trading
-//      and playing cards — kept as a height map, never painted into the art.
+//   1. An embossed linen finish Ã¢â‚¬â€ the fine basket weave pressed into trading
+//      and playing cards Ã¢â‚¬â€ kept as a height map, never painted into the art.
 //   2. A sliver of thickness: an edge band joining the face to the back.
 //   3. The mouse as a faint light. The weave is shaded from the cursor's
 //      direction, so moving it slides the highlights and the tiny shadows
@@ -1212,17 +1212,17 @@ const grainTex = makeGrainTexture();
 // to be found by looking for it, not noticed.
 const CARD_STOCK = {
     thickness: 0.005,      // card-local units; a face is 1.7 tall (~real card stock)
-    tiles: 1.15,           // height-map tiles down the card (fibres ~1–3% of its height)
+    tiles: 1.15,           // height-map tiles down the card (fibres ~1Ã¢â‚¬â€œ3% of its height)
     relief: 0.5,           // how far the surface tilts the normal
     // The texture is applied in perceived lightness (cube root of linear
     // light, i.e. CIE L* / 116), not in linear light. Linear light treats the
-    // two stocks completely differently: the same added light is ~8× more
+    // two stocks completely differently: the same added light is ~8Ãƒâ€” more
     // visible on #373737 than on #F7F5F5, and multiplying near-white runs
     // into 1.0 and clips. In lightness units one number looks the same on both.
-    reliefGain: 0.15,      // relief → lightness (≈ 17 L* per unit of relief)
+    reliefGain: 0.15,      // relief Ã¢â€ â€™ lightness (Ã¢â€°Ë† 17 L* per unit of relief)
     poolGain: 0.03,        // the soft brightening right under the cursor
-    poolFalloff: 1.6,      // how quickly that pool fades, per unit²
-    sheen: 0.008,          // tiny glints off the fibre tops, in lightness (≈ 0.9 L*)
+    poolFalloff: 1.6,      // how quickly that pool fades, per unitÃ‚Â²
+    sheen: 0.008,          // tiny glints off the fibre tops, in lightness (Ã¢â€°Ë† 0.9 L*)
     // Per-theme trim on top. Equal lightness still reads stronger on the dark
     // stock: light-on-dark specks stand out, and the eye is dark-adapted there.
     themeGain: { light: 1.25, dark: 0.6 },
@@ -1235,8 +1235,8 @@ const CARD_STOCK = {
         halo: 0.2,         // half-width of the soft glow around it
         length: 0.85,      // how far along the line before it fades out
         lead: 0.35,        // the streak runs this much ahead of the cursor
-        coreGain: 0.02,    // brightness of the centre line (≈ 2.3 L*)
-        haloGain: 0.01,    // brightness of the glow (≈ 1.2 L*)
+        coreGain: 0.02,    // brightness of the centre line (Ã¢â€°Ë† 2.3 L*)
+        haloGain: 0.01,    // brightness of the glow (Ã¢â€°Ë† 1.2 L*)
         fibre: 0.6,        // how much the fibres break the line up
     },
     lightLift: 0.3,        // how far in front of the face the cursor light floats (lower = more raking)
@@ -1247,8 +1247,8 @@ const CARD_STOCK_HEIGHT_PX = 512;
 // The stock's surface, as heights in 0..1.
 //
 // Not a weave. A linen finish is a crosshatch pressed in by a patterned roller,
-// and however it is softened it reads as a grid. Uncoated card stock — felt and
-// vellum finishes, the "papery" playing cards — has no pattern at all. Under a
+// and however it is softened it reads as a grid. Uncoated card stock Ã¢â‚¬â€ felt and
+// vellum finishes, the "papery" playing cards Ã¢â‚¬â€ has no pattern at all. Under a
 // raking light it shows three things, at three scales, and this is those three:
 //
 //   1. Formation: the sheet is never perfectly even. Fibres settle into soft
@@ -1267,7 +1267,7 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
     const wrap = (v) => ((v % N) + N) % N;
     const smooth = (t) => t * t * (3 - 2 * t);
 
-    // Wrapping value noise on a cells×cells lattice
+    // Wrapping value noise on a cellsÃƒâ€”cells lattice
     function valueNoise(cells) {
         const lat = new Float32Array(cells * cells).map(() => rand());
         const out = new Float32Array(N * N);
@@ -1287,12 +1287,12 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
 
     // 1. Formation
     const f1 = valueNoise(5), f2 = valueNoise(12), f3 = valueNoise(28);
-    // 2. Fibres — laid down as soft strokes. Raised and pressed-in fibres go in
+    // 2. Fibres Ã¢â‚¬â€ laid down as soft strokes. Raised and pressed-in fibres go in
     // separate layers and each keeps its highest value rather than summing, so
     // crossings stay crossings instead of building up into blobs.
     const up = new Float32Array(N * N), down = new Float32Array(N * N);
     // A tile is ~0.9 of a card's height, so 1% of the card is ~4.5px here.
-    // Real fibres are ~1–3mm on an 88mm card: 5–15px, short and fine. Longer
+    // Real fibres are ~1Ã¢â‚¬â€œ3mm on an 88mm card: 5Ã¢â‚¬â€œ15px, short and fine. Longer
     // than that and they overlap into a network that reads as crumpled.
     const FIBRES = Math.round(3200 * (N / 512) * (N / 512));
     for (let i = 0; i < FIBRES; i++) {
@@ -1327,7 +1327,7 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
             }
         }
     }
-    // 3. Tooth — white noise, softened twice so it is a smooth eggshell grain
+    // 3. Tooth Ã¢â‚¬â€ white noise, softened twice so it is a smooth eggshell grain
     // rather than static (once left it reading as sandpaper)
     const soften = (src) => {
         const out = new Float32Array(N * N);
@@ -1358,7 +1358,7 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
     }
 
     // The shader only ever wants the surface's SLOPE, so that is what is
-    // stored — x slope in red, y slope in green — worked out here once
+    // stored Ã¢â‚¬â€ x slope in red, y slope in green Ã¢â‚¬â€ worked out here once
     // instead of from four height lookups per pixel, every frame. Slopes are
     // stretched to fill the 8 bits and the stretch is handed to the shader.
     const range = hi - lo;
@@ -1388,7 +1388,7 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
     tex.magFilter = THREE.LinearFilter;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.generateMipmaps = true;
-    // 4× is all a fine grain needs at a card's tilt; the max (often 16×)
+    // 4Ãƒâ€” is all a fine grain needs at a card's tilt; the max (often 16Ãƒâ€”)
     // costs texture bandwidth on every pixel of every face for nothing visible.
     tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
     tex.needsUpdate = true;
@@ -1396,7 +1396,7 @@ function makeCardStockHeightTexture(size = CARD_STOCK_HEIGHT_PX) {
 }
 
 // Building the surface is ~a quarter-million-pixel job, so it is kept off the
-// load path: the cards start perfectly flat (slope 0 — the texture is only
+// load path: the cards start perfectly flat (slope 0 Ã¢â‚¬â€ the texture is only
 // ever a subtle difference on top of the artwork, so nothing looks missing)
 // and the real surface is swapped in once the browser is idle.
 const _flatStock = new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, THREE.RGBAFormat);
@@ -1480,7 +1480,7 @@ float stockPool() {
 }
 `;
 // The face: the weave tilts the normal, and only the DIFFERENCE that tilt
-// makes is applied — a flat card under the same light is left exactly as
+// makes is applied Ã¢â‚¬â€ a flat card under the same light is left exactly as
 // painted, so the artwork's colours never shift, only the texture breathes.
 const CARD_STOCK_FRAG_FACE = `
 {
@@ -1558,6 +1558,221 @@ function applyCardStock(material, { face = true, aspect = 1 } = {}) {
     material.needsUpdate = true;
 }
 
+// Depth: cards further back read a little fainter and a little out of
+// focus. The blur is a few extra samples of the card's own picture, only
+// taken when the card is set soft (uCardSoft > 0), so the front card costs
+// nothing extra. Ring (laptop): by how far round the back a card is.
+// Pile (phone): by how far down the pile.
+const CARD_DEPTH = {
+    pile: [{ a: 1, s: 0 }, { a: 0.8, s: 0.004 }, { a: 0.62, s: 0.008 }],
+    ringClear: 1.15,           // card steps from the front that stay clear
+    ringA: 0.65, ringS: 0.012, // the very back of the ring
+    ease: 0.2,
+};
+const CARD_SOFT_GLSL = `
+uniform float uCardSoft;
+vec4 cardSoftSample( sampler2D s, vec2 uv ) {
+    vec4 c = texture2D( s, uv );
+    if ( uCardSoft < 0.0001 ) return c;
+    c *= 0.2;
+    for ( int k = 0; k < 8; k++ ) {
+        float a = float( k ) * 0.785398 + 0.392699;
+        vec2 o = vec2( cos( a ), sin( a ) * 0.7309 ) * uCardSoft;
+        c += texture2D( s, uv + o ) * 0.06 + texture2D( s, uv + o * 0.5 ) * 0.04;
+    }
+    return c;
+}
+`;
+function cardSoftPatchMat(material, U) {
+    if (material.userData.softPatched) return;
+    material.userData.softPatched = true;
+    const prevCompile = material.onBeforeCompile;
+    const prevKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, r) => {
+        prevCompile.call(material, shader, r);
+        shader.uniforms.uCardSoft = U;
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment)
+            .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\n' + CARD_SOFT_GLSL)
+            .split('texture2D( map, vMapUv )').join('cardSoftSample( map, vMapUv )')
+            .split('texture2D( uMapB, vMapUv )').join('cardSoftSample( uMapB, vMapUv )');
+    };
+    material.customProgramCacheKey = () => prevKey() + '|soft';
+    material.needsUpdate = true;
+}
+// A card's whole look for depth and the screen edge: opacity a, softness s
+function cardSetLook(card, a, s) {
+    const q = Math.round(a * 200) / 200;
+    if (card.userData.stackAlpha !== q) { stackSetAlpha(card, q); card.userData.stackAlpha = q; }
+    if (card.userData.softU) card.userData.softU.value = s;
+}
+function ringDepthUpdate() {
+    const apc = (Math.PI * 2) / cardCount;
+    for (let i = 0; i < cardCount; i++) {
+        const card = cards[i];
+        if (!card || cbOwns(i)) continue;
+        let a = (i * apc + cardgroup.rotation.y) % (Math.PI * 2);
+        if (a > Math.PI) a -= Math.PI * 2;
+        if (a < -Math.PI) a += Math.PI * 2;
+        const t = cbClamp((Math.abs(a) / apc - CARD_DEPTH.ringClear) / (cardCount / 2 - CARD_DEPTH.ringClear));
+        const e = t * t * (3 - 2 * t);
+        cardSetLook(card, 1 - (1 - CARD_DEPTH.ringA) * e, CARD_DEPTH.ringS * e);
+    }
+}
+
+// Window: each card's photo is its own layer, set back behind the face, and
+// the well is cut out of the face to look through. How far the picture slides
+// inside the frame depends only on how far the card is turned away from
+// facing the screen: square on, it sits centred; tilted, more of it shows on
+// the side turned away, like a real window seen at an angle. The
+// photo is painted a margin bigger than the well, so there is always more
+// picture to show; a soft clamp keeps it from ever running out.
+const CARD_WIN = {
+    depth: 0.22,      // how far behind the face the picture sits, in card units (card is 1.7 tall)
+    max: 0.12,        // the most it can slide either way, in card units
+};
+const WIN_MARGIN_PX = Math.ceil(CARD_WIN.max * (1449 / 1.7)) + 4;   // the same, in design px
+const WIN_BLANK = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+WIN_BLANK.needsUpdate = true;
+const WIN_SHARED = {
+    uWinDepth: { value: new THREE.Vector2(CARD_WIN.depth, CARD_WIN.max) },
+    uWinSize: { value: new THREE.Vector2(1.7 * (1059 / 1449), 1.7) },
+};
+const CARD_WIN_GLSL = `
+uniform sampler2D uWinPhoto;
+uniform sampler2D uWinPhotoB;
+uniform vec4 uWinRect;
+uniform float uWinOn;
+uniform vec2 uWinDepth;
+uniform vec2 uWinSize;
+varying vec3 vWinTilt;
+// Where the screen's straight-ahead, through this point of the face, meets the picture
+vec2 winUv( vec2 uv ) {
+    vec2 off = vWinTilt.xy / max( -vWinTilt.z, 0.2 ) * uWinDepth.x;
+    off = uWinDepth.y * tanh( off / uWinDepth.y );
+    return ( uv + off / uWinSize - uWinRect.xy ) / uWinRect.zw;
+}
+vec4 winSample( sampler2D face, sampler2D photo, vec2 uv ) {
+    vec4 f = cardSoftSample( face, uv );
+    if ( uWinOn < 0.5 ) return f;
+    vec4 p = cardSoftSample( photo, winUv( uv ) );
+    return vec4( mix( p.rgb, f.rgb, f.a ), 1.0 );
+}
+vec4 winTexGrad( sampler2D s, vec2 uv, vec2 gx, vec2 gy ) {
+    vec4 f = textureGrad( s, uv, gx, gy );
+    if ( uWinOn < 0.5 ) return f;
+    vec4 p = textureGrad( uWinPhoto, winUv( uv ), gx / uWinRect.zw, gy / uWinRect.zw );
+    return vec4( mix( p.rgb, f.rgb, f.a ), 1.0 );
+}
+`;
+function cardWinPatchMat(material, U) {
+    if (material.userData.winPatched) return;
+    material.userData.winPatched = true;
+    material.userData.winU = U;
+    const prevCompile = material.onBeforeCompile;
+    const prevKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, r) => {
+        prevCompile.call(material, shader, r);
+        Object.assign(shader.uniforms, WIN_SHARED, U);
+        shader.vertexShader = shader.vertexShader
+            .replace('#include <common>', '#include <common>\nvarying vec3 vWinTilt;')
+            .replace('#include <project_vertex>',
+                '#include <project_vertex>\n\tvWinTilt = -normalize( inverse( mat3( modelMatrix ) ) * vec3( viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2] ) );');
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <common>', '#include <common>\n#define CARD_WIN 1')
+            .replace('void main() {', CARD_WIN_GLSL + '\nvoid main() {')
+            .split('cardSoftSample( map, vMapUv )').join('winSample( map, uWinPhoto, vMapUv )')
+            .split('cardSoftSample( uMapB, vMapUv )').join('winSample( uMapB, uWinPhotoB, vMapUv )');
+    };
+    material.customProgramCacheKey = () => prevKey() + '|win';
+    material.needsUpdate = true;
+}
+function winMakeUniforms(material) {
+    const L = material.map && material.map.image && material.map.image.__win;
+    return {
+        uWinPhoto: { value: L ? L.texture : WIN_BLANK },
+        uWinPhotoB: { value: L ? L.texture : WIN_BLANK },
+        uWinRect: { value: L ? L.rect.clone() : new THREE.Vector4(0, 0, 1, 1) },
+        uWinOn: { value: L ? 1 : 0 },
+    };
+}
+// The photo layer for one face canvas: painted a margin bigger than the box
+// the photo used to be drawn into, at the face's own scale.
+function winPaintPhoto(faceCanvas, img, box, s) {
+    let L = faceCanvas.__win;
+    if (!L) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 2;
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        L = faceCanvas.__win = { canvas: c, ctx: c.getContext('2d'), texture: t, rect: new THREE.Vector4() };
+    }
+    const M = WIN_MARGIN_PX;
+    const ex = box.x - M, ey = box.y - M, ew = box.w + 2 * M, eh = box.h + 2 * M;
+    const w = Math.max(2, Math.round(ew * s)), h = Math.max(2, Math.round(eh * s));
+    if (L.canvas.width !== w || L.canvas.height !== h) {
+        L.canvas.width = w;
+        L.canvas.height = h;
+        L.texture.dispose();
+    }
+    L.ctx.imageSmoothingEnabled = true;
+    L.ctx.imageSmoothingQuality = 'high';
+    winDrawExtended(L.ctx, img, M * s, M * s, box.w * s, box.h * s);
+    L.texture.needsUpdate = true;
+    L.rect.set(ex / 1059, 1 - (ey + eh) / 1449, ew / 1059, eh / 1449);
+}
+// Draws the photo exactly as it was always framed in the box (cover-fit, no
+// extra zoom, nothing lost), and fills the margin round the box with what is
+// past it: more of the real photo where the cover-fit trimmed some, a mirror
+// image of the edge where the photo ends.
+function winDrawExtended(ctx, img, bx, by, bw, bh) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+    const sc = Math.max(bw / iw, bh / ih);
+    const dw = iw * sc, dh = ih * sc;
+    const dx = bx + (bw - dw) / 2, dy = by + (bh - dh) / 2;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    for (let j = -1; j <= 1; j++) {
+        for (let i = -1; i <= 1; i++) {
+            ctx.save();
+            // A flipped copy drawn from its far edge, so it sits right
+            // against the photo, mirrored across the shared edge
+            ctx.translate(i > 0 ? dx + 2 * dw : dx, j > 0 ? dy + 2 * dh : dy);
+            ctx.scale(i ? -1 : 1, j ? -1 : 1);
+            ctx.drawImage(img, 0, 0, dw, dh);
+            ctx.restore();
+        }
+    }
+}
+// Clears whatever the current clip covers, so the photo shows through there
+function winCutHole(ctx) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+}
+// The soft shadow the frame casts into the well (see tmplPhotoInnerShadow
+// for why the frame is drawn off the canvas and only its shadow sent back)
+function winInnerShadow(ctx, path, s) {
+    const away = ctx.canvas.width + 4000;
+    ctx.save();
+    ctx.clip(path);
+    ctx.translate(away, 0);
+    const frame = new Path2D();
+    frame.rect(-400 * s, -400 * s, ctx.canvas.width + 800 * s, ctx.canvas.height + 800 * s);
+    frame.addPath(path);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
+    ctx.shadowBlur = 36 * s;
+    ctx.shadowOffsetX = -away;
+    ctx.shadowOffsetY = 6 * s;
+    ctx.fillStyle = '#000';
+    ctx.fill(frame, 'evenodd');
+    ctx.restore();
+}
+
 // The band round the card's edge: the outline extruded back to the card's
 // thickness, sides only (the faces are already there, front and back).
 function makeCardEdgeGeo(cardW, cardH, radius, depth) {
@@ -1610,7 +1825,7 @@ function updateCardStockLight() {
     else u.uStockLight.value.lerp(_stockTarget, 0.18);
 }
 
-// Procedural card shadow texture — soft ellipse #8D88A2 at 50%.
+// Procedural card shadow texture Ã¢â‚¬â€ soft ellipse #8D88A2 at 50%.
 // Uses a radial gradient (not ctx.filter blur) because iOS Safari ignores
 // canvas filter, which caused the shadow to render as a sharp ellipse on mobile.
 // Higher resolution + many color stops (vs. a bare 3-stop gradient) avoid banding
@@ -1636,12 +1851,12 @@ cardShadowTex.minFilter = THREE.LinearFilter;
 cardShadowTex.magFilter = THREE.LinearFilter;
 cardShadowTex.generateMipmaps = false;
 
-// Nenos is not open yet. The card itself stays solid — same stock,
-// same shadow as the rest of the deck — and only what is printed on it is
+// Nenos is not open yet. The card itself stays solid Ã¢â‚¬â€ same stock,
+// same shadow as the rest of the deck Ã¢â‚¬â€ and only what is printed on it is
 // faded, in buildTemplateCardTexture (see `comingSoon` there).
 const COMING_SOON_INK = 0.5;
 
-// Helper — place & register a finished card group into the carousel
+// Helper Ã¢â‚¬â€ place & register a finished card group into the carousel
 function _placeCard(i, group) {
     const s = getCardScale();
     group.scale.set(s, s, s);
@@ -1655,7 +1870,7 @@ function _placeCard(i, group) {
     group.rotation.y = THREE.MathUtils.degToRad(angle);
     // First visit: hidden until the deal drops them in. A return already
     // saw that, and waiting for the last of nine textures is the pause
-    // after Playground — the page is up, the ring is empty, then
+    // after Playground Ã¢â‚¬â€ the page is up, the ring is empty, then
     // everything appears at once. Sit each card down as it finishes.
     // Hidden while the build-in still has it; its stand-in is on screen.
     group.visible = !cbOwns(i);
@@ -1678,13 +1893,16 @@ function _placeCard(i, group) {
     cardShadows[i] = shadowMesh;
 
     // Card stock: the face gets the linen finish, and an edge band gives the
-    // card its thickness — the back sits that far behind the face.
+    // card its thickness Ã¢â‚¬â€ the back sits that far behind the face.
     const frontMesh = group.children[0];
     frontMesh.geometry.computeBoundingBox();
     const bb = frontMesh.geometry.boundingBox;
     const w = bb.max.x - bb.min.x;
     const h = bb.max.y - bb.min.y;
     applyCardStock(frontMesh.material, { aspect: w / h });
+    group.userData.softU = { value: 0 };
+    cardSoftPatchMat(frontMesh.material, group.userData.softU);
+    cardWinPatchMat(frontMesh.material, winMakeUniforms(frontMesh.material));
     cbAttach(i, group);
 
     const edgeMat = new THREE.MeshBasicMaterial({ color: cardEdgeColor(currentTheme) });
@@ -1703,6 +1921,7 @@ function _placeCard(i, group) {
             map: backTex, side: THREE.FrontSide
         });
         applyCardStock(mat, { aspect: w / h });
+        cardSoftPatchMat(mat, group.userData.softU);
         const backMesh = new THREE.Mesh(geo, mat);
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -CARD_STOCK.thickness;
@@ -1717,7 +1936,7 @@ function _placeCard(i, group) {
     if (i === 0) document.body.classList.add('gradient-visible');
 }
 
-// ── Card 0 — About Me ────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 0 Ã¢â‚¬â€ About Me Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Same canvas-texture approach as the PureGym card below: draw the design
 // (vector text/shapes) onto a canvas and load one real raster asset, the photo.
 // How many pixels a card face canvas is actually worth.
@@ -1732,19 +1951,19 @@ function _placeCard(i, group) {
 // scene for seconds.
 //
 // The faces are drawn at very nearly the size they are shown at. A canvas much
-// bigger than its spot on screen is not sharper — the GPU has to shrink it, and
+// bigger than its spot on screen is not sharper Ã¢â‚¬â€ the GPU has to shrink it, and
 // it does that by blending its pre-shrunk copies, which is exactly what made the
 // text and pills read soft (a 1449px face was going into ~525 real pixels).
 // Drawn ~1:1, the type lands on the screen's own pixel grid, like the page UI.
 //
-// Worked out from the scene itself — the front card's height at its distance
-// from the camera, as a share of the view — rather than a rule of thumb, so it
+// Worked out from the scene itself Ã¢â‚¬â€ the front card's height at its distance
+// from the camera, as a share of the view Ã¢â‚¬â€ rather than a rule of thumb, so it
 // stays right at every breakpoint. Rounded up in 5% steps: a hair too big
 // shrinks cleanly, a hair too small would have to be stretched.
 //
 // And kept current. When the window is resized (or dragged onto a denser
 // screen) and the card's size on screen changes, every face is redrawn at the
-// new size — see the resize handler below.
+// new size Ã¢â‚¬â€ see the resize handler below.
 function cardTextureScale() {
     const dist = camera.position.z - getCarouselRadius();
     const viewH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist;
@@ -1757,7 +1976,7 @@ let CARD_TEXTURE_SCALE = cardTextureScale();
 
 // Brings a face canvas to the current scale. Resizing a canvas wipes it, so
 // this is only ever called at the top of a paint. Returns whether the size
-// changed — when it has, the GPU copy is the wrong shape and has to be dropped
+// changed Ã¢â‚¬â€ when it has, the GPU copy is the wrong shape and has to be dropped
 // (three.js allocates a texture's storage once, at its first size).
 function fitFaceCanvas(canvas, design) {
     const w = Math.floor(design.w * CARD_TEXTURE_SCALE);
@@ -1769,8 +1988,8 @@ function fitFaceCanvas(canvas, design) {
 }
 
 // Once a resize settles, redraw the faces if the card's size on screen has
-// moved to a new step. Through the same staggered queue a theme change uses —
-// nearest card first, one per frame — so it never locks the scene up, and the
+// moved to a new step. Through the same staggered queue a theme change uses Ã¢â‚¬â€
+// nearest card first, one per frame Ã¢â‚¬â€ so it never locks the scene up, and the
 // card being looked at is sharp again on the very first frame.
 let _faceScaleTimer = 0;
 function refreshCardFaceScale() {
@@ -1789,23 +2008,23 @@ const ABOUTME_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
 const ABOUTME_SCALE = CARD_TEXTURE_SCALE;
 // The photo's folded-corner silhouette, straight off the Figma node. Kept as a
 // path (rather than baked into the image's alpha) so the mask edge stays
-// resolution-independent — the blur below would otherwise soften it.
+// resolution-independent Ã¢â‚¬â€ the blur below would otherwise soften it.
 const ABOUTME_PHOTO_MASK = 'M1014 20C1027.25 20 1038 30.7452 1038 44V1400C1038 1413.25 1027.25 1424 1014 1424H45C31.7452 1424 21 1413.25 21 1400V131C21 98 40.9 78.5 72.5 78.5H138.932C150.052 78.5 160.578 73.4981 167.604 64.8789L188.294 39.5C188.294 39.5 203 20 231 20H1014Z';
-// The Figma node carries a layer blur, but Figma's own render ignores it — its
+// The Figma node carries a layer blur, but Figma's own render ignores it Ã¢â‚¬â€ its
 // PNG export is sharp. Matching the render, not the filter. Raise to soften.
 const ABOUTME_PHOTO_BLUR = 0;
 const ABOUTME_PILL_FONT_PX = 14; // matches the design's DM Sans optical size
 // The bottom-right shelf the tag pills sit on. In Figma this is a separate
-// shape ("Vector 15") filled with the card stock and laid over the photo —
+// shape ("Vector 15") filled with the card stock and laid over the photo Ã¢â‚¬â€
 // the photo's own silhouette underneath is still the full ABOUTME_PHOTO_MASK,
 // so this is a cover, not a clip. Kept in the node's own local coordinates;
-// ABOUTME_CUT_MATRIX below is the 180° rotation and placement Figma gives it.
+// ABOUTME_CUT_MATRIX below is the 180Ã‚Â° rotation and placement Figma gives it.
 const ABOUTME_BOTTOM_CUT = 'M92.1527 105.785C39 105.785 19.571 132.5 19.571 170L0 83.7852L17.7362 11.0083L155.345 0L837 9.70899C802.751 9.70899 784.763 33.5602 784.763 33.5602L768.188 63.2673C754.411 87.96 728.41 103.32 700.134 103.432C556.671 103.997 124.699 105.785 92.1527 105.785Z';
-// Rotated 180° about its own box and dropped so its local origin lands at
-// (1058, 1434) — i.e. local (x, y) draws at (1058 - x, 1434 - y).
+// Rotated 180Ã‚Â° about its own box and dropped so its local origin lands at
+// (1058, 1434) Ã¢â‚¬â€ i.e. local (x, y) draws at (1058 - x, 1434 - y).
 const ABOUTME_CUT_MATRIX = (s) => new DOMMatrix([-s, 0, 0, -s, 1058 * s, 1434 * s]);
 // Local x=0 stays on the card's right, so the rounded corner never uncovers.
-// Local x=837 is the shelf's far left — scale that axis down and the notch
+// Local x=837 is the shelf's far left Ã¢â‚¬â€ scale that axis down and the notch
 // walks toward the pills without the hard clip a pointwise shift produced.
 const ABOUTME_CUT_FAR_X = 837;
 const ABOUTME_CUT_ORIGIN_X = 1058;
@@ -1824,12 +2043,12 @@ const ABOUTME_PILLS = [
 ];
 // Each pill fills the row box: 8px of padding either side of a 52px DM Sans
 // line box, plus the 3px border Figma draws inside that. Measured off the
-// design's own render as well as its metadata — both give 68 at y 1352.
+// design's own render as well as its metadata Ã¢â‚¬â€ both give 68 at y 1352.
 const ABOUTME_PILL_Y = 1352;
 const ABOUTME_PILL_H = 68;
 const ABOUTME_PILL_STROKE = 3;
 
-// ── Card 0 — the photo changes on hover ──────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 0 Ã¢â‚¬â€ the photo changes on hover Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Four photos; each time the pointer arrives on the card it walks to the next
 // one and stays there, so hovering repeatedly cycles the deck rather than
 // flicking between two shots. The first is the one the card is built with.
@@ -1851,8 +2070,8 @@ const ABOUTME_BLOB_CELL = 44;
 
 // The reveal happens in the card's own fragment shader, and this is why.
 //
-// Doing it on the canvas instead — painting the incoming photo through a
-// growing set of circular holes — looks identical, but every frame of it has
+// Doing it on the canvas instead Ã¢â‚¬â€ painting the incoming photo through a
+// growing set of circular holes Ã¢â‚¬â€ looks identical, but every frame of it has
 // to end in `texture.needsUpdate`, which re-uploads the whole 1059x1449 face
 // to the GPU. That is six megabytes a frame and ninety over a quarter of a
 // second: the same cost that used to make changing theme freeze the scene for
@@ -1873,7 +2092,7 @@ uniform float uSeed;
 // Each cell of the grid opens as a circle rather than filling as a square, and
 // one big enough to overrun its neighbours: overlapping circles merge into
 // rounded clumps, so what spreads across the photo has no straight edges in it
-// anywhere. Below about 0.71 — half a cell diagonal — the corners where four
+// anywhere. Below about 0.71 Ã¢â‚¬â€ half a cell diagonal Ã¢â‚¬â€ the corners where four
 // cells meet never close, and the grid shows through as a lattice of pinholes.
 const float ABOUTME_R = 0.8;
 // Share of the run one cell spends opening. Short, so the reveal reads as
@@ -1947,8 +2166,8 @@ function aboutmeIdle(fn) {
 }
 
 // Paint a whole second face for a photo, off screen. This is the expensive
-// part — tens of milliseconds, plus one texture upload the first time it is
-// drawn — so it happens once per photo, on idle, and never during a reveal.
+// part Ã¢â‚¬â€ tens of milliseconds, plus one texture upload the first time it is
+// drawn Ã¢â‚¬â€ so it happens once per photo, on idle, and never during a reveal.
 // Faces are kept rather than rebuilt: after one pass round the deck, hovering
 // costs nothing at all.
 function aboutmeBuildFace(i) {
@@ -1983,6 +2202,7 @@ function aboutmeBuildFace(i) {
         // dropped frame exactly where it is most visible; here it lands in the
         // same idle slot that painted the face.
         renderer.initTexture(face.texture);
+        if (face.canvas.__win) renderer.initTexture(face.canvas.__win.texture);
         a.building = false;
     }, () => { a.building = false; });
 }
@@ -2006,6 +2226,8 @@ function startAboutmeSwap() {
     }
     a.busy = true;
     a.uniforms.uMapB.value = face.texture;
+    const winU = a.material.userData.winU;
+    if (winU && face.canvas.__win) winU.uWinPhotoB.value = face.canvas.__win.texture;
     const p1 = Math.random() * Math.PI * 2, p2 = Math.random() * Math.PI * 2;
     a.uniforms.uDirA.value.set(Math.cos(p1), Math.sin(p1));
     a.uniforms.uDirB.value.set(Math.cos(p2), -Math.sin(p2));
@@ -2019,6 +2241,7 @@ function startAboutmeSwap() {
         // Landed. The incoming face becomes the card's own map and the mask
         // goes back to zero, so the next reveal starts from a clean sheet.
         a.material.map = face.texture;
+        if (winU && face.canvas.__win) winU.uWinPhoto.value = face.canvas.__win.texture;
         a.uniforms.uProgress.value = 0;
         a.index = next;
         a.busy = false;
@@ -2026,259 +2249,827 @@ function startAboutmeSwap() {
     })();
 }
 
-function loadCard0() {
-    const s = ABOUTME_SCALE;
-    const canvas = document.createElement('canvas');
-    canvas.width = ABOUTME_DESIGN.w * s;
-    canvas.height = ABOUTME_DESIGN.h * s;
-    const ctx = canvas.getContext('2d');
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 0 Ã¢â‚¬â€ About Me (the "Hey I'm Jennifer" card) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// Logo top left, a little pile of wireframe cards top right, and the grid
+// view's hero copy: the greeting types itself ("Jennifer", then "HFYJ", on a
+// loop), the copy rises up into place, "designs" grows inside its selection
+// box at full size and "cards" gets its doodles. Unlike the grid, the box
+// can't be dragged to resize it and "designs" doesn't grow in. No shuffle card.
+//
+// The face is a live canvas. Everything that never moves (stock, logo, the
+// wireframe cards) is painted once into a layer, and each frame of the
+// animation only lays the copy over that layer and re-sends the face.
+const ABOUT = {
+    x: 92,                                  // left edge of all the copy
+    greet: { base: 697, size: 39 },
+    stmt: { base: 801, size: 62, lh: 92, maxW: 930 },
+    muted: { base: 1274, size: 38, lh: 50,
+        lines: ['Curr. building communities at tech@nyu. Prev.',
+            'shuffling at BMW Designworks and Mirror Physics'] },
+    // The grid hero's own px were drawn at a 24px statement; this is how many
+    // design px one of those is on the card.
+    K: 62 / 24,
+    logo: { x: 101, y: 106, size: 132, glowR: 125, show: false },   // the HFYJ mark top left (off)
+    reveal: 250, grow: 650, growFrom: 1, drag: 750,   // "designs" sits at full size; its box is dragged out across it once the card has built
+    resizable: false,                   // corner handles are just drawn, not draggable
+    minScale: 0.7, maxScale: 1.8,
+    words: ['Jennifer', 'HFYJ'], typeMs: 90, deleteMs: 55, holdFull: 5000, holdEmpty: 300,
+};
+// The wireframe cards in the top right, in design px: centre, size, turn (deg)
+const ABOUT_DECOR = [
+    { kind: 'select', cx: 587, cy: 42, w: 130, h: 172, rot: -13 },
+    { kind: 'solid', cx: 768, cy: 175, w: 133, h: 157, rot: 4 },
+    { kind: 'hatch', cx: 945, cy: 25, w: 131, h: 172, rot: -14 },
+    { kind: 'outline', cx: 937, cy: 297, w: 132, h: 158, rot: -4 },
+    { kind: 'gradient', cx: 1021, cy: 528, w: 154, h: 187, rot: 22 },
+];
+// Where each one sits once turned, for the build-in's pop
+function aboutDecorBox(d) {
+    const a = THREE.MathUtils.degToRad(d.rot), c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+    const hw = (d.w * c + d.h * s) / 2 + 10, hh = (d.w * s + d.h * c) / 2 + 10;
+    const x0 = Math.max(0, d.cx - hw), y0 = Math.max(0, d.cy - hh);
+    const x1 = Math.min(1059, d.cx + hw), y1 = Math.min(1449, d.cy + hh);
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+const ABOUT_INK = {
+    light: { t1: '#282828', t2: '#6b6b6b', surface: '#ffffff', glow: 'rgba(255,255,255,0.95)' },
+    dark: { t1: '#f2f2f2', t2: '#a8a8a8', surface: '#2a2a2a', glow: 'rgba(255,255,255,0.07)' },
+};
+// The grid hero's doodles round "cards", as drawn there (style.css .gh-*)
+const ABOUT_DOODLE = {
+    green: 'M6.53084 0.0665563C16.1752 1.15882 19.3384 11.2093 18.7553 15.0663C16.8223 17.4924 12.0184 5.78142 3.32126 6.49243C-1.91957 6.92088 -1.03682 -0.790509 6.53084 0.0665563Z',
+    green2: 'M4.43367 9.69887C10.4996 10.0001 14.8588 14.219 15 17.0001C14.0277 18.96 8.94587 12.9658 3.15268 14.6331C-0.33826 15.6378 -0.822394 9.43785 4.43367 9.69887Z',
+    orange1: 'M1.5 21.5C5.34588 14.5742 18.1301 0.882322 38.5 1.52163',
+    orange2: 'M17.6291 15.9956C22.0879 12.0775 34.639 5.62319 49.173 11.1502',
+    squiggle: 'M2,9 Q10,1 18,9 T34,9 T50,9 T66,9 T82,9 T98,9',
+};
+const ABOUT_STATEMENT = [
+    ['I'], ['treat'], ['my'], [{ text: 'designs', boxed: true }], ['like'], ['playing'],
+    ['with'], [{ text: 'cards', art: true }, ','], ['with'], ['intentionality,'],
+    ['playfulness,'], ['and'], ['the'], ['desire'], ['to'], ['challenge.'],
+];
 
-    const photo = new Image();
-    photo.src = ABOUTME_PHOTOS[0];
-    aboutmeImages[0] = photo;
-    aboutmeLoads[0] = new Promise((resolve) => { photo.onload = () => resolve(photo); });
-
-    Promise.all([
-        // Naming the faces this card draws with is what actually fetches
-        // them. fonts.ready only waits on type the document already asked
-        // for, and index.html renders nothing in Play — so the name used
-        // to paint 2% wide in the fallback sans. It also waits on every
-        // other face on the page, which is the pause on the way back.
-        document.fonts.load(`700 ${80 * s}px "DM Sans"`),
-        document.fonts.load(`italic 400 ${36 * s}px "Inter"`),
-        document.fonts.load(`600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`),
-        aboutmeLoads[0],
-    ]).then(() => {
-        const r = 36 * s;
-        // Set once, up front — save()/restore() below would otherwise
-        // revert this back to the canvas default partway through drawing.
-        function smoothing(c) {
-            c.imageSmoothingEnabled = true;
-            c.imageSmoothingQuality = 'high';
+// CSS keyframes, evaluated by hand: [percent, value] per property, eased
+// in-out between stops the way animation-timing-function: ease-in-out does.
+function aboutTrack(frames, p) {
+    for (let i = 1; i < frames.length; i++) {
+        if (p <= frames[i][0]) {
+            const [p0, v0] = frames[i - 1], [p1, v1] = frames[i];
+            const u = p1 > p0 ? (p - p0) / (p1 - p0) : 1;
+            return v0 + (v1 - v0) * u * u * (3 - 2 * u);
         }
-        smoothing(ctx);
+    }
+    return frames[frames.length - 1][1];
+}
+// Progress through a looping animation (0..100), or -1 before its delay
+function aboutLoop(t, dur, delay) {
+    const e = t - delay;
+    if (e < 0) return -1;
+    return ((e % dur) / dur) * 100;
+}
+const ABOUT_KF = {
+    popO: [[0, 0], [10, 1], [20, 1], [55, 1], [70, 0], [100, 0]],
+    popS: [[0, 0.35], [10, 1.15], [20, 1], [55, 1], [70, 0.5], [100, 0.35]],
+    growO: [[0, 0], [18, 1], [30, 1], [62, 1], [80, 0], [100, 0]],
+    growS: [[0, 0.2], [18, 1.08], [30, 1], [62, 1], [80, 0.4], [100, 0.2]],
+    orOff: [[0, 46], [20, 0], [35, 0], [100, -46]],
+    orO: [[0, 0], [8, 1], [20, 1], [35, 1], [45, 0], [100, 0]],
+    sqOff: [[0, 111], [35, 0], [62, 0], [100, -111]],
+    sqO: [[0, 0], [10, 1], [35, 1], [62, 1], [80, 0], [100, 0]],
+};
 
-        // Takes its context and its photo rather than closing over them: the
-        // hover reveal paints a second, identical face off screen with the next
-        // photo in it, and there is no version of that which should be allowed
-        // to drift from the one on screen.
-        function paint(ctx, theme, img) {
-            const canvas = ctx.canvas;
-            // Drawn at the current scale, which the window can change
-            const s = CARD_TEXTURE_SCALE, r = 36 * s;
-            if (fitFaceCanvas(canvas, ABOUTME_DESIGN)) smoothing(ctx);
-            const { cardBg, ink } = THEME_COLORS[theme];
+let lastPointerX = 0, lastPointerY = 0;
+// Everything that moves, and when it started
+const aboutLive = {
+    ready: false, started: false,
+    canvas: null, ctx: null, texture: null, mesh: null, layer: null, theme: null,
+    playAt: Infinity,       // when the copy starts rising
+    typeAt: 0,              // when the greeting started typing
+    growAt: Infinity,       // when "designs" started growing
+    doodleAt: Infinity,     // when the doodles started
+    scale: ABOUT.growFrom,  // "designs" size; dragging sets it outright
+    dragging: false, dragged: false,
+    away: false,            // turned away since it last played
+    lastPaint: 0, lastKey: '',
+    layout: null,
+};
 
-            // Background + photo, clipped to the card's rounded corners
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-            ctx.clip();
-            ctx.fillStyle = cardBg;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+function aboutTypedText(now) {
+    const L = aboutLive;
+    let t = now - L.typeAt;
+    if (t < 0) return '';
+    const cycle = ABOUT.words.map((w) =>
+        w.length * ABOUT.typeMs + ABOUT.holdFull + w.length * ABOUT.deleteMs + ABOUT.holdEmpty);
+    const total = cycle.reduce((a, b) => a + b, 0);
+    t %= total;
+    for (let i = 0; i < ABOUT.words.length; i++) {
+        const w = ABOUT.words[i];
+        if (t < cycle[i]) {
+            const typed = w.length * ABOUT.typeMs;
+            if (t < typed) return w.slice(0, Math.floor(t / ABOUT.typeMs) + 1);
+            t -= typed;
+            if (t < ABOUT.holdFull) return w;
+            t -= ABOUT.holdFull;
+            const gone = Math.floor(t / ABOUT.deleteMs) + 1;
+            return w.slice(0, Math.max(0, w.length - gone));
+        }
+        t -= cycle[i];
+    }
+    return '';
+}
 
-            // Clip to the silhouette first, then blur — so the blur only ever
-            // softens the photo's interior and never bleeds across the mask edge.
-            const maskPath = new Path2D();
-            maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
-            ctx.save();
-            ctx.clip(maskPath);
-            // Figma's transform for this fill, in design px. Overscanning by the
-            // blur radius keeps the blur from fading out against the mask edge;
-            // it grows uniformly so the photo's aspect ratio is preserved.
-            const pw = 1110.777, ph = 1404;
-            const bleed = ABOUTME_PHOTO_BLUR * 2;
-            const k = Math.max(1 + (bleed * 2) / pw, 1 + (bleed * 2) / ph);
-            ctx.filter = `blur(${ABOUTME_PHOTO_BLUR * s}px)`;
-            // Cover rather than a straight stretch. The photo this card was
-            // built with is exactly the box's shape, so this changes nothing
-            // for it; the three the hover walks through are 2:3, 1:1 and 3:4,
-            // and stretching those to fit would be unmissable.
-            tmplDrawImageCover(
-                ctx,
-                img,
-                (-25.888 - (pw * k - pw) / 2) * s,
-                (20 - (ph * k - ph) / 2) * s,
-                pw * k * s,
-                ph * k * s,
-            );
-            ctx.filter = 'none';
-            ctx.restore();
-            // Hairline around the photo silhouette
-            ctx.strokeStyle = ink;
-            ctx.lineWidth = s;
-            ctx.stroke(maskPath);
-            // …then the stock-coloured shelf laid over its bottom-right corner,
-            // which is what the pills sit on. Drawn after the hairline on
-            // purpose: the design's cut edge carries no stroke, and covering
-            // that stretch of it is how Figma gets the same result.
-            const cutPath = new Path2D();
-            cutPath.addPath(new Path2D(ABOUTME_BOTTOM_CUT), ABOUTME_CUT_MATRIX(s));
-            ctx.fillStyle = cardBg;
-            ctx.fill(cutPath);
-            ctx.restore();
+// (Re)start the grid hero's intro: the copy rises, then "designs" grows,
+// then the doodles start.
+function aboutPlay(at) {
+    const L = aboutLive;
+    L.playAt = at;
+    if (!L.started) L.typeAt = at;
+    L.started = true;
+    L.growAt = at + ABOUT.reveal;
+    L.doodleAt = at + ABOUT.reveal + ABOUT.grow;
+    if (!L.dragging) L.scale = ABOUT.growFrom;
+    L.away = false;
+}
 
-            // Figma positions text by its line box; canvas draws from a baseline.
-            // Deriving the baseline from the font's own metrics is what keeps these
-            // landing where the design says, instead of a hand-tuned offset.
-            function drawBoxedText(text, x, y, w, h, align, mode) {
-                const m = ctx.measureText(text);
-                ctx.textAlign = align;
-                ctx.textBaseline = 'alphabetic';
-                const inner = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
-                const baseline = y + (h - inner) / 2 + m.fontBoundingBoxAscent;
-                const tx = align === 'center' ? x + w / 2 : x;
-                if (mode === 'stroke') ctx.strokeText(text, tx, baseline);
-                else ctx.fillText(text, tx, baseline);
+// Measure the copy and wrap it, with "designs" at the given size
+function aboutLayout(ctx, s, sc) {
+    const K = ABOUT.K, fs = ABOUT.stmt.size;
+    const fontS = `400 ${fs * s}px "DM Sans", sans-serif`;
+    const bfs = fs * sc;
+    const fontB = `400 ${bfs * s}px "DM Sans", sans-serif`;
+    const afs = fs * 1.5;
+    const fontA = `600 ${afs * s}px "Caveat", cursive`;
+    const hasLS = 'letterSpacing' in ctx;
+    const measure = (text, font, ls) => {
+        ctx.font = font;
+        if (hasLS) ctx.letterSpacing = ls ? (ls * s) + 'px' : '0px';
+        const w = ctx.measureText(text).width / s;
+        if (hasLS) ctx.letterSpacing = '0px';
+        return w;
+    };
+    const space = measure(' ', fontS);
+    const words = ABOUT_STATEMENT.map((parts) => {
+        let w = 0;
+        const runs = parts.map((p) => {
+            const r = typeof p === 'string' ? { text: p } : Object.assign({}, p);
+            if (r.boxed) {
+                r.ls = 0.03 * bfs;
+                r.tw = measure(r.text, fontB, r.ls);
+                r.pad = 0.2 * bfs;
+                r.margin = 1 * K;
+                r.w = r.tw + 2 * r.pad + 2 * r.margin;
+                r.font = fontB; r.fs = bfs;
+            } else if (r.art) {
+                r.tw = measure(r.text, fontA);
+                r.w = r.tw + 6 * K;
+                r.font = fontA; r.fs = afs;
+            } else {
+                r.w = measure(r.text, fontS);
+                r.font = fontS; r.fs = fs;
             }
+            r.dx = w;
+            w += r.w;
+            return r;
+        });
+        return { runs, w };
+    });
+    const lines = [];
+    let line = [], x = 0;
+    words.forEach((wd) => {
+        if (line.length && x + space + wd.w > ABOUT.stmt.maxW) {
+            lines.push(line);
+            line = [];
+            x = 0;
+        }
+        wd.x = line.length ? x + space : 0;
+        x = wd.x + wd.w;
+        line.push(wd);
+    });
+    if (line.length) lines.push(line);
+    const out = { lines: [], boxed: null, art: null };
+    lines.forEach((ln, i) => {
+        const base = ABOUT.stmt.base + i * ABOUT.stmt.lh;
+        let w = 0;
+        ln.forEach((wd) => {
+            w = wd.x + wd.w;
+            wd.runs.forEach((r) => {
+                r.x = ABOUT.x + wd.x + r.dx;
+                r.base = base;
+                if (r.boxed) out.boxed = r;
+                if (r.art) {
+                    r.base = base + 0.05 * afs;
+                    out.art = r;
+                }
+            });
+        });
+        out.lines.push({ base, w, words: ln });
+    });
+    // The selection box round "designs", and where its handles sit
+    const b = out.boxed;
+    if (b) {
+        const lh = 1.2 / Math.max(sc, 1);
+        const boxH = b.fs * lh + 2 * b.pad;
+        const mid = b.base - 0.27 * b.fs;
+        b.box = { x: b.x + b.margin, y: mid - boxH / 2, w: b.tw + 2 * b.pad, h: boxH };
+    }
+    // The doodles hang off the "cards" box the way they do in the grid
+    const a = out.art;
+    if (a) {
+        ctx.font = fontA;
+        const m = ctx.measureText(a.text);
+        const asc = (m.fontBoundingBoxAscent || a.fs * s * 0.9) / s;
+        const desc = (m.fontBoundingBoxDescent || a.fs * s * 0.3) / s;
+        const top = a.base - asc - (1.25 * a.fs - (asc + desc)) / 2;
+        a.box = { x: a.x, y: top, w: a.tw, h: 1.25 * a.fs };
+    }
+    return out;
+}
 
-            // "#000" tag, sitting over the folded corner — the one bit of ink on
-            // this card that lands on bare stock, so it's the one that follows it
-            ctx.fillStyle = ink;
-            ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
-            drawBoxedText('#000', 56 * s, 24 * s, 91 * s, 44 * s, 'center');
+function aboutRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+}
 
-            // Name. Both colours here are fixed in both themes, on purpose: the
-            // folded corner clears this text, so it sits on the photo's sky
-            // rather than on the stock, and the photo does not follow the theme.
-            // Black glyphs inside a white outline is what the design uses to
-            // hold them apart from the sky, and that reads the same either way.
-            // Stroke first, fill over it, so the halo only ever sits outside the
-            // glyphs and the letterforms keep their designed weight — 4px of
-            // stroke straddling the path leaves the 2px the design shows.
-            ctx.font = `700 ${80 * s}px "DM Sans", sans-serif`;
-            ctx.lineJoin = 'round';
-            ctx.miterLimit = 2;
-            ctx.lineWidth = 4 * s;
-            ctx.strokeStyle = '#fff';
-            drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left', 'stroke');
-            ctx.fillStyle = '#000';
-            drawBoxedText('Jennifer Huang', 205 * s, 35 * s, 572 * s, 93 * s, 'left');
+// The parts that never move: stock, logo and the wireframe cards
+function aboutPaintLayer(theme, s) {
+    const L = aboutLive;
+    const W = Math.floor(1059 * s), H = Math.floor(1449 * s);
+    let c = L.layer;
+    if (!c) c = L.layer = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    const { cardBg, accent } = THEME_COLORS[theme];
+    const ink = ABOUT_INK[theme];
+    ctx.save();
+    aboutRoundRect(ctx, 0, 0, W, H, 36 * s);
+    ctx.clip();
+    ctx.fillStyle = cardBg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.scale(s, s);
 
-            // Tag pills — outline only, on the bare stock of the shelf, so they
-            // follow the theme's ink. Widths come from the design rather than text
-            // measurement, so a font that metrics slightly differently can't drift
-            // the row out of place.
-            function drawPill(label, x, w) {
-                const y = ABOUTME_PILL_Y * s, h = ABOUTME_PILL_H * s;
-                // Figma's border sits inside the pill's box; a canvas stroke
-                // straddles the path, so inset the path by half the weight to
-                // put the same 3px band in the same place.
-                const lw = ABOUTME_PILL_STROKE * s, inset = lw / 2;
+    // Logo on a soft pool of light
+    const lg = ABOUT.logo, lcx = lg.x + lg.size / 2, lcy = lg.y + lg.size / 2;
+    if (lg.show) {
+    const glow = ctx.createRadialGradient(lcx, lcy, 0, lcx, lcy, lg.glowR);
+    glow.addColorStop(0, ink.glow);
+    glow.addColorStop(0.55, ink.glow.replace(/[\d.]+\)$/, (m) => (parseFloat(m) * 0.6) + ')'));
+    glow.addColorStop(1, ink.glow.replace(/[\d.]+\)$/, '0)'));
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(lcx, lcy, lg.glowR, 0, Math.PI * 2);
+    ctx.fill();
+    if (L.mark && L.mark.naturalWidth !== 0) {
+        const px = Math.max(2, Math.round(lg.size * s));
+        const m = document.createElement('canvas');
+        m.width = m.height = px;
+        const mc = m.getContext('2d');
+        mc.drawImage(L.mark, 0, 0, px, px);
+        mc.globalCompositeOperation = 'source-in';
+        mc.fillStyle = accent;
+        mc.fillRect(0, 0, px, px);
+        // Thin cuts across the letters, like the mark in the design
+        mc.globalCompositeOperation = 'destination-out';
+        const step = 22 * s, gap = Math.max(1, 2 * s);
+        for (let y = step * 0.7; y < px; y += step) mc.fillRect(0, y, px, gap);
+        ctx.drawImage(m, lg.x, lg.y, lg.size, lg.size);
+    }
+    }
+
+    // The wireframe cards
+    const lw = 2.4;
+    ABOUT_DECOR.forEach((d) => {
+        ctx.save();
+        ctx.translate(d.cx, d.cy);
+        ctx.rotate(THREE.MathUtils.degToRad(d.rot));
+        const x = -d.w / 2, y = -d.h / 2;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = lw;
+        if (d.kind === 'solid') {
+            aboutRoundRect(ctx, x, y, d.w, d.h, 9);
+            ctx.fillStyle = accent;
+            ctx.fill();
+        } else if (d.kind === 'gradient') {
+            const g = ctx.createLinearGradient(x, y, x + d.w, y + d.h);
+            g.addColorStop(0, accent);
+            g.addColorStop(1, accent + '00');
+            aboutRoundRect(ctx, x, y, d.w, d.h, 10);
+            ctx.fillStyle = g;
+            ctx.fill();
+            ctx.save();
+            ctx.clip();
+            const g2 = ctx.createLinearGradient(x, y, x + d.w, y + d.h);
+            g2.addColorStop(0, accent);
+            g2.addColorStop(0.75, accent + '00');
+            ctx.strokeStyle = g2;
+            aboutRoundRect(ctx, x, y, d.w, d.h, 10);
+            ctx.lineWidth = lw * 2;
+            ctx.stroke();
+            ctx.restore();
+        } else if (d.kind === 'hatch') {
+            aboutRoundRect(ctx, x, y, d.w, d.h, 6);
+            ctx.stroke();
+            ctx.save();
+            aboutRoundRect(ctx, x, y, d.w, d.h, 6);
+            ctx.clip();
+            ctx.lineWidth = lw * 0.85;
+            for (let k = -d.h; k < d.w + d.h; k += 21) {
                 ctx.beginPath();
-                ctx.roundRect(x * s + inset, y + inset, w * s - lw, h - lw, h / 2 - inset);
-                ctx.lineWidth = lw;
-                ctx.strokeStyle = ink;
+                ctx.moveTo(x + k, y);
+                ctx.lineTo(x + k - d.h, y + d.h);
                 ctx.stroke();
-                ctx.fillStyle = ink;
-                // DM Sans is optically sized, and canvas derives that axis from the
-                // font size — at 40px it picks noticeably narrower letterforms than
-                // the design's opsz 14. Drawing small and scaling up restores them.
-                const k = (40 * s) / ABOUTME_PILL_FONT_PX;
+            }
+            ctx.restore();
+        } else {
+            aboutRoundRect(ctx, x, y, d.w, d.h, d.kind === 'select' ? 2 : 6);
+            ctx.stroke();
+            if (d.kind === 'select') {
+                const hs = 13;
+                ctx.fillStyle = ink.surface;
+                ctx.lineWidth = lw * 0.9;
+                [[x, y], [x + d.w, y], [x, y + d.h], [x + d.w, y + d.h]].forEach(([hx, hy]) => {
+                    ctx.beginPath();
+                    ctx.rect(hx - hs / 2, hy - hs / 2, hs, hs);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+            }
+        }
+        ctx.restore();
+    });
+    ctx.restore();
+
+    // Slight paper-grain overlay, same as the rest of the deck
+    ctx.save();
+    aboutRoundRect(ctx, 0, 0, W, H, 36 * s);
+    ctx.clip();
+    ctx.globalAlpha = 0.05;
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    L.theme = theme;
+}
+
+// One frame of the face
+function aboutPaint(now) {
+    const L = aboutLive;
+    const ctx = L.ctx, s = CARD_TEXTURE_SCALE, theme = currentTheme;
+    let resized = false;
+    if (fitFaceCanvas(L.canvas, ABOUTME_DESIGN)) {
+        resized = true;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+    }
+    if (resized || L.theme !== theme || !L.layer || L.layer.width !== L.canvas.width) aboutPaintLayer(theme, s);
+    const { accent } = THEME_COLORS[theme];
+    const ink = ABOUT_INK[theme];
+    const K = ABOUT.K;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, L.canvas.width, L.canvas.height);
+    ctx.drawImage(L.layer, 0, 0);
+    ctx.save();
+    ctx.scale(s, s);
+
+    // No slide-up: the copy is just there once it plays (the load-in types
+    // it in, block by block)
+    const rise = L.started ? 1 : 0;
+    const blockTop = ABOUT.greet.base - ABOUT.greet.size * 1.1;
+    const blockBot = ABOUT.muted.base + (ABOUT.muted.lines.length - 1) * ABOUT.muted.lh + ABOUT.muted.size * 0.4;
+    const shift = (1 - (1 - Math.pow(1 - rise, 5))) * (blockBot - blockTop + 20);
+    if (rise < 1) {
+        ctx.beginPath();
+        ctx.rect(0, blockTop - 6, 1059, blockBot - blockTop + 30);
+        ctx.clip();
+    }
+    if (rise > 0) {
+        ctx.translate(0, shift);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+
+        // Greeting, typing itself, caret blinking after it
+        const typed = aboutTypedText(now);
+        const gfont = `400 ${ABOUT.greet.size * s}px "DM Sans", sans-serif`;
+        ctx.font = gfont;
+        ctx.fillStyle = ink.t2;
+        const lead = 'Hey I\u2019m ';
+        const gtext = lead + typed;
+        ctx.save();
+        ctx.scale(1 / s, 1 / s);
+        ctx.fillText(gtext, ABOUT.x * s, ABOUT.greet.base * s);
+        const gw = ctx.measureText(gtext).width / s;
+        ctx.restore();
+        if (Math.floor((now - L.typeAt) / 450) % 2 === 0) {
+            const ch = 0.9 * ABOUT.greet.size;
+            ctx.fillRect(ABOUT.x + gw + 2 * K, ABOUT.greet.base + 0.1 * ABOUT.greet.size - ch, Math.max(2.2, K), ch);
+        }
+
+        // The statement, with "designs" at its current size
+        const lay = L.layout = aboutLayout(ctx, s, L.scale);
+        ctx.save();
+        ctx.scale(1 / s, 1 / s);
+        lay.lines.forEach((ln) => ln.words.forEach((wd) => wd.runs.forEach((r) => {
+            ctx.font = r.font;
+            if (r.boxed) {
+                ctx.fillStyle = ink.t1;
+                if ('letterSpacing' in ctx) ctx.letterSpacing = (r.ls * s) + 'px';
+                ctx.fillText(r.text, (r.x + r.margin + r.pad) * s, r.base * s);
+                if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+            } else if (r.art) {
+                ctx.fillStyle = accent;
+                ctx.fillText(r.text, r.x * s, r.base * s);
+            } else {
+                ctx.fillStyle = ink.t1;
+                ctx.fillText(r.text, r.x * s, r.base * s);
+            }
+        })));
+        ctx.restore();
+
+        // Selection box and its handles. Once the card has built, it is
+        // dragged out across the word like a marquee (a pointer at the
+        // dragging corner), then the handles pop on.
+        const b = lay.boxed && lay.boxed.box;
+        if (!cbOwns(0) && !L.boxAt) L.boxAt = now + 150;
+        if (b && L.boxAt && now >= L.boxAt) {
+            const D = ABOUT.drag, tb = now - L.boxAt;
+            const u = cbClamp(tb / D);
+            const x0 = b.x - K, y0 = b.y - K, fw = b.w + 2 * K, fh = b.h + 2 * K;
+            const cw = Math.max(1, fw * cbEaseInOut(u)), ch = Math.max(1, fh * easeOutCubic(cbClamp(u / 0.4)));
+            const fillA = u < 1 ? 1 : 1 - cbClamp((tb - D) / 250);
+            if (fillA > 0) {
                 ctx.save();
-                ctx.scale(k, k);
-                ctx.font = `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans", sans-serif`;
-                drawBoxedText(label, (x * s) / k, y / k, (w * s) / k, h / k, 'center');
+                ctx.globalAlpha = 0.1 * fillA;
+                ctx.fillStyle = accent;
+                ctx.beginPath(); ctx.rect(x0, y0, cw, ch);   // sharp corners, like a real marquee
+                ctx.fill();
                 ctx.restore();
             }
-            ABOUTME_PILLS.forEach((p) => drawPill(p.label, p.x, p.w));
-
-            // Slight paper-grain overlay, same as the rest of the deck
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-            ctx.clip();
-            ctx.globalAlpha = 0.05;
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 2 * K;
+            ctx.beginPath(); ctx.rect(x0, y0, cw, ch);   // sharp corners, like a real marquee
+            ctx.stroke();
+            const hs0 = 7.75 * K, hb = 1.75 * K;
+            ctx.lineWidth = hb;
+            ctx.fillStyle = ink.surface;
+            const corners = { tl: [b.x, b.y], tr: [b.x + b.w, b.y],
+                bl: [b.x, b.y + b.h], br: [b.x + b.w, b.y + b.h] };
+            const backOut = (t) => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
+            Object.values(corners).forEach(([hx, hy], n) => {
+                const pu = cbClamp((tb - D + 40 - n * 55) / 220);
+                if (pu <= 0) return;
+                const hs = hs0 * backOut(pu);
+                ctx.beginPath();
+                ctx.rect(hx - hs / 2, hy - hs / 2, hs, hs);
+                ctx.fill();
+                ctx.stroke();
+            });
+            // The pointer doing the dragging, gone once it lets go
+            const ptrA = Math.min(cbClamp(tb / 120), 1 - cbClamp((tb - D - 80) / 260));
+            if (ptrA > 0) {
+                const px0 = x0 + cw, py0 = y0 + ch, pk = 1.25 * K;
+                ctx.save();
+                ctx.globalAlpha = ptrA;
+                ctx.translate(px0, py0);
+                ctx.scale(pk, pk);
+                ctx.beginPath();
+                ctx.moveTo(0, 0); ctx.lineTo(0, 16); ctx.lineTo(4.2, 12.3); ctx.lineTo(7, 18.5);
+                ctx.lineTo(9.6, 17.4); ctx.lineTo(6.9, 11.3); ctx.lineTo(12, 11.3);
+                ctx.closePath();
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = 1.4;
+                ctx.strokeStyle = ink.surface;
+                ctx.fillStyle = ink.t1;
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            // Kept for hit-testing, in unshifted card px
+            L.handles = {};
+            Object.entries(corners).forEach(([k, [hx, hy]]) => { L.handles[k] = { x: hx, y: hy + shift }; });
+            L.box = { x: b.x, y: b.y + shift, w: b.w, h: b.h };
         }
 
-        paint(ctx, currentTheme, photo);
+        // The doodles round "cards"
+        const a = lay.art && lay.art.box;
+        // ...and after the box is out
+        const dAt = L.boxAt ? Math.max(L.doodleAt, L.boxAt + ABOUT.drag + 150) : Infinity;
+        if (a && now >= dAt) aboutPaintDoodles(ctx, a, now - dAt, accent);
 
-        const texture = new THREE.CanvasTexture(canvas);
+        // The line underneath
+        ctx.save();
+        ctx.scale(1 / s, 1 / s);
+        ctx.font = `400 ${ABOUT.muted.size * s}px "DM Sans", sans-serif`;
+        ctx.fillStyle = ink.t2;
+        ABOUT.muted.lines.forEach((t, i) =>
+            ctx.fillText(t, ABOUT.x * s, (ABOUT.muted.base + i * ABOUT.muted.lh) * s));
+        ctx.restore();
+    }
+    ctx.restore();
+    if (resized) L.texture.dispose();
+    L.texture.needsUpdate = true;
+    L.lastPaint = now;
+}
+
+function aboutPaintDoodles(ctx, a, t, accent) {
+    const K = ABOUT.K;
+    const sec = t / 1000;
+    // An SVG piece placed the way its CSS box places it: left/top/width in
+    // the grid's px, relative to the "cards" box, scaled about an origin
+    function place(left, top, width, vbW, vbH, origin, scale, draw) {
+        const w = width * K, h = w * vbH / vbW;
+        const x = a.x + left * K, y = a.y + top * K;
+        ctx.save();
+        const ox = x + origin[0] * w, oy = y + origin[1] * h;
+        ctx.translate(ox, oy);
+        ctx.scale(scale, scale);
+        ctx.translate(-ox, -oy);
+        ctx.translate(x, y);
+        ctx.scale(w / vbW, h / vbH);
+        draw();
+        ctx.restore();
+    }
+    // Green droplets, growing from their tips
+    [[ABOUT_DOODLE.green, 0], [ABOUT_DOODLE.green2, 0.35]].forEach(([d, delay]) => {
+        const p = aboutLoop(sec, 4.4, delay);
+        if (p < 0) return;
+        const o = aboutTrack(ABOUT_KF.growO, p);
+        if (o <= 0.001) return;
+        ctx.globalAlpha = o;
+        place(-2, 4, 12, 19, 20, [0.88, 0.82], aboutTrack(ABOUT_KF.growS, p), () => {
+            ctx.fillStyle = '#00D343';
+            ctx.fill(new Path2D(d));
+        });
+    });
+    // Orange arcs drawing themselves
+    [[ABOUT_DOODLE.orange1, 1.1], [ABOUT_DOODLE.orange2, 1.4]].forEach(([d, delay]) => {
+        const p = aboutLoop(sec, 5, delay);
+        if (p < 0) return;
+        const o = aboutTrack(ABOUT_KF.orO, p);
+        if (o <= 0.001) return;
+        ctx.globalAlpha = o;
+        place(32, 0, 24, 51, 26, [0, 0], 1, () => {
+            ctx.strokeStyle = '#F5B846';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([40, 40]);
+            ctx.lineDashOffset = aboutTrack(ABOUT_KF.orOff, p);
+            ctx.stroke(new Path2D(d));
+            ctx.setLineDash([]);
+        });
+    });
+    // Pink bubbles popping in from the bottom one
+    [[30, 0, 7, 8, 3, false, 3], [41, -6, 6, 7, 2.5, false, 3.2], [36, -14, 5, 7, 2.5, true, 3.4]]
+        .forEach(([left, top, width, vb, r, filled, delay]) => {
+            const p = aboutLoop(sec, 5, delay);
+            if (p < 0) return;
+            const o = aboutTrack(ABOUT_KF.popO, p);
+            if (o <= 0.001) return;
+            ctx.globalAlpha = o;
+            place(left, top, width, vb, vb, [0.5, 0.5], aboutTrack(ABOUT_KF.popS, p), () => {
+                ctx.beginPath();
+                ctx.arc(vb / 2, vb / 2, r, 0, Math.PI * 2);
+                if (filled) { ctx.fillStyle = '#F54672'; ctx.fill(); }
+                else { ctx.strokeStyle = '#F54672'; ctx.lineWidth = 1; ctx.stroke(); }
+            });
+        });
+    // Squiggle underline (140x8 box, viewBox 100x16, so drawn at half size)
+    {
+        const p = aboutLoop(sec, 5.4, 0.2);
+        const o = p < 0 ? 0 : aboutTrack(ABOUT_KF.sqO, p);
+        if (o > 0.001) {
+            ctx.globalAlpha = o;
+            const k = 0.5 * K;
+            const cx = a.x + 0.59 * a.w, bottom = a.y + a.h;
+            ctx.save();
+            ctx.translate(cx - 50 * k, bottom - 16 * k);
+            ctx.scale(k, k);
+            ctx.strokeStyle = accent;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([120, 120]);
+            ctx.lineDashOffset = aboutTrack(ABOUT_KF.sqOff, p);
+            ctx.stroke(new Path2D(ABOUT_DOODLE.squiggle));
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+    }
+    ctx.globalAlpha = 1;
+}
+
+// How much the card faces the camera, 1 = square on
+const _aboutV1 = new THREE.Vector3(), _aboutV2 = new THREE.Vector3();
+function aboutFacing() {
+    const m = aboutLive.mesh;
+    if (!m || !cards[0] || !cards[0].visible) return -1;
+    m.getWorldDirection(_aboutV1);
+    m.getWorldPosition(_aboutV2);
+    _aboutV2.subVectors(camera.position, _aboutV2).normalize();
+    return _aboutV1.dot(_aboutV2);
+}
+
+// Every frame: grow "designs", replay when the card comes back round to the
+// front, and repaint when something on it has moved
+function aboutTick(now) {
+    const L = aboutLive;
+    if (!L.ready) return;
+    const facing = aboutFacing();
+    const stack = isStackMode();
+    const front = stack ? stackTop === 0 : facing > 0.97;
+    const gone = stack ? stackTop !== 0 : facing < 0.6;
+    if (L.started && now > L.doodleAt && gone) L.away = true;
+    if (L.away && front && introPhase === 'done' && currentView === 'cards') aboutPlay(now);
+
+    if (!L.dragging && L.started) {
+        const g = cbClamp((now - L.growAt) / ABOUT.grow);
+        if (now >= L.growAt && now - L.growAt <= ABOUT.grow + 50) {
+            L.scale = ABOUT.growFrom + (1 - ABOUT.growFrom) * (g >= 1 ? 1 : 1 - Math.pow(2, -10 * g));
+        }
+    }
+
+    // Nothing to redraw while it is turned away from the camera
+    const visible = stack ? cards[0] && cards[0].visible : facing > 0.05;
+    if (!visible && L.lastPaint) return;
+    const rising = L.started && now < L.playAt + ABOUT.reveal + 40;
+    const growing = L.started && now >= L.growAt && now < L.growAt + ABOUT.grow + 40;
+    const doodling = L.started && now >= L.doodleAt;
+    const key = [L.started ? aboutTypedText(now) : '', Math.floor((now - L.typeAt) / 450) % 2,
+        L.scale.toFixed(4), currentTheme, CARD_TEXTURE_SCALE].join('|');
+    const boxing = L.boxAt && now < L.boxAt + ABOUT.drag + 700;
+    const moving = rising || growing || doodling || boxing || L.dragging;
+    if (key === L.lastKey && !(moving && now - L.lastPaint >= 33)) return;
+    L.lastKey = key;
+    aboutPaint(now);
+}
+
+// Where the pointer is on the card, in design px (off the card too, on its plane)
+const _aboutPlane = new THREE.Plane(), _aboutHit = new THREE.Vector3();
+function aboutPointerDesign(clientX, clientY) {
+    const m = aboutLive.mesh;
+    if (!m) return null;
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    m.updateWorldMatrix(true, false);
+    m.getWorldDirection(_aboutV1);
+    m.getWorldPosition(_aboutV2);
+    _aboutPlane.setFromNormalAndCoplanarPoint(_aboutV1, _aboutV2);
+    if (!raycaster.ray.intersectPlane(_aboutPlane, _aboutHit)) return null;
+    m.worldToLocal(_aboutHit);
+    const cardH = 1.7, cardW = cardH * (1059 / 1449);
+    return { x: (_aboutHit.x / cardW + 0.5) * 1059, y: (0.5 - _aboutHit.y / cardH) * 1449 };
+}
+// Which handle (if any) is under the pointer. Only the front card, with a mouse.
+function aboutHandleAt(clientX, clientY) {
+    const L = aboutLive;
+    if (!ABOUT.resizable) return null;
+    if (!L.ready || !L.handles || !hasFinePointer || isStackMode()) return null;
+    if (introPhase !== 'done' || currentView !== 'cards' || isDragging) return null;
+    if (performance.now() < L.playAt + ABOUT.reveal) return null;
+    if (aboutFacing() < 0.5) return null;
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObjects(cardgroup.children, true)[0];
+    if (!hit || hit.object !== L.mesh) return null;
+    const p = aboutPointerDesign(clientX, clientY);
+    if (!p) return null;
+    // About 14 screen px, whatever size the card is drawn at
+    const r = 14 * 1449 / Math.max(1, aboutCardScreenHeight());
+    for (const k of ['tl', 'tr', 'br']) {
+        const h = L.handles[k];
+        if (Math.abs(p.x - h.x) <= r && Math.abs(p.y - h.y) <= r) return k;
+    }
+    return null;
+}
+
+function aboutBindInput() {
+// Hovering a handle swaps the custom cursor for the real grab cursor
+window.addEventListener('mousemove', (e) => {
+    const L = aboutLive;
+    if (L.dragging) return;
+    const k = aboutHandleAt(e.clientX, e.clientY);
+    const html = document.documentElement;
+    if (k) {
+        html.classList.add('gh-handle-hover');
+        canvas.style.setProperty('cursor', 'grab', 'important');
+        L.hovering = true;
+    } else if (L.hovering) {
+        L.hovering = false;
+        html.classList.remove('gh-handle-hover');
+        canvas.style.setProperty('cursor', 'none');
+    }
+});
+
+// Dragging a handle resizes "designs", the opposite corner staying put.
+// Caught before the ring's own drag so the ring doesn't turn underneath.
+canvas.addEventListener('pointerdown', (e) => {
+    const L = aboutLive;
+    const corner = aboutHandleAt(e.clientX, e.clientY);
+    if (!corner) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    resetIdleTimer();
+    const html = document.documentElement;
+    html.classList.add('gh-handle-drag');
+    L.dragging = true;
+    L.dragged = true;
+    hasDragged = true;
+    const b = L.box;
+    const anchor = corner === 'tl' ? { x: b.x + b.w, y: b.y + b.h }
+        : corner === 'tr' ? { x: b.x, y: b.y + b.h } : { x: b.x, y: b.y };
+    const p0 = aboutPointerDesign(e.clientX, e.clientY) || anchor;
+    const startDist = Math.hypot(p0.x - anchor.x, p0.y - anchor.y) || 1;
+    const startScale = L.scale;
+    function onMove(ev) {
+        dotCursor.style.left = ev.clientX + 'px';
+        dotCursor.style.top = ev.clientY + 'px';
+        cardCursor.style.left = ev.clientX + 'px';
+        cardCursor.style.top = ev.clientY + 'px';
+        resetIdleTimer();
+        const p = aboutPointerDesign(ev.clientX, ev.clientY);
+        if (!p) return;
+        const d = Math.hypot(p.x - anchor.x, p.y - anchor.y);
+        L.scale = Math.min(ABOUT.maxScale, Math.max(ABOUT.minScale, startScale * (d / startDist)));
+    }
+    function onUp() {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+        html.classList.remove('gh-handle-drag');
+        L.dragging = false;
+        // The click that ends a drag must not open About Me
+        setTimeout(() => { hasDragged = false; }, 50);
+        if (!aboutHandleAt(lastPointerX, lastPointerY)) {
+            L.hovering = false;
+            html.classList.remove('gh-handle-hover');
+            canvas.style.setProperty('cursor', 'none');
+        }
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+}, { capture: true });
+window.addEventListener('pointermove', (e) => { lastPointerX = e.clientX; lastPointerY = e.clientY; }, { passive: true });
+}
+
+function loadCard0() {
+    const L = aboutLive;
+    const canvas0 = document.createElement('canvas');
+    canvas0.width = Math.floor(1059 * CARD_TEXTURE_SCALE);
+    canvas0.height = Math.floor(1449 * CARD_TEXTURE_SCALE);
+    const ctx = canvas0.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    L.canvas = canvas0;
+    L.ctx = ctx;
+    const mark = new Image();
+    const markIn = new Promise((resolve) => { mark.onload = resolve; mark.onerror = resolve; });
+    // A logo that lands after the first paint still makes it onto the card
+    mark.addEventListener('load', () => { L.theme = null; L.lastKey = ''; });
+    mark.src = './assets/hfyj-mark.svg';
+    L.mark = mark;
+    const cap = (p) => Promise.race([p, new Promise((r) => setTimeout(r, 2500))]);
+    cap(Promise.all([
+        document.fonts.load(`400 ${69 * CARD_TEXTURE_SCALE}px "DM Sans"`),
+        document.fonts.load(`600 ${103 * CARD_TEXTURE_SCALE}px "Caveat"`),
+        markIn,
+    ]).catch(() => {})).then(() => {
+        const texture = new THREE.CanvasTexture(canvas0);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        aboutmeSwap.faces[0] = { canvas: canvas, ctx: ctx, texture: texture, theme: currentTheme };
+        L.texture = texture;
+        aboutPaint(performance.now());
         cardFaceRepaints.push({
             index: 0,
-            repaint: (theme) => {
-                const live = aboutmeSwap.faces[aboutmeSwap.index] || aboutmeSwap.faces[0];
-                const w0 = live.canvas.width;
-                paint(live.ctx, theme, aboutmeImages[aboutmeSwap.index] || photo);
-                if (live.canvas.width !== w0) live.texture.dispose();   // new size, new storage
-                live.theme = theme;
-                live.texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
-                // Every other face in the deck now holds the wrong theme, but
-                // repainting them all here is exactly the cost the staggering
-                // in updateCardFaceTextures exists to avoid — and nobody is
-                // looking at them. They are marked stale and rebuilt one at a
-                // time, on idle, as the hover walks round to them.
-                aboutmeSwap.faces.forEach((f, i) => { if (i !== aboutmeSwap.index) f.theme = null; });
-                aboutmeIdle(aboutmePrepareNext);
-            },
+            repaint: () => { L.theme = null; aboutPaint(performance.now()); },
         });
-
-        const aspect = ABOUTME_DESIGN.w / ABOUTME_DESIGN.h;
+        const aspect = 1059 / 1449;
         const cardH = 1.7, cardW = cardH * aspect;
-        const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
-        const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
-
-        // The reveal is the card's own material with a second map and a mask,
-        // rather than a shader of its own: patching MeshBasicMaterial keeps
-        // three's colour management, and both maps are sampled through the same
-        // sRGB path, so the mix happens between two colours that already agree.
-        // The uniforms are made here rather than inside onBeforeCompile so the
-        // swap can reach them before the material has ever been compiled.
-        const uniforms = {
-            uMapB: { value: texture },
-            uProgress: { value: 0 },
-            uCells: { value: new THREE.Vector2(
-                ABOUTME_DESIGN.w / ABOUTME_BLOB_CELL, ABOUTME_DESIGN.h / ABOUTME_BLOB_CELL) },
-            uDirA: { value: new THREE.Vector2(1, 0) },
-            uDirB: { value: new THREE.Vector2(0, 1) },
-            uSeed: { value: 0 },
-        };
-        frontMat.onBeforeCompile = (shader) => {
-            Object.assign(shader.uniforms, uniforms);
-            shader.fragmentShader = shader.fragmentShader
-                .replace('#include <common>', '#include <common>\n' + ABOUTME_BLOB_GLSL)
-                .replace('#include <map_fragment>', [
-                    '#ifdef USE_MAP',
-                    '  vec4 sampledDiffuseColor = mix(',
-                    '    texture2D( map, vMapUv ), texture2D( uMapB, vMapUv ), aboutmeMask( vMapUv ) );',
-                    '  diffuseColor *= sampledDiffuseColor;',
-                    '#endif',
-                ].join('\n'));
-        };
-        // Without this the patched program would be shared with every other
-        // unpatched MeshBasicMaterial that happens to hash the same.
-        frontMat.customProgramCacheKey = () => 'aboutme-reveal';
-
-        Object.assign(aboutmeSwap, {
-            ready: true, paint: paint, material: frontMat, uniforms: uniforms,
-        });
-        // The alternates are not part of the first paint, so the next one is
-        // fetched and its face painted once the page has nothing better to do.
-        aboutmeIdle(aboutmePrepareNext);
-        const mesh = new THREE.Mesh(geometry, frontMat);
+        const mesh = new THREE.Mesh(makeRoundedCardGeo(cardW, cardH, 0.06),
+            new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide }));
+        L.mesh = mesh;
         const group = new THREE.Group();
         group.userData.cardIndex = 0;
         group.add(mesh);
         _placeCard(0, group);
+        L.ready = true;
+        aboutBindInput();
+        // No build-in to wait for: play straight away
+        if (!cbOwns(0)) aboutPlay(performance.now() + 150);
     });
 }
 /////puregym -->
 // Experiment: instead of shipping a single flattened 388KB JPEG for this
 // card face, draw the design onto a canvas (vector text/shapes) and only
-// load one real raster asset — the phone-mockup photo (~60KB JPEG) — then
+// load one real raster asset Ã¢â‚¬â€ the phone-mockup photo (~60KB JPEG) Ã¢â‚¬â€ then
 // upload that canvas as a CanvasTexture. Same geometry/material pipeline as
 // every other card, just a different texture source.
 const PUREGYM_DESIGN = { w: 1059, h: 1449 }; // matches the Figma frame 1:1
 // Canvas px per design px. Generating this texture costs zero network bytes
 // (no file to download), so we render well past 1:1 to avoid the GPU having
-// to magnify it — magnification blur reads as much softer on crisp vector
+// to magnify it Ã¢â‚¬â€ magnification blur reads as much softer on crisp vector
 // text/edges than the same blur does on a photo, which is what made the
 // flat JPEG card look "sharper" at the same nominal resolution.
 const PUREGYM_SCALE = CARD_TEXTURE_SCALE;
@@ -2354,15 +3145,16 @@ function loadCard1() {
             // box matches the rest of the deck instead of running square to the edges.
             // Cover rather than stretch: the mockup is 1250x1004 (1.2450) against a
             // 1016.663x817 well (1.2444), so the crop is sub-pixel and nothing of the
-            // phones is lost — but it keeps the aspect honest like every other card.
+            // phones is lost Ã¢â‚¬â€ but it keeps the aspect honest like every other card.
             ctx.save();
             tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
             ctx.clip();
-            tmplDrawImageCover(ctx, mockup, 21 * s, 20 * s, 1016.663 * s, 817 * s);
+            winCutHole(ctx);
+            winPaintPhoto(canvas, mockup, { x: 21, y: 20, w: 1016.663, h: 817 }, s);
             ctx.restore();
             tmplPhotoInnerShadow(ctx, 21 * s, 20 * s, s);
 
-            // "#003" — this card's position in the site's numbering (not Figma's placeholder number).
+            // "#003" Ã¢â‚¬â€ this card's position in the site's numbering (not Figma's placeholder number).
             // Sits in the folded-corner notch on bare stock, so it follows the theme's ink
             // like the template cards' tags do.
             ctx.fillStyle = ink;
@@ -2392,7 +3184,7 @@ function loadCard1() {
             puregymDrawPill(ctx, 472 * s, 1354 * s, 335 * s, 68 * s, 'CASE STUDY', s, theme);
             puregymDrawPill(ctx, 819 * s, 1354 * s, 219 * s, 68 * s, 'MOBILE', s, theme);
 
-            // Slight paper-grain overlay — reuses the same procedural noise tile
+            // Slight paper-grain overlay Ã¢â‚¬â€ reuses the same procedural noise tile
             // as grainTex (see makeGrainTexture above), so it's free: no image
             // file, just a repeating pattern drawn from an in-memory canvas.
             ctx.save();
@@ -2428,16 +3220,16 @@ function loadCard1() {
         const mesh  = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = 1;
-        // What the face says, kept for the card → page hand-off above
+        // What the face says, kept for the card Ã¢â€ â€™ page hand-off above
         group.userData.cardTitle = 'Puregym Redesign';
-        // The bare picture, for the card → page flight (see stashCardHandoff)
+        // The bare picture, for the card Ã¢â€ â€™ page flight (see stashCardHandoff)
         group.userData.handoffPhoto = mockup;
         group.add(mesh);
         _placeCard(1, group);
     });
 }
 
-// ── Cards 2–7 — same treatment as the Puregym card (see loadCard1 above): a
+// Ã¢â€â‚¬Ã¢â€â‚¬ Cards 2Ã¢â‚¬â€œ7 Ã¢â‚¬â€ same treatment as the Puregym card (see loadCard1 above): a
 // canvas-drawn texture instead of a single flattened JPEG. The top "photo"
 // region of each card is cropped straight from that card's original flat
 // JPEG (or, for BMW/Nenos, the client-supplied mockup) and re-compressed as
@@ -2490,13 +3282,13 @@ function tmplCountLines(ctx, text, maxWidth) {
 }
 
 // The photo region on every card is rounded-cornered with a "folded corner"
-// cutout at top-left — that's where the "#00X" tag sits. This is traced
+// cutout at top-left Ã¢â‚¬â€ that's where the "#00X" tag sits. This is traced
 // directly from Figma's own vector path (node 1060:7, the Puregym card's
-// "Subtract" layer — every card's photo box is the same 1016.663×817 size,
+// "Subtract" layer Ã¢â‚¬â€ every card's photo box is the same 1016.663Ãƒâ€”817 size,
 // so this exact geometry applies to all of them, not an approximation). It's
 // not a simple arc: the notch rises from the left edge, holds briefly flat
 // (the "equilibrium" plateau), then rises again into the diagonal and curves
-// into the top edge — a compound S-curve, not a single bulge.
+// into the top edge Ã¢â‚¬â€ a compound S-curve, not a single bulge.
 function tmplPhotoClipPath(ctx, x, y, s, keepPath) {
     if (!keepPath) ctx.beginPath();
     ctx.moveTo(x + 992.662 * s, y);
@@ -2523,7 +3315,7 @@ function tmplPhotoClipPath(ctx, x, y, s, keepPath) {
 // The frame is drawn well off the canvas and only its shadow is sent back. Drawn
 // in place, its inner edge sat exactly on the clip's edge, and the two
 // anti-aliased edges never cancel out: a sliver of the black frame always
-// survived as a hard dark ring round the picture. At the old 2.75× faces it
+// survived as a hard dark ring round the picture. At the old 2.75Ãƒâ€” faces it
 // was a hairline nobody could see; drawn at screen size it is a whole pixel.
 function tmplPhotoInnerShadow(ctx, x, y, s) {
     const away = ctx.canvas.width + 4000;   // device px; this ctx is never scaled
@@ -2534,19 +3326,19 @@ function tmplPhotoInnerShadow(ctx, x, y, s) {
     ctx.beginPath();
     ctx.rect(x - 200 * s, y - 200 * s, 1416.66 * s, 1217 * s);
     tmplPhotoClipPath(ctx, x, y, s, true);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.09)';
-    ctx.shadowBlur = 32 * s;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
+    ctx.shadowBlur = 36 * s;
     ctx.shadowOffsetX = -away;
-    ctx.shadowOffsetY = 4 * s;
+    ctx.shadowOffsetY = 6 * s;
     ctx.fillStyle = '#000';
     ctx.fill('evenodd');
     ctx.restore();
 }
 
-// drawImage's 5-arg form stretches the source to fill dw×dh, distorting any
+// drawImage's 5-arg form stretches the source to fill dwÃƒâ€”dh, distorting any
 // image whose aspect ratio doesn't match the photo box exactly (visible as a
-// horizontal squeeze/stretch). This crops to dw×dh's aspect first — same as
-// CSS `background-size: cover` — so the source is scaled uniformly and only
+// horizontal squeeze/stretch). This crops to dwÃƒâ€”dh's aspect first Ã¢â‚¬â€ same as
+// CSS `background-size: cover` Ã¢â‚¬â€ so the source is scaled uniformly and only
 // centered ends are cropped off, never distorted.
 function tmplDrawImageCover(ctx, img, dx, dy, dw, dh) {
     const iw = img.naturalWidth || img.width;
@@ -2595,7 +3387,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
     canvas.height = TEMPLATE_CARD.h * s;
     const ctx = canvas.getContext('2d');
 
-    // No image yet (e.g. a placeholder card) — skip the network round-trip
+    // No image yet (e.g. a placeholder card) Ã¢â‚¬â€ skip the network round-trip
     // entirely and just fall through to a flat gray fill below.
     const photo = imageSrc ? new Image() : null;
     if (photo) {
@@ -2630,7 +3422,9 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
             tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
             ctx.clip();
             if (photo) {
-                tmplDrawImageCover(ctx, photo, 21 * s, 20 * s, 1016.663 * s, 817 * s);
+                // The photo is its own layer, behind the face (CARD_WIN)
+                winCutHole(ctx);
+                winPaintPhoto(canvas, photo, { x: 21, y: 20, w: 1016.663, h: 817 }, s);
             } else {
                 // Nothing photographic to protect here, so the empty photo box
                 // tracks the stock rather than sitting on it as a bright slab.
@@ -2642,7 +3436,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
 
             // Only draw the "#00X" tag ourselves when it isn't already baked
             // into the photo (see loadCard1 for the baked-in case).
-            // Same position/size Figma uses for the real tag (node 1060:10) —
+            // Same position/size Figma uses for the real tag (node 1060:10) Ã¢â‚¬â€
             // the exact notch shape above comfortably fits it as-is.
             if (tag) {
                 ctx.fillStyle = ink;
@@ -2707,7 +3501,7 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
                 ctx.restore();
             }
 
-            // Slight paper-grain overlay — see loadCard1 for why this is free.
+            // Slight paper-grain overlay Ã¢â‚¬â€ see loadCard1 for why this is free.
             ctx.save();
             ctx.beginPath();
             ctx.roundRect(0, 0, canvas.width, canvas.height, r);
@@ -2749,27 +3543,27 @@ function loadTemplateCard(index, opts) {
         const mesh = new THREE.Mesh(geometry, frontMat);
         const group = new THREE.Group();
         group.userData.cardIndex = index;
-        // What the face says, kept for the card → page hand-off above
+        // What the face says, kept for the card Ã¢â€ â€™ page hand-off above
         group.userData.cardTitle = opts.title || '';
-        // The bare picture, for the card → page flight (see stashCardHandoff)
+        // The bare picture, for the card Ã¢â€ â€™ page flight (see stashCardHandoff)
         group.userData.handoffPhoto = photo || null;
         group.add(mesh);
         _placeCard(index, group);
     });
 }
 
-// ── Card 2 — tech@nyu ────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 2 Ã¢â‚¬â€ tech@nyu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard2() {
     loadTemplateCard(2, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/tech-mockups.webp',
         tag: '#001',
         title: 'tech@nyu',
-        description: "Rebranding and website design for tech@nyu, NYU’s oldest tech-focused club.",
+        description: "Rebranding and website design for tech@nyu, NYUÃ¢â‚¬â„¢s oldest tech-focused club.",
         pills: ['2025', 'BRANDING', 'UIUX'],
     });
 }
 
-// ── Card 3 — Clarus AI ───────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 3 Ã¢â‚¬â€ Clarus AI Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard3() {
     loadTemplateCard(3, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/clarus-mockups.webp',
@@ -2780,18 +3574,18 @@ function loadCard3() {
     });
 }
 
-// ── Card 4 — POVI ────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 4 Ã¢â‚¬â€ POVI Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard4() {
     loadTemplateCard(4, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/povi-mockups.webp',
         tag: '#004',
         title: 'POVI',
-        description: "Speculative design focused on the question: How can we design for a technology that doesn’t exist yet?",
+        description: "Speculative design focused on the question: How can we design for a technology that doesnÃ¢â‚¬â„¢t exist yet?",
         pills: ['2026', 'COMPETITION', 'MOBILE'],
     });
 }
 
-// ── Card 5 — The Dial ────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 5 Ã¢â‚¬â€ The Dial Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard5() {
     loadTemplateCard(5, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/the-dial-mockups.webp',
@@ -2803,7 +3597,7 @@ function loadCard5() {
     });
 }
 
-// ── Card 6 — BMW Designworks ─────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 6 Ã¢â‚¬â€ BMW Designworks Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard6() {
     loadTemplateCard(6, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp',
@@ -2814,7 +3608,7 @@ function loadCard6() {
     });
 }
 
-// ── Card 7 — Nenos Inc. ───────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 7 Ã¢â‚¬â€ Nenos Inc. Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard7() {
     loadTemplateCard(7, {
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp',
@@ -2825,8 +3619,8 @@ function loadCard7() {
     });
 }
 
-// ── Card 8 — Playground ──────────────────────────────────────────────────────
-// Kept next to card 0 (About Me) — they're adjacent in the ring (8 and 0 sit
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 8 Ã¢â‚¬â€ Playground Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// Kept next to card 0 (About Me) Ã¢â‚¬â€ they're adjacent in the ring (8 and 0 sit
 // next to each other since the carousel wraps around).
 
 // A read-only window onto the ring, for the drivers in pw-driver/. Where the
@@ -2859,7 +3653,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         // <html data-theme>: the fog and the card stock are painted from
         // currentTheme, and a page whose attribute says dark while the ring is
         // still drawing light stock is only half caught up. Raw values, so the
-        // driver does the comparing — a probe that reported its own verdict
+        // driver does the comparing Ã¢â‚¬â€ a probe that reported its own verdict
         // would agree with itself no matter what was on screen.
         theme: () => ({
             current: currentTheme,
@@ -2882,7 +3676,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     };
 }
 
-// ── Card 8 — Playground cover ────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card 8 Ã¢â‚¬â€ Playground cover Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 //
 // Frame 4988's layout, drawn with the pieces that actually live on the
 // table: the HFYJ back, the accent chips, a stock die. The live cloth
@@ -2914,7 +3708,7 @@ const PLAYGROUND_PROPS = {
         { x: 886, y: 212, size: 92, value: 5 },
     ],
 };
-// Which cells carry a pip, as [column, row] — the same table dice.js uses.
+// Which cells carry a pip, as [column, row] Ã¢â‚¬â€ the same table dice.js uses.
 const PLAYGROUND_PIPS = {
     1: [[1, 1]],
     2: [[0, 0], [2, 2]],
@@ -2925,10 +3719,10 @@ const PLAYGROUND_PIPS = {
 };
 
 function loadCard8() {
-    // Same scale as the rest of the deck. This used to force 2× even when
-    // the other eight faces sat at 1×, so the playground was four times
+    // Same scale as the rest of the deck. This used to force 2Ãƒâ€” even when
+    // the other eight faces sat at 1Ãƒâ€”, so the playground was four times
     // the pixels of About Me for a card the same size on screen. The
-    // pieces that needed that extra resolution — dice, chips, backs —
+    // pieces that needed that extra resolution Ã¢â‚¬â€ dice, chips, backs Ã¢â‚¬â€
     // are geometry now; the cloth is a repeating tile and does not.
     // A let: a resize redraws the face at the new scale (see repaint below).
     let s = ABOUTME_SCALE;
@@ -2948,7 +3742,7 @@ function loadCard8() {
 
     // Coming back from the table, this is the card facing the camera.
     // The real face waits on the nap, the mark, four fonts and a pile of
-    // prop canvases — long enough to read as an empty ring. A felt-only
+    // prop canvases Ã¢â‚¬â€ long enough to read as an empty ring. A felt-only
     // stand-in sits down now; the detailed face swaps over it once the
     // work below is done.
     function placeNow() {
@@ -2984,7 +3778,7 @@ function loadCard8() {
     // WebP is what we ship. The live site still has the older JPEGs from
     // before that swap; a missing WebP used to throw here and leave the
     // green stand-in up forever. Try the new file, then the old one, and
-    // if both are gone the face still paints — just on flat felt.
+    // if both are gone the face still paints Ã¢â‚¬â€ just on flat felt.
     function loadFeltTile() {
         return loadImage('assets/sketchbook/felt/albedo.webp')
             .catch(function () { return loadImage('assets/sketchbook/felt/albedo.jpg'); })
@@ -2994,7 +3788,7 @@ function loadCard8() {
     // Kick the nap and the four faces off now, not when we come to paint.
     // Waiting until idle to even start the request was the pause: the
     // stand-in was up, and then nothing happened for up to 800ms while
-    // the tile had not been asked for. About Me still wins the pipe —
+    // the tile had not been asked for. About Me still wins the pipe Ã¢â‚¬â€
     // its photo is a high-priority preload; this one is not.
     const detailReady = Promise.all([
         hfyjMarkReady.catch(function () { return null; }),
@@ -3014,7 +3808,7 @@ function loadCard8() {
         }
         let r = 36 * s;
         // A repeating stamp, not a portrait. 256 covers the nap at the
-        // size this card is seen; 520×s was a second megapixel texture
+        // size this card is seen; 520Ãƒâ€”s was a second megapixel texture
         // uploaded for grass you cannot resolve.
         const tile = document.createElement('canvas');
         tile.width = tile.height = 256;
@@ -3040,7 +3834,7 @@ function loadCard8() {
         }
 
         // Only what a chip leaves on the cloth. The chip itself is a
-        // cylinder standing on the face — see buildProps below.
+        // cylinder standing on the face Ã¢â‚¬â€ see buildProps below.
         function drawChipCast(cx, cy, d) {
             ctx.save();
             ctx.filter = `blur(${Math.max(1, d * 0.03)}px)`;
@@ -3154,7 +3948,7 @@ function loadCard8() {
         }
 
         // What a back leaves on the cloth. The card above it is a slab of
-        // its own — see buildBack below.
+        // its own Ã¢â‚¬â€ see buildBack below.
         function drawBackCast(cx, cy, w, rot) {
             const h = w * (CARD_BACK_DESIGN.h / CARD_BACK_DESIGN.w);
             ctx.save();
@@ -3188,8 +3982,8 @@ function loadCard8() {
             const maskPath = new Path2D();
             maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
 
-            // Measure the two pills first so the shelf can sit on them — the
-            // same 94px hug About Me uses from NYU to the notch — instead of
+            // Measure the two pills first so the shelf can sit on them Ã¢â‚¬â€ the
+            // same 94px hug About Me uses from NYU to the notch Ã¢â‚¬â€ instead of
             // leaving a two-pill gap on a three-pill shelf.
             const pillY = ABOUTME_PILL_Y * s, pillH = ABOUTME_PILL_H * s;
             const pillK = (40 * s) / ABOUTME_PILL_FONT_PX;
@@ -3231,7 +4025,7 @@ function loadCard8() {
             const titlePx = 144 * s, tagPx = 46 * s, gap = 16 * s;
             const block = titlePx + gap + tagPx;
             const midX = canvas.width / 2;
-            // Optical middle of the grass, the same band Frame 4988 uses —
+            // Optical middle of the grass, the same band Frame 4988 uses Ã¢â‚¬â€
             // dead canvas-center would sit the word on the lower props.
             const midY = 640 * s;
             ctx.textAlign = 'center';
@@ -3289,12 +4083,12 @@ function loadCard8() {
         const alreadyOut = !!group;
         placeNow();
         if (alreadyOut) texture.needsUpdate = true;
-        // The cloth is on the card. The props are a second job — six die
-        // faces, two chips, two slabs — and holding the swap for them
+        // The cloth is on the card. The props are a second job Ã¢â‚¬â€ six die
+        // faces, two chips, two slabs Ã¢â‚¬â€ and holding the swap for them
         // kept the grass off screen until every canvas was uploaded.
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        // ── The chips and the die are real things on the card ────────────
+        // Ã¢â€â‚¬Ã¢â€â‚¬ The chips and the die are real things on the card Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         //
         // Painted, they were a picture of a table; turning the carousel
         // slid a flat sticker past the camera. As geometry standing on
@@ -3302,11 +4096,11 @@ function loadCard8() {
         // card shows the die's other numbers and the chip's edge.
         //
         // The scene carries one ambient light, so a lit material would
-        // come back evenly bright on all six sides — the whole point
+        // come back evenly bright on all six sides Ã¢â‚¬â€ the whole point
         // being lost. The shading is baked per face instead, which is
         // also what every other card in the deck does: one unlit
         // material, everything in the texture.
-        const U = cardW / ABOUTME_DESIGN.w;      // design px → world units
+        const U = cardW / ABOUTME_DESIGN.w;      // design px Ã¢â€ â€™ world units
         const designX = (px) => (px - ABOUTME_DESIGN.w / 2) * U;
         const designY = (py) => (ABOUTME_DESIGN.h / 2 - py) * U;
         // Clear of the cloth by a hair, so the piece and the shadow it
@@ -3330,10 +4124,10 @@ function loadCard8() {
             g.fillRect(0, 0, w, h);
         }
 
-        // One face of the cube: stock, ink pips on the 3×3 grid dice.css
+        // One face of the cube: stock, ink pips on the 3Ãƒâ€”3 grid dice.css
         // lays out (15% padding, 5% gaps), and the stock's own edge line.
         // The corners are rounded the same 22% the live die is, and left
-        // clear — the core behind shows through them as the bevel.
+        // clear Ã¢â‚¬â€ the core behind shows through them as the bevel.
         function dieFace(value, lit, stock, ink) {
             return propTexture(128, (g, px) => {
                 g.fillStyle = stock;
@@ -3367,7 +4161,7 @@ function loadCard8() {
             return propTexture(128, (g, px) => {
                 const k = px / 100;
                 // A cap's UVs only ever sample the inscribed circle, but
-                // the disc stops a hair inside it — so the stock goes
+                // the disc stops a hair inside it Ã¢â‚¬â€ so the stock goes
                 // down first and no sliver of it can come back empty.
                 g.fillStyle = accent;
                 g.fillRect(0, 0, px, px);
@@ -3418,7 +4212,7 @@ function loadCard8() {
             return t;
         }
 
-        // The faces in +x, −x, +y, −y, +z, −z order, and a die is only a
+        // The faces in +x, Ã¢Ë†â€™x, +y, Ã¢Ë†â€™y, +z, Ã¢Ë†â€™z order, and a die is only a
         // die if opposite ones come to seven. +z is the number Frame 4988
         // shows; the rest follow from that. The brightnesses are close
         // together on purpose: far apart, a small cube stops reading as
@@ -3437,7 +4231,7 @@ function loadCard8() {
         }));
         // What you see through the rounded corners.
         const dieCoreMat = new THREE.MeshBasicMaterial();
-        // Side, top cap, bottom cap — CylinderGeometry's own order. The
+        // Side, top cap, bottom cap Ã¢â‚¬â€ CylinderGeometry's own order. The
         // bottom is face down on the cloth and never seen, so it shares
         // the top's art rather than paying for a second canvas.
         const chipMats = [
@@ -3480,7 +4274,7 @@ function loadCard8() {
         // too: six divs with a 22% radius, planted a half-width out. A box
         // geometry cannot round its corners and a rounded box cannot take
         // a different texture per side, so the faces go on as planes and
-        // the core fills the gap where they meet — that gap, read at a
+        // the core fills the gap where they meet Ã¢â‚¬â€ that gap, read at a
         // glance, is the bevel.
         function buildCube(size) {
             const cube = new THREE.Group();
@@ -3541,7 +4335,7 @@ function loadCard8() {
         });
 
         // A card is a slab: the printed side on top, the paper's own edge
-        // round it. The edge is the whole point of doing it in geometry —
+        // round it. The edge is the whole point of doing it in geometry Ã¢â‚¬â€
         // painted, two backs on a table are two rectangles, and a rectangle
         // has no thickness to catch.
         PLAYGROUND_PROPS.backs.forEach((spec) => {
@@ -3552,7 +4346,7 @@ function loadCard8() {
             const thick = w * 0.022;
             const back = new THREE.Group();
             // Inside the printed corners' radius, so no square corner of
-            // paper pokes out past the round one on top of it — and a
+            // paper pokes out past the round one on top of it Ã¢â‚¬â€ and a
             // shade thinner than the slab, so the printed side is not
             // sitting in the same plane as the paper's own top face.
             // Coplanar with it, the two take turns winning the depth test
@@ -3617,7 +4411,7 @@ function loadCard8() {
     paintDetail();
 }
 
-// ── Card build-in ────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Card build-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // There is no loading screen. The ring is on screen from the first frame and
 // every card draws itself in while its art is still arriving:
 //
@@ -3625,7 +4419,7 @@ function loadCard8() {
 //   2. the card fills in, and dashed guides draw where each piece will go
 //   3. the pieces arrive as wireframes (a hatched photo, a bar for the title,
 //      a box for the copy, the pill outlines) from off the card, up near the
-//      camera, and slap down onto their guides — each one jolts the card
+//      camera, and slap down onto their guides Ã¢â‚¬â€ each one jolts the card
 //   4. once the real face is ready, the content comes in over the wireframe:
 //      the photo unmasks, the text types itself in, the pills pop
 //
@@ -3643,22 +4437,34 @@ const CB_SLOW = (location.hostname === 'localhost' || location.hostname === '127
     ? (Number(new URLSearchParams(location.search).get('buildslow')) || 1) : 1;
 const CB_SPEED = (introSkipped ? 0.55 : 1) * CB_SLOW;
 const CB_MAX = 16;
-const CB_U = 1.7 / 1449;          // design px → card-local units
+const CB_U = 1.7 / 1449;          // design px Ã¢â€ â€™ card-local units
 const CB_Z0 = 0.42;               // how far off the face a piece starts
-const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4 };
+const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4, POP: 5 };
 // Every duration and offset in the build, in ms, before CB_SPEED.
+// The whole build fits inside 4 s when the art arrives in time.
 const CB_T = {
-    spin: 1000, outline: 900, fillAt: 350, fill: 600,
-    guideAt: 820, guideGap: 60, guide: 420,
-    flyAt: 1300, flyGap: 115, fly: 600,
-    stagger: 130,                  // per card, by distance round the ring from the front
-    ring: 2400,                    // first visit: one turn of the ring as it all starts
-    introCap: 7000,                // the nav is never held back longer than this
+    // The outline draws itself all the way round before the card fills in
+    grow: 500, outline: 950, fillAt: 820, fill: 400,
+    // Per-card timing only (the card itself never spins; see cbRingStep)
+    spinRate: 10,                  // sets how long the settle step takes
+    spinMin: 1150,                 // nothing lands before the card has filled in
+    spinCap: 1600,                 // and starts slowing by now even if the art is late
+    stopMin: 400, stopMax: 750,    // how long the slow-down takes
+    flyFrom: 0.5,                  // pieces start flying this far into the slow-down
+    guideLead: 240, guideGap: 65, guide: 450,
+    flyGap: 75, fly: 480,
+    stagger: 150,                  // gap between one card starting and the next (front first, then round the ring)
+    introCap: 15000,               // safety net only: art that never arrives can't hold the bars forever
+    // The ring makes one full turn while the cards build, quick at first and
+    // easing out onto a card, like the old deal-in (cbRingStep)
+    ringStep: 500,                 // ms per card, so one turn is 500 x the card count
 };
 
 const CB_WIRE = {
     light: { wire: '#9DB0EC', hatch: '#B3C1F1', bar: '#E2E8FB', caret: '#5E81E2' },
-    dark:  { wire: '#8A93B8', hatch: '#6E7799', bar: '#4A4E60', caret: '#FFFA50' },
+    // Dark mode draws in the theme's yellow (#FFFA50) eased into the stock,
+    // the way light mode's lines are its blue softened toward white
+    dark:  { wire: '#C9C44C', hatch: '#9E9A45', bar: '#55543A', caret: '#FFFA50' },
 };
 const CB_COLORS = {
     uCbBg:    { value: new THREE.Color() },
@@ -3683,7 +4489,7 @@ CB_WHITE.needsUpdate = true;
 
 // Shared by the card face and the flying pieces, so a piece looks exactly the
 // same in the air as it does once it has landed. Everything is in design px
-// (the 1059×1449 Figma frame), measured from an element's top-left.
+// (the 1059Ãƒâ€”1449 Figma frame), measured from an element's top-left.
 const CB_GLSL_COMMON = `
 uniform vec3 uCbBg;
 uniform vec3 uCbWire;
@@ -3696,21 +4502,64 @@ float cbBox( vec2 p, vec2 b, float r ) {
     vec2 q = abs( p ) - b + r;
     return length( max( q, 0.0 ) ) + min( max( q.x, q.y ), 0.0 ) - r;
 }
+// A point in an element's own frame, from its top-left. R is its rect as if
+// unturned (round its centre); T = cos, sin of its turn (1, 0 = not turned).
+vec2 cbLocal( vec2 p, vec4 R, vec4 T ) {
+    vec2 d = p - R.xy - R.zw * 0.5;
+    return vec2( T.x * d.x + T.y * d.y, -T.y * d.x + T.x * d.y ) + R.zw * 0.5;
+}
 // Distance to an element's outline. The photo keeps the folded corner the
 // #00X tag sits in, and on About Me / Playground the shelf the pills sit on.
 float cbShape( float kind, vec2 q, vec2 size, vec2 origin ) {
     vec2 h = size * 0.5;
-    float r = kind < 0.5 ? 24.0 : ( kind < 1.5 ? min( h.y, 10.0 ) : ( kind < 3.5 ? 14.0 : h.y ) );
+    float r = kind < 0.5 ? 24.0 : ( kind < 1.5 ? min( h.y, 10.0 ) : ( kind < 3.5 ? 14.0 : ( kind < 4.5 ? h.y : 7.0 ) ) );
     float d = cbBox( q - h, h, r );
     if ( kind < 0.5 ) {
         float ny = q.x < 118.0 ? 58.5 : ( q.x < 210.0 ? 58.5 * ( 1.0 - ( q.x - 118.0 ) / 92.0 ) : -1e4 );
         d = max( d, ( ny - q.y ) * ( q.x < 118.0 ? 1.0 : 0.84 ) );
         if ( uCbCut.z > uCbCut.x ) {
-            vec2 ch = ( uCbCut.zw - uCbCut.xy ) * 0.5;
-            d = max( d, -cbBox( origin + q - uCbCut.xy - ch, ch, 0.0 ) );
+            // The pill shelf: the photo's bottom edge rises to the shelf in a
+            // soft slanted S (rounded at both ends, like the real notch the
+            // art has), never a square step. uCbCut = (slant starts at x,
+            // shelf top y, slant ends at x, photo bottom y), in design px.
+            vec2 pc = origin + q;
+            float span = uCbCut.z - uCbCut.x;
+            float t = clamp( ( pc.x - uCbCut.x ) / span, 0.0, 1.0 );
+            float top = mix( uCbCut.w, uCbCut.y, t * t * ( 3.0 - 2.0 * t ) );
+            float slope = 6.0 * t * ( 1.0 - t ) * ( uCbCut.w - uCbCut.y ) / span;
+            d = max( d, ( pc.y - top ) / sqrt( 1.0 + slope * slope ) );
         }
     }
     return d;
+}
+// How far round a rounded box's outline the point nearest q sits, 0..1,
+// clockwise (y down) from where the top edge leaves the top-left corner.
+// L comes back as the outline's full length, in the same units as q.
+float cbPerim( vec2 q, vec2 b, float r, out float L ) {
+    vec2 c = b - r;
+    float sx = 2.0 * c.x, sy = 2.0 * c.y, arc = 1.5707963 * r;
+    L = 2.0 * ( sx + sy ) + 4.0 * arc;
+    float s;
+    if ( abs( q.x ) <= c.x ) {
+        s = q.y < 0.0 ? q.x + c.x                                   // top
+                      : sx + arc + sy + arc + ( c.x - q.x );        // bottom
+    } else if ( abs( q.y ) <= c.y ) {
+        s = q.x > 0.0 ? sx + arc + ( q.y + c.y )                    // right
+                      : 2.0 * sx + sy + 3.0 * arc + ( c.y - q.y );  // left
+    } else if ( q.x > 0.0 && q.y < 0.0 ) {                          // top right
+        vec2 v = q - vec2( c.x, -c.y );
+        s = sx + clamp( atan( v.x, -v.y ), 0.0, 1.5707963 ) * r;
+    } else if ( q.x > 0.0 ) {                                       // bottom right
+        vec2 v = q - c;
+        s = sx + arc + sy + clamp( atan( v.y, v.x ), 0.0, 1.5707963 ) * r;
+    } else if ( q.y > 0.0 ) {                                       // bottom left
+        vec2 v = q - vec2( -c.x, c.y );
+        s = 2.0 * sx + 2.0 * arc + sy + clamp( atan( -v.x, v.y ), 0.0, 1.5707963 ) * r;
+    } else {                                                        // top left
+        vec2 v = q + c;
+        s = 2.0 * sx + 2.0 * sy + 3.0 * arc + clamp( atan( -v.y, -v.x ), 0.0, 1.5707963 ) * r;
+    }
+    return s / L;
 }
 float cbStroke( float d, float px ) {
     return 1.0 - smoothstep( 0.55 * px, 1.25 * px, abs( d ) );
@@ -3739,6 +4588,11 @@ vec4 cbWire( float kind, vec2 q, vec2 size, vec2 origin, float draw, float px, f
 `;
 
 const CB_GLSL_FACE = `
+#ifdef CARD_WIN
+vec4 winTexGrad( sampler2D s, vec2 uv, vec2 gx, vec2 gy );
+#else
+vec4 winTexGrad( sampler2D s, vec2 uv, vec2 gx, vec2 gy ) { return textureGrad( s, uv, gx, gy ); }
+#endif
 uniform float uCbOn;
 uniform float uCbHasMap;
 uniform float uCbHasAlt;
@@ -3748,6 +4602,7 @@ uniform int uCbCount;
 uniform vec4 uCbRect[ ${CB_MAX} ];
 uniform vec4 uCbA[ ${CB_MAX} ];   // kind, guide drawn, landed, content revealed
 uniform vec4 uCbB[ ${CB_MAX} ];   // in-flight offset x/y, height (-1 = not flying), landing pulse
+uniform vec4 uCbT[ ${CB_MAX} ];   // its turn: cos, sin
 vec2 cbUv( vec2 p ) { return vec2( p.x / 1059.0, 1.0 - p.y / 1449.0 ); }
 float cbBackOut( float t ) { float u = t - 1.0; return 1.0 + 2.70158 * u * u * u + 1.70158 * u * u; }
 vec4 cbFace( vec4 inCol, vec2 uv ) {
@@ -3765,8 +4620,9 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
         if ( i >= uCbCount ) break;
         vec4 R = uCbRect[ i ];
         vec4 A = uCbA[ i ];
-        vec2 q = p - R.xy;
-        if ( q.x >= -6.0 && q.y >= -6.0 && q.x <= R.z + ( A.x > 0.5 && A.x < 2.5 ? 14.0 : 6.0 ) && q.y <= R.w + 6.0 ) {
+        vec2 q = cbLocal( p, R, uCbT[ i ] );
+        float mg = A.x > 4.5 ? 12.0 : 6.0;
+        if ( q.x >= -mg && q.y >= -mg && q.x <= R.z + ( A.x > 0.5 && A.x < 2.5 ? 14.0 : mg ) && q.y <= R.w + mg ) {
             inEl = true;
             if ( A.x > 0.5 && A.x < 2.5 && A.w < 0.999 && p.x > R.x + A.w * R.z ) hidText = true;
         }
@@ -3779,7 +4635,8 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
         vec4 R = uCbRect[ i ];
         vec4 A = uCbA[ i ];
         vec4 B = uCbB[ i ];
-        vec2 q = p - R.xy;
+        vec4 T = uCbT[ i ];
+        vec2 q = cbLocal( p, R, T );
         vec2 size = R.zw;
         float kind = A.x;
         if ( A.z > 0.5 ) {
@@ -3797,8 +4654,8 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
                         float z = 1.0 + 0.08 * ( 1.0 - A.w ) * ( 1.0 - A.w );
                         vec2 cc = R.xy + size * 0.5;
                         vec2 sp = cc + ( p - cc ) / z;
-                        if ( hidText && uCbHasAlt > 0.5 ) content = textureGrad( uCbAlt, cbUv( sp ), gx / z, gy / z ).rgb;
-                        else content = textureGrad( map, cbUv( sp ), gx / z, gy / z ).rgb;
+                        if ( hidText && uCbHasAlt > 0.5 ) content = winTexGrad( uCbAlt, cbUv( sp ), gx / z, gy / z ).rgb;
+                        else content = winTexGrad( map, cbUv( sp ), gx / z, gy / z ).rgb;
                     }
                     vec4 w = cbWire( 0.0, q, size, R.xy, 1.0, px, march );
                     vec3 wired = mix( uCbBg, w.rgb, w.a );
@@ -3835,12 +4692,12 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
                     float sc = max( mix( 0.55, 1.0, cbBackOut( A.w ) ), 0.05 );
                     vec2 cc = R.xy + size * 0.5;
                     vec2 sp = cc + ( p - cc ) / sc;
-                    float d2 = cbShape( 4.0, sp - R.xy, size, R.xy );
+                    float d2 = cbShape( kind, cbLocal( sp, R, T ), size, R.xy );
                     float pin = 1.0 - smoothstep( 1.5, 1.5 + px, d2 );
-                    vec3 pc = textureGrad( map, cbUv( sp ), gx / sc, gy / sc ).rgb;
+                    vec3 pc = winTexGrad( map, cbUv( sp ), gx / sc, gy / sc ).rgb;
                     c = mix( c, pc, pin * clamp( A.w * 3.0, 0.0, 1.0 ) );
                 }
-                vec4 w = cbWire( 4.0, q, size, R.xy, 1.0, px, march );
+                vec4 w = cbWire( kind, q, size, R.xy, 1.0, px, march );
                 float a = w.a * ( 1.0 - smoothstep( 0.0, 0.45, A.w ) );
                 c = mix( c, w.rgb, a );
                 lineA = max( lineA, a );
@@ -3875,20 +4732,28 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
         vec4 R = uCbRect[ i ];
         vec2 off = B.xy + vec2( 40.0, 70.0 ) * B.z;
         float blur = 6.0 + 80.0 * B.z;
-        float d = cbBox( p - R.xy - off - R.zw * 0.5, R.zw * 0.5, 18.0 );
+        float d = cbBox( cbLocal( p - off, R, uCbT[ i ] ) - R.zw * 0.5, R.zw * 0.5, 18.0 );
         float sa = ( 0.05 + 0.15 * ( 1.0 - B.z ) ) * ( 1.0 - smoothstep( -blur, blur, d ) );
         c *= 1.0 - sa;
         lineA = max( lineA, sa );
     }
 
-    // The card's own outline, drawn round from the top left
+    // The card's own outline: one pen point sets off from the top left and
+    // travels round the edge, clockwise, at an even pace (by distance along
+    // the edge, so the long sides and the corners take their fair share).
+    // The last stretch behind the pen is a touch brighter and bolder.
     {
         vec2 h = vec2( 529.5, 724.5 );
         vec2 rel = p - h;
         float d = cbBox( rel, h - 2.5, 50.0 );
-        float t = fract( atan( rel.y, rel.x ) / 6.28318 + 0.375 );
-        float a = cbStroke( d, px ) * step( t, uCbCard.x ) * uCbCard.y;
-        c = mix( c, uCbWire, a );
+        float L;
+        float s = cbPerim( rel, h - 2.5, 50.0, L );
+        float prog = uCbCard.x;
+        float drawn = step( s, prog );
+        float behind = ( prog - s ) * L;
+        float pen = ( 1.0 - smoothstep( 0.0, 110.0, behind ) ) * drawn * step( prog, 0.999 );
+        float a = cbStroke( d, px * ( 1.0 + 0.9 * pen ) ) * drawn * uCbCard.y;
+        c = mix( c, mix( uCbWire, uCbCaret, 0.55 * pen ), a );
         lineA = max( lineA, a );
     }
     return vec4( c, max( uCbCard.z, lineA ) );
@@ -3902,6 +4767,7 @@ uniform vec2 uFlyOrigin;
 uniform float uFlyDraw;
 uniform float uFlyAlpha;
 uniform float uFlyPad;
+uniform vec4 uFlyT;
 vec4 cbFly( vec2 uv ) {
     vec2 full = uFlySize + 2.0 * uFlyPad;
     vec2 q = vec2( uv.x, 1.0 - uv.y ) * full - uFlyPad;
@@ -3910,7 +4776,10 @@ vec4 cbFly( vec2 uv ) {
     // A sheet of the card's own stock under the lines, so it reads as a
     // piece of paper in the air rather than lines floating on nothing.
     float sheet = cbInside( cbShape( uFlyKind, q, uFlySize, uFlyOrigin ), px ) * 0.9;
-    return vec4( mix( uCbBg, w.rgb, w.a ), max( sheet, w.a ) * uFlyAlpha );
+    vec2 fh = uFlySize * 0.5, fd = q - fh;
+    vec2 cp = uFlyOrigin + fh + vec2( uFlyT.x * fd.x - uFlyT.y * fd.y, uFlyT.y * fd.x + uFlyT.x * fd.y );
+    float onCard = step( 0.0, cp.x ) * step( cp.x, 1059.0 ) * step( 0.0, cp.y ) * step( cp.y, 1449.0 );
+    return vec4( mix( uCbBg, w.rgb, w.a ), max( sheet, w.a ) * uFlyAlpha * onCard );
 }
 `;
 
@@ -3948,6 +4817,7 @@ function cbMakeUniforms() {
         uCbRect:   { value: v4() },
         uCbA:      { value: v4() },
         uCbB:      { value: v4() },
+        uCbT:      { value: Array.from({ length: CB_MAX }, () => new THREE.Vector4(1, 0, 0, 0)) },
     };
 }
 const cbCards = Array.from({ length: cardCount }, (_, i) => ({
@@ -3975,9 +4845,48 @@ function cbAttach(i, group) {
     cbPatchFace(group.children[0].material, st.U);
     group.visible = false;
     st.real = group;
+    // Build its shader in the background, so taking over never freezes the page
+    st.compiled = false;
+    renderer.compileAsync(group, camera, scene)
+        .then(() => { st.compiled = true; }, () => { st.compiled = true; });
 }
 
-// ── Where everything sits on each face, in design px ──
+// The build-in's shader is big, and building it the ordinary way, the first
+// time a card draws, stops the whole page for a second or two per kind of
+// card (four kinds, so several seconds of freezing across the load-in).
+// Built here instead, in the background (KHR_parallel_shader_compile), on a
+// throwaway stand-in and real card that share the program the real ones will
+// use. Kept alive so the program is never thrown away.
+let cbWarmPromise = null;
+function cbWarm() {
+    if (cbWarmPromise) return cbWarmPromise;
+    const aspect = 1059 / 1449;
+    const ghostMat = new THREE.MeshBasicMaterial({ map: CB_WHITE, transparent: true, side: THREE.FrontSide, depthWrite: false });
+    applyCardStock(ghostMat, { aspect });
+    cbPatchFace(ghostMat, cbMakeUniforms());
+    const realMat = new THREE.MeshBasicMaterial({ map: CB_WHITE, side: THREE.FrontSide });
+    applyCardStock(realMat, { aspect });
+    cardSoftPatchMat(realMat, { value: 0 });
+    cardWinPatchMat(realMat, winMakeUniforms(realMat));
+    cbPatchFace(realMat, cbMakeUniforms());
+    const fadedMat = new THREE.MeshBasicMaterial({ map: CB_WHITE, side: THREE.FrontSide, transparent: true });
+    applyCardStock(fadedMat, { aspect });
+    cardSoftPatchMat(fadedMat, { value: 0 });
+    cardWinPatchMat(fadedMat, winMakeUniforms(fadedMat));
+    cbPatchFace(fadedMat, cbMakeUniforms());
+    const geo = new THREE.PlaneGeometry(0.001, 0.001);
+    const warm = new THREE.Group();
+    warm.add(new THREE.Mesh(geo, ghostMat), new THREE.Mesh(geo, realMat), new THREE.Mesh(geo, fadedMat));
+    // Everything else already in the scene (shadows, particles, card backsÃ¢â‚¬Â¦) too
+    cbWarmPromise = Promise.all([
+        renderer.compileAsync(warm, camera, scene),
+        renderer.compileAsync(scene, camera),
+    ]).catch(() => {});
+    cbWarm.keep = warm;
+    return cbWarmPromise;
+}
+
+// Ã¢â€â‚¬Ã¢â€â‚¬ Where everything sits on each face, in design px Ã¢â€â‚¬Ã¢â€â‚¬
 // Read off the same numbers the painters above draw with, so the wireframe
 // lands exactly where the art will be.
 const cbMeasure = document.createElement('canvas').getContext('2d');
@@ -4098,17 +5007,24 @@ function cbLayout(spec) {
     const pillK = 40 / ABOUTME_PILL_FONT_PX;
     const tagFont = 'italic 400 36px "Inter", "DM Sans", sans-serif';
     if (spec.type === 'aboutme') {
-        const nameFont = '700 80px "DM Sans", sans-serif';
-        const base = cbBoxedBaseline('Jennifer Huang', nameFont, 35, 93);
-        const els = [
-            { kind: CB.IMG, role: 'img', x: 21, y: 20, w: 1017, h: 1404 },
-            cbTag('#000', tagFont, 56, 91),
-            Object.assign({ kind: CB.BAR, role: 'title' },
-                cbTextRect('Jennifer Huang', nameFont, 205, base, 'left', 80)),
-        ];
-        ABOUTME_PILLS.forEach((pl) => els.push({ kind: CB.PILL, role: 'pill',
-            x: pl.x, y: ABOUTME_PILL_Y, w: pl.w, h: ABOUTME_PILL_H }));
-        return { els, cut: [250, 1326, 1060, 1450] };
+        const lg = ABOUT.logo, lcx = lg.x + lg.size / 2, lcy = lg.y + lg.size / 2;
+        const els = lg.show ? [{ kind: CB.PILL, role: 'pill', x: lcx - lg.glowR, y: lcy - lg.glowR, w: 2 * lg.glowR, h: 2 * lg.glowR }] : [];
+        // The little cards at their real size and turn, so the stand-in
+        // matches what lands
+        ABOUT_DECOR.forEach((d) => els.push({ kind: CB.POP, role: 'pill',
+            x: d.cx - d.w / 2, y: d.cy - d.h / 2, w: d.w, h: d.h, rot: THREE.MathUtils.degToRad(d.rot) }));
+        // Each line of copy is its own block: it flies in, lands, then types in
+        els.push(Object.assign({ kind: CB.BAR, role: 'text' },
+            cbTextRect('Hey I\u2019m Jennifer', '400 39px "DM Sans", sans-serif', ABOUT.x, ABOUT.greet.base, 'left', ABOUT.greet.size)));
+        const lay = aboutLayout(cbMeasure, cbScale, 1);
+        const fsz = ABOUT.stmt.size;
+        lay.lines.forEach((ln) => {
+            const chars = ln.words.reduce((n, wd) => n + wd.runs.reduce((m, r) => m + r.text.length, 0) + 1, 0);
+            els.push({ kind: CB.BAR, role: 'text', x: ABOUT.x, y: ln.base - fsz * 0.86, w: ln.w, h: fsz * 1.12, chars });
+        });
+        ABOUT.muted.lines.forEach((t, i) => els.push(Object.assign({ kind: CB.BAR, role: 'text' },
+            cbTextRect(t, '400 38px "DM Sans", sans-serif', ABOUT.x, ABOUT.muted.base + i * ABOUT.muted.lh, 'left', ABOUT.muted.size))));
+        return { els, cut: null };
     }
     // Playground
     const widths = PLAYGROUND_PILLS.map((label) =>
@@ -4136,15 +5052,17 @@ function cbLayout(spec) {
         els.push({ kind: CB.PILL, role: 'pill', x, y: ABOUTME_PILL_Y, w, h: ABOUTME_PILL_H });
         x += w + 12;
     });
-    return { els, cut: [cutLeft + 30, 1326, 1060, 1450] };
+    return { els, cut: [ABOUTME_CUT_ORIGIN_X - 853 * k, 1331, ABOUTME_CUT_ORIGIN_X - 696 * k, 1424] };
 }
 
-// ── Stand-ins and flying pieces ──
+// Ã¢â€â‚¬Ã¢â€â‚¬ Stand-ins and flying pieces Ã¢â€â‚¬Ã¢â€â‚¬
 function cbMakeGhost(st) {
     const aspect = 1059 / 1449;
     const cardH = 1.7, cardW = cardH * aspect;
     const mat = new THREE.MeshBasicMaterial({
-        map: CB_WHITE, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+        // Front side only: the cards never turn their backs during the build,
+        // and a two-sided see-through material costs a second shader build.
+        map: CB_WHITE, transparent: true, side: THREE.FrontSide, depthWrite: false,
     });
     applyCardStock(mat, { aspect });
     cbPatchFace(mat, st.U);
@@ -4175,6 +5093,7 @@ function cbMakeFlyer(st, el) {
         uFlyDraw:   { value: 0 },
         uFlyAlpha:  { value: 0 },
         uFlyPad:    { value: pad },
+        uFlyT:      { value: new THREE.Vector4(Math.cos(el.rot || 0), Math.sin(el.rot || 0), 0, 0) },
     };
     const mat = new THREE.MeshBasicMaterial({ map: CB_WHITE, transparent: true, depthWrite: false });
     mat.onBeforeCompile = (shader) => {
@@ -4204,7 +5123,7 @@ function cbMakeFlyer(st, el) {
     el.rot0 = (Math.random() - 0.5) * 0.5;
 }
 
-// ── Start ──
+// Ã¢â€â‚¬Ã¢â€â‚¬ Start Ã¢â€â‚¬Ã¢â€â‚¬
 async function cbStart() {
     if (!CB_ENABLED) return;
     cbRunning = true;
@@ -4212,31 +5131,29 @@ async function cbStart() {
     document.body.classList.add('gradient-visible');
     // The layout is measured, so the faces it measures with have to be in.
     // Capped: a font that never arrives must not hold the ring empty.
+    // The shader builds in the background meanwhile; waited on (capped too)
+    // so the first frames of the build don't stall on it.
+    const warm = cbWarm();
     await Promise.race([
         Promise.all([
             '700 96px "DM Sans"', '400 56px "DM Sans"', '600 40px "DM Sans"',
             'italic 400 36px "DM Sans"', 'italic 400 36px "Inter"', '700 80px "DM Sans"',
-            '400 144px "DM Sans"', '400 46px "Mynerve"', `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`,
+            '400 144px "DM Sans"', '400 46px "Mynerve"', '600 103px "Caveat"', '400 39px "DM Sans"', '400 38px "DM Sans"', `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`,
         ].map((f) => document.fonts.load(f).catch(() => {}))),
         new Promise((resolve) => setTimeout(resolve, 900)),
     ]);
+    await Promise.race([warm, new Promise((resolve) => setTimeout(resolve, 2500))]);
 
     const k = CB_SPEED;
-    const apc = (Math.PI * 2) / cardCount;
-    cbFront = ((Math.round(-cardgroup.rotation.y / apc) % cardCount) + cardCount) % cardCount;
+    // No spin on load: the ring starts square on About Me and stays there
+    // while the cards build, on a first visit and on a refresh alike
+    cardgroup.rotation.y = Math.round(cardgroup.rotation.y / (Math.PI * 2)) * Math.PI * 2;
+    cbFront = 0;
     cbStartTime = performance.now();
     cbScale = CARD_TEXTURE_SCALE;
 
-    // First visit: the ring makes one turn while everything spins in.
-    if (!introSkipped) {
-        introAnimStartTime = cbStartTime;
-        introAnimEndRot = cardgroup.rotation.y;
-        introAnimStartRot = introAnimEndRot + Math.PI * 2;
-        introAnimDuration = CB_T.ring;
-        introAnimActive = true;
-        targetRotation = null;
-        cardgroup.rotation.y = introAnimStartRot;
-    }
+    targetRotation = null;
+    cbRing = null;
 
     cbCards.forEach((st) => {
         if (st.finished) return;
@@ -4247,29 +5164,34 @@ async function cbStart() {
         if (cut) U.uCbCut.value.set(cut[0], cut[1], cut[2], cut[3]);
         U.uCbCount.value = st.els.length;
         st.ghost = cbMakeGhost(st);
-        let gi = 0, fi = 0;
-        st.flightsEnd = 0;
+        // Guides and flights are timed from the moment the spin stops,
+        // which is not known until the art is in (see cbBeginStop).
+        st.flightsEnd = Infinity;
+        st.spin = { stopAt: -1, from: 0, dist: 0, dur: 0, end: Infinity };
         const box = st.els.find((el) => el.kind === CB.BOX);
         st.els.forEach((el, j) => {
             U.uCbRect.value[j].set(el.x, el.y, el.w, el.h);
             U.uCbA.value[j].set(el.kind, 0, 0, 0);
             U.uCbB.value[j].set(0, 0, -1, 0);
+            U.uCbT.value[j].set(Math.cos(el.rot || 0), Math.sin(el.rot || 0), 0, 0);
             el.j = j;
             el.placed = false;
             if (el.kind !== CB.LINE) {
-                el.g0 = (CB_T.guideAt + gi++ * CB_T.guideGap) * k;
+                el.g0 = Infinity;
                 el.fly = true;
-                el.f0 = (CB_T.flyAt + fi++ * CB_T.flyGap) * k;
+                el.f0 = Infinity;
                 el.fdur = CB_T.fly * k;
-                st.flightsEnd = Math.max(st.flightsEnd, el.f0 + el.fdur);
                 cbMakeFlyer(st, el);
                 st.ghost.add(el.mesh);
             } else {
                 el.box = box;
             }
         });
-        const ring = Math.min((st.i - cbFront + cardCount) % cardCount, (cbFront - st.i + cardCount) % cardCount);
-        st.t0 = cbStartTime + ring * CB_T.stagger * k;
+        // One by one: the front card first, then each next card in the order
+        // the ring turns them to the front (on a phone: the top of the pile,
+        // then the ones under it)
+        const order = (st.i - cbFront + cardCount) % cardCount;
+        st.t0 = cbStartTime + order * CB_T.stagger * k;
         st.started = true;
     });
 }
@@ -4279,7 +5201,10 @@ async function cbStart() {
 // yet shows the picture rather than letters that are still to come.
 function cbPrep(st) {
     if (st.finished) return;
-    if (st.i === 0 || st.i === 8) {
+    const __t = performance.now(); try { return cbPrep__(st); } finally { console.log('[pg] prep', st.i, Math.round(__t), Math.round(performance.now() - __t)); }
+}
+function cbPrep__(st) {
+    if (st.i === 8) {
         const entry = cardFaceRepaints.find((e) => e.index === st.i);
         const canvas = st.real.children[0].material.map.image;
         if (entry && canvas && canvas.getContext) {
@@ -4294,6 +5219,7 @@ function cbPrep(st) {
             entry.repaint(currentTheme);
             const tex = new THREE.CanvasTexture(alt);
             tex.colorSpace = THREE.SRGBColorSpace;
+            renderer.initTexture(tex);   // uploaded now, not the frame it first shows
             st.U.uCbAlt.value = tex;
             st.U.uCbHasAlt.value = 1;
         }
@@ -4304,7 +5230,41 @@ function cbPrep(st) {
             p.userData.cbRest = { pos: p.position.clone(), scale: p.scale.clone() };
         });
     }
+    // Build its shaders now, in the background, rather than mid-animation
+    st.propsWarm = false;
+    cbWarmCard(st).then(() => { st.propsWarm = true; });
     st.ready = true;
+}
+
+// Everything a finished card can draw with, built in the background while it
+// is still being built: Playground's pieces (hidden until their turn, so
+// nothing had drawn them, and each one froze the page as it first dropped
+// in), and the see-through version of every material (the ring fades the
+// cards towards the back by switching them to transparent, and three.js
+// builds that as a separate shader). Their textures are uploaded too.
+function cbWarmCard(st) {
+    const g = st.real;
+    if (!g) return Promise.resolve();
+    const hidden = [];
+    g.traverse((o) => { if (o !== g && !o.visible) { hidden.push(o); o.visible = true; } });
+    const was = g.visible;
+    g.visible = true;
+    const mats = [];
+    g.traverse((o) => {
+        [].concat(o.material || []).forEach((m) => {
+            if (m.visible === false || mats.includes(m)) return;
+            mats.push(m);
+            ['map', 'alphaMap', 'bumpMap', 'normalMap'].forEach((k) => { if (m[k] && m[k].isTexture) renderer.initTexture(m[k]); });
+        });
+    });
+    const jobs = [renderer.compileAsync(g, camera, scene)];
+    const flip = mats.filter((m) => !m.transparent);
+    flip.forEach((m) => { m.transparent = true; m.needsUpdate = true; });
+    jobs.push(renderer.compileAsync(g, camera, scene));
+    flip.forEach((m) => { m.transparent = false; m.needsUpdate = true; });
+    g.visible = was;
+    hidden.forEach((o) => { o.visible = false; });
+    return Promise.all(jobs).catch(() => {});
 }
 
 function cbTakeover(st) {
@@ -4321,7 +5281,7 @@ function cbTakeover(st) {
 }
 
 function cbFinishCard(st) {
-    st.finished = true;
+    st.finished = true; console.log('[pg] finish', st.i, Math.round(performance.now()));
     const U = st.U;
     U.uCbOn.value = 0;
     if (U.uCbHasAlt.value) {
@@ -4349,46 +5309,103 @@ function cbFinishCard(st) {
         g.scale.setScalar(getCardScale());
         g.visible = true;
     }
+    if (st.i === 0 && aboutLive.ready) aboutPlay(performance.now() + 60);
 }
 
-// The nav, the socials and the view switch, once the front card is built.
+// The top nav, the socials and the view switch, once every card is built,
+// on a first visit and a return visit alike.
 function cbFinishIntro() {
-    if (cbIntroDone) return;
+    if (cbIntroDone) return; console.log('[pg] intro done', Math.round(performance.now()));
     cbIntroDone = true;
-    if (introSkipped || introPhase === 'done') return;
-    introPhase = 'done';
-    markIntroPlayed();
+    // The idle spin counts its 5 s from here, once the load-in has settled
+    lastInteractionTime = performance.now();
+    if (!introSkipped && introPhase !== 'done') {
+        introPhase = 'done';
+        markIntroPlayed();
+    }
+    // Slower than their usual transitions, just for this first reveal
     const sl = document.getElementById('social-links');
-    if (sl) setTimeout(() => sl.classList.add('ui-intro-visible'), 60);
     const tn = document.getElementById('top-nav');
-    if (tn) setTimeout(() => tn.classList.add('visible'), 160);
-    revealViewToggle(700);
+    const vt = document.getElementById('view-toggle');
+    [sl, tn, vt].forEach((el) => { if (el) el.classList.add('intro-reveal'); });
+    if (sl) sl.classList.add('ui-intro-visible');
+    if (tn) tn.classList.add('visible');
+    revealViewToggle(350);
+    setTimeout(() => [sl, tn, vt].forEach((el) => { if (el) el.classList.remove('intro-reveal'); }), 2600);
 }
 
 // What the content does once the face is ready, in ms from that moment.
+// Kept to about a second, so the whole build lands inside 4 s.
+// The pieces' own reveal runs this much slower than the rest of the build
+const CB_EL_SLOW = 1.6;
 function cbPlanContent(st) {
-    const k = CB_SPEED;
+    const k = CB_SPEED * CB_EL_SLOW;
+    if (st.i === 0) {
+        // About Me: the little cards pop in, then each text block types its
+        // real copy in, one after the other, top to bottom
+        if (aboutLive.ready) aboutPlay(performance.now());
+        const plan = [];
+        let pop = 0, at = 120 * k;
+        st.els.forEach((el) => {
+            if (el.role === 'pill') plan.push({ el, start: (pop++ * 60) * k, dur: 280 * k, type: false });
+            else if (el.role === 'text') {
+                const dur = Math.min(320, Math.max(160, (el.chars || 10) * 9)) * k;
+                plan.push({ el, start: at, dur, type: true });
+                at += dur * 0.6;
+            }
+        });
+        st.plan = plan;
+        st.contentEnd = plan.reduce((m, it) => Math.max(m, it.start + it.dur), 0) + 40 * k;
+        return;
+    }
     const plan = [];
-    let cursor = 0, pill = 0;
-    const titleAt = 360 * k;
+    let pill = 0;
+    const titleAt = 160 * k;
     st.els.forEach((el) => {
-        if (el.role === 'img') plan.push({ el, start: 0, dur: 760 * k, type: false });
-        else if (el.role === 'tag') plan.push({ el, start: 120 * k, dur: Math.min(500, Math.max(160, el.chars * 38)) * k, type: true });
-        else if (el.role === 'title') plan.push({ el, start: titleAt, dur: Math.min(900, Math.max(300, el.chars * 45)) * k, type: true });
-        else if (el.role === 'pill') plan.push({ el, start: (560 + pill++ * 110) * k, dur: 460 * k, type: false });
+        if (el.role === 'img') plan.push({ el, start: 0, dur: 440 * k, type: false });
+        else if (el.role === 'tag') plan.push({ el, start: 60 * k, dur: Math.min(260, Math.max(120, el.chars * 20)) * k, type: true });
+        else if (el.role === 'title') plan.push({ el, start: titleAt, dur: Math.min(340, Math.max(180, el.chars * 24)) * k, type: true });
+        else if (el.role === 'pill') plan.push({ el, start: (280 + pill++ * 60) * k, dur: 280 * k, type: false });
     });
-    cursor = titleAt + 260 * k;
-    st.els.forEach((el) => {
-        if (el.role !== 'line') return;
-        const dur = Math.min(900, Math.max(160, el.chars * 12)) * k;
+    // The description types in a line at a time, all of it in under half a second
+    const lines = st.els.filter((el) => el.role === 'line');
+    const chars = lines.reduce((n, el) => n + Math.max(1, el.chars || 1), 0);
+    let cursor = titleAt + 140 * k;
+    lines.forEach((el) => {
+        const dur = ((380 * Math.max(1, el.chars || 1)) / chars) * k;
         plan.push({ el, start: cursor, dur, type: true });
-        cursor += dur + 40 * k;
+        cursor += dur;
     });
     const box = st.els.find((el) => el.role === 'box');
-    if (box) plan.push({ el: box, start: cursor + 60 * k, dur: 320 * k, type: false });
-    st.props.forEach((p, n) => plan.push({ prop: p, start: (300 + n * 140) * k, dur: 620 * k }));
+    if (box) plan.push({ el: box, start: cursor + 30 * k, dur: 220 * k, type: false });
+    const gap = Math.min(70, 400 / Math.max(1, st.props.length));
+    st.props.forEach((p, n) => plan.push({ prop: p, start: (160 + n * gap) * k, dur: 360 * k }));
     st.plan = plan;
-    st.contentEnd = plan.reduce((m, it) => Math.max(m, it.start + it.dur), 0) + 120 * k;
+    st.contentEnd = plan.reduce((m, it) => Math.max(m, it.start + it.dur), 0) + 40 * k;
+}
+
+// The art is in (or it is running late): the spin eases off and the card
+// comes to rest facing out, and the guides and pieces are timed from there.
+function cbBeginStop(st, t) {
+    const k = CB_SPEED, sp = st.spin, TAU = Math.PI * 2;
+    const w = CB_T.spinRate / 1000 / k;
+    const from = w * t;
+    const lo = 2.0;
+    // The shortest way round (at least lo) that ends on a whole turn
+    const dist = ((TAU - ((from + lo) % TAU)) % TAU) + lo;
+    // An even slow-down would take 2*dist/w; held inside the limits
+    const dur = Math.min(CB_T.stopMax * k, Math.max(CB_T.stopMin * k, (2 * dist) / w));
+    sp.stopAt = t; sp.from = from; sp.dist = dist; sp.dur = dur; sp.end = t + dur;
+    // The pieces start landing while the card is still slowing down
+    const flyAt = t + dur * CB_T.flyFrom;
+    let gi = 0, fi = 0;
+    st.flightsEnd = 0;
+    st.els.forEach((el) => {
+        if (el.kind === CB.LINE) return;
+        el.g0 = flyAt - CB_T.guideLead * k + gi++ * CB_T.guideGap * k;
+        el.f0 = flyAt + fi++ * CB_T.flyGap * k;
+        st.flightsEnd = Math.max(st.flightsEnd, el.f0 + el.fdur);
+    });
 }
 
 function cbStep(st, now) {
@@ -4405,9 +5422,13 @@ function cbStep(st, now) {
     const t = now - st.t0;
     if (t < 0) return;
 
-    // Spin in, outline, fill
-    const e = easeOutCubic(cbClamp(t / (CB_T.spin * k)));
-    const spin = -Math.PI * 2 * (1 - e);
+    // NO spin on the card's own axis: it always faces out. The only motion is
+    // the ring turning round its centre, like idle (cbRingStep). The art being
+    // in still sets when the guides and pieces come (cbBeginStop).
+    const sp = st.spin;
+    if (sp.stopAt < 0 && ((st.ready && st.takenOver && t >= CB_T.spinMin * k) || t >= CB_T.spinCap * k)) cbBeginStop(st, t);
+    const spin = 0;
+    const e = easeOutCubic(cbClamp(t / (CB_T.grow * k)));
     const thump = st.hit ? Math.exp(-(now - st.hit) / 120) : 0;
     const sc = getCardScale() * (0.88 + 0.12 * e) * (1 - 0.018 * thump);
     const ang = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
@@ -4424,7 +5445,7 @@ function cbStep(st, now) {
         g.scale.setScalar(sc);
         st.ghostShadow.material.opacity = fill * THEME_COLORS[currentTheme].shadow;
     }
-    if (st.real && !st.takenOver && fill >= 1) cbTakeover(st);
+    if (st.real && !st.takenOver && fill >= 1 && st.compiled !== false) cbTakeover(st);
     if (st.takenOver) {
         st.real.rotation.x = tilt;
         st.real.rotation.y = ang + spin;
@@ -4457,7 +5478,7 @@ function cbStep(st, now) {
             m.visible = true;
             m.position.set(el.rest.x + el.off.x * (1 - eo) * CB_U,
                 el.rest.y - el.off.y * (1 - eo) * CB_U, el.rest.z + CB_Z0 * zf);
-            m.rotation.z = el.rot0 * (1 - eo);
+            m.rotation.z = el.rot0 * (1 - eo) - (el.rot || 0);
             m.scale.setScalar(1 + 0.18 * zf);
             el.FU.uFlyAlpha.value = cbClamp(u / 0.18);
             el.FU.uFlyDraw.value = cbClamp(u / 0.65);
@@ -4471,8 +5492,8 @@ function cbStep(st, now) {
     if (!st.content) {
         const waitFrom = st.flightsEnd + 300 * k;
         if (t > waitFrom) U.uCbCard.value.w = (t - waitFrom) * 0.035;
-        if (st.ready && st.takenOver && t >= st.flightsEnd + 160 * k) {
-            st.content = now;
+        if (st.ready && st.takenOver && st.propsWarm !== false && t >= st.flightsEnd + 60 * k) {
+            st.content = now; console.log('[pg] content', st.i, Math.round(now));
             U.uCbHasMap.value = 1;
             cbPlanContent(st);
         }
@@ -4485,11 +5506,13 @@ function cbStep(st, now) {
         const u = cbClamp((tc - it.start) / it.dur);
         if (it.prop) {
             const p = it.prop, rest = p.userData.cbRest;
-            p.visible = u > 0;
+            if (u > 0 && !p.visible) console.log('[pg] prop on', Math.round(now)); p.visible = u > 0;
             const zf = 1 - Math.pow(u, 2.4);
-            p.position.set(rest.pos.x, rest.pos.y, rest.pos.z + CB_Z0 * 1.2 * zf);
-            p.scale.copy(rest.scale).multiplyScalar(1 + 0.35 * zf);
-            if (u >= 1 && !it.landed) { it.landed = true; st.hit = now; }
+            const eu = easeOutCubic(u);
+            const zp = 1 - eu;
+            p.position.set(rest.pos.x, rest.pos.y, rest.pos.z + CB_Z0 * 0.35 * zp);
+            p.scale.copy(rest.scale).multiplyScalar(1 + 0.12 * zp);
+            if (u >= 1 && !it.landed) it.landed = true;
             return;
         }
         const A = U.uCbA.value[it.el.j];
@@ -4497,14 +5520,50 @@ function cbStep(st, now) {
         else A.w = it.el.role === 'img' ? cbEaseInOut(u) : u;
     });
     if (tc >= st.contentEnd) {
-        if (st.i === cbFront) cbFinishIntro();
-        const of = cbClamp((tc - st.contentEnd) / (380 * k));
+        const of = cbClamp((tc - st.contentEnd) / (200 * k));
         U.uCbCard.value.y = 1 - of;
         if (of >= 1) cbFinishCard(st);
     }
 }
 
+// The ring makes one full turn while the cards build, starting quick and
+// slowing all the way down onto a card: the same ease-out (easeOutCubic,
+// 500 ms a card) the old deal-in had. A drag, wheel or snap from the
+// visitor takes over at once.
+let cbRing = null;
+function cbRingStep(now) {
+    const R = cbRing;
+    if (!R) return;
+    // On phones the cards are a stack, not a ring: nothing to turn, but the
+    // pile still starts on About Me
+    if (isStackMode()) {
+        stackTop = 0;
+        cardgroup.rotation.y = Math.round(cardgroup.rotation.y / (Math.PI * 2)) * Math.PI * 2;
+        cbRing = null;
+        return;
+    }
+    if (Math.abs(cardgroup.rotation.y - R.last) > 1e-6 || isDragging || isFlinging) { cbRing = null; return; }
+    if (R.end === undefined) {
+        // One turn the same way the old deal went, ending square on a card
+        const apc = (Math.PI * 2) / cardCount;
+        R.end = Math.round((R.base - Math.PI * 2) / apc) * apc;
+        R.dur = CB_T.ringStep * cardCount * CB_SLOW;
+    }
+    const u = cbClamp((now - R.t0) / R.dur);
+    if (u >= 1) {
+        cardgroup.rotation.y = R.end;
+        cbRing = null;
+        // The idle spin counts its 5 s from here, once the load-in has
+        // settled, not from when the page opened
+        lastInteractionTime = performance.now();
+        return;
+    }
+    cardgroup.rotation.y = R.base + (R.end - R.base) * easeOutCubic(u);
+    R.last = cardgroup.rotation.y;
+}
+
 function cbUpdate() {
+    cbRingStep(performance.now());
     if (!cbRunning) return;
     const now = performance.now();
     let live = false;
@@ -4515,8 +5574,9 @@ function cbUpdate() {
     });
     // One face's prep per frame, so two of them never land in the same one
     if (cbPrepQueue.length) cbPrep(cbPrepQueue.shift());
-    if (!cbIntroDone && cbStartTime && now - cbStartTime > CB_T.introCap * CB_SPEED) cbFinishIntro();
-    if (!live && cbStartTime) cbRunning = false;
+    if (!cbIntroDone && cbStartTime && now > CB_T.introCap * CB_SLOW) cbFinishIntro();
+    // Every card is done: now the top and bottom bars come in
+    if (!live && cbStartTime) { cbRunning = false; cbFinishIntro(); }
 }
 
 loadCard0();
@@ -4552,7 +5612,7 @@ window.addEventListener("wheel", (e) => {
     scrollTimeout = setTimeout(() => snaptoNearestCard(), 100);
 }, { passive: false });
 
-// Touch handling — only responsible for the swipe-down-to-reveal intro gesture.
+// Touch handling Ã¢â‚¬â€ only responsible for the swipe-down-to-reveal intro gesture.
 // Actual carousel drag/spin is handled exclusively by the pointerdown/move/up
 // handlers below (pointer events fire for touch too), so there's a single
 // source of truth for rotation instead of two systems fighting over the same
@@ -4580,7 +5640,7 @@ window.addEventListener('mousemove', (e) => {
     resetIdleTimer();
     // If we see real mouse movement, override a false-negative from the media query
     if (!hasFinePointer && (e.movementX || e.movementY)) hasFinePointer = true;
-    if (!hasFinePointer) return; // touch devices — no cursor label
+    if (!hasFinePointer) return; // touch devices Ã¢â‚¬â€ no cursor label
 
     dotCursor.style.left = e.clientX + 'px';
     dotCursor.style.top = e.clientY + 'px';
@@ -4743,7 +5803,7 @@ function checkCardIntersections() {
 
     const front = getFrontCard();
 
-    // If the clicked card is the front card, navigate — unless it's a
+    // If the clicked card is the front card, navigate Ã¢â‚¬â€ unless it's a
     // Coming Soon card with no real page to go to yet
     if (front && clickedRoot === front) {
         openCard(front.userData.cardIndex);
@@ -4773,6 +5833,7 @@ window.addEventListener('pointerup', () => dotCursor.classList.remove('pressed')
 canvas.addEventListener("pointerdown", (e) => {
     resetIdleTimer();
     if (scrubberDragging) return;   // ignore if scrubber is active
+    if (isStackMode()) return;      // on a phone the pile takes the swipe
 
     if (introPhase !== 'done') return; // no dragging during intro
     isDragging = true;
@@ -4808,7 +5869,7 @@ canvas.addEventListener("pointermove", (e) => {
     recordRotSample(pointerRotSamples);
 });
 
-// ── Spin particles (2D overlay) ──────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Spin particles (2D overlay) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const spinCanvas = document.createElement('canvas');
 spinCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99997;';
 spinCanvas.width = window.innerWidth;
@@ -4894,6 +5955,378 @@ window.addEventListener("resize", () => {
 });
 
 
+// Ã¢â€â‚¬Ã¢â€â‚¬ Phone: a stacked deck you swipe through Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// On a phone the ring folds into a pile, the way calebwu.ca does it: one card
+// on top and the next two peeking out underneath. The top card follows your
+// finger; let go with some speed (or far enough) and it flies off the way you
+// threw it, left, right, up, down or anything between, and goes to the bottom
+// of the pile while the next card rises into its place. A short drag springs
+// back, and a tap still opens the card.
+const STACK_MAX_W = 768;
+const STACK = {
+    scale: 1.3,       // the top card, against the ring's card size
+    shrink: 0.02,     // each card down the pile is this much smaller (plus distance)
+    peek: 0.09,       // and shows this much of itself below the one above
+    back: 0.2,        // depth between cards: enough that Playground's dice stay under the card on top
+    seen: 2,          // cards past this deep all sit in one spot, hidden
+    ease: 0.2,        // how quickly cards settle into place, per frame
+    throwPx: 70,      // a drag longer than this throws the card
+    throwSpeed: 0.45, // and so does a flick faster than this, in px per ms
+    tilt: 0.0012,     // lean per px dragged sideways, in rad
+    spin: 0.9,        // how far a thrown card turns on its way out, in rad
+};
+function isStackMode() { return window.innerWidth <= STACK_MAX_W; }
+let stackWas = false;
+let stackTop = -1;
+const stackPose = [];
+const stackDrag = { on: false, id: -1, x0: 0, y0: 0, dx: 0, dy: 0, samples: [], moved: false };
+let stackPrevTop = -1;
+let stackDirN = 0;              // counts the scrubber's flights, so each takes a new direction
+const STACK_GOLDEN = 2.39996;   // turn by this each time and no two in a row come from the same side
+const stackFlights = new Map(); // card index Ã¢â€ â€™ its throw
+
+function stackApc() { return (Math.PI * 2) / cardCount; }
+// The card the ring has at the front
+function stackNearest(rot) {
+    return ((Math.round(-rot / stackApc()) % cardCount) + cardCount) % cardCount;
+}
+// The ring angle that puts card i at the front, nearest to where it is now
+function stackRotFor(i, from) {
+    const TWO_PI = Math.PI * 2;
+    let diff = -i * stackApc() - from;
+    diff -= Math.round(diff / TWO_PI) * TWO_PI;
+    return from + diff;
+}
+// World units per screen px, at the top card's depth
+function stackUnitsPerPx() {
+    const dist = camera.position.z - getCarouselRadius();
+    return (2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / window.innerHeight;
+}
+
+// The scrubber (or a nav link) moved the pile to another card without a swipe.
+// Going forward, the cards it passes are thrown off; going back, the cards come
+// flying back in, each from a different direction, the last one landing on top.
+function stackNextDir() {
+    const a = 0.6 + stackDirN++ * STACK_GOLDEN;
+    return { x: Math.cos(a), y: Math.sin(a) };
+}
+function stackTransit(from, to, now) {
+    const n = cardCount;
+    const back = (to - from + n) % n;
+    const fwd = (from - to + n) % n;
+    const dist = Math.hypot(window.innerWidth, window.innerHeight) * 0.8;
+    const STEP = 70, MAX = 3;
+    if (back <= fwd) {
+        // Back: cards from+1 Ã¢â‚¬Â¦ to come in, the furthest first. Only the last
+        // few are worth flying; any before them just slot into the pile.
+        const first = Math.max(1, back - MAX + 1);
+        for (let j = first; j <= back; j++) {
+            const i = (from + j) % n;
+            const dir = stackNextDir();
+            stackFlights.set(i, {
+                kind: 'in', t0: now + (j - first) * STEP, dur: 460,
+                dirX: dir.x, dirY: dir.y, dist, rz0: -dir.x * STACK.spin * 0.7,
+            });
+        }
+    } else {
+        // Forward: the cards passed over are thrown off, top one first
+        for (let j = 0; j < Math.min(fwd, MAX); j++) {
+            const i = (from - j + n) % n;
+            const dir = stackNextDir();
+            stackFlights.set(i, {
+                t0: now + j * STEP, dur: 420, sx: 0, sy: 0, srz: 0,
+                dirX: dir.x, dirY: dir.y, dist: dist * 1.4,
+            });
+        }
+    }
+    playWhooshThrottled();
+}
+
+// Off it goes, along (dirX, dirY) in screen px, and the next card is on top
+function stackThrow(dirX, dirY, speed) {
+    const len = Math.hypot(dirX, dirY) || 1;
+    const dist = Math.hypot(window.innerWidth, window.innerHeight) * 1.1;
+    const v = Math.max(speed, 1.4);
+    stackFlights.set(stackTop, {
+        t0: performance.now(), dur: Math.min(560, Math.max(340, dist / v)),
+        sx: stackDrag.dx, sy: stackDrag.dy, srz: -stackDrag.dx * STACK.tilt,
+        dirX: dirX / len, dirY: dirY / len, dist,
+    });
+    // Next is the card after it in the ring's order (About Me, Playground, Ã¢â‚¬Â¦)
+    stackTop = (stackTop - 1 + cardCount) % cardCount;
+    stackPrevTop = stackTop;
+    cardgroup.rotation.y = stackRotFor(stackTop, cardgroup.rotation.y);
+    targetRotation = null;
+    playWhooshThrottled();
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+    if (!isStackMode() || introPhase !== 'done' || currentView !== 'cards') return;
+    if (stackDrag.on || stackTop < 0) return;
+    Object.assign(stackDrag, {
+        on: true, id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false,
+        samples: [{ t: e.timeStamp, x: e.clientX, y: e.clientY }],
+    });
+    hasDragged = false;
+});
+window.addEventListener('pointermove', (e) => {
+    if (!stackDrag.on || e.pointerId !== stackDrag.id) return;
+    stackDrag.dx = e.clientX - stackDrag.x0;
+    stackDrag.dy = e.clientY - stackDrag.y0;
+    if (!stackDrag.moved && Math.hypot(stackDrag.dx, stackDrag.dy) > DRAG_THRESHOLD) {
+        stackDrag.moved = true;
+        hasDragged = true;
+    }
+    stackDrag.samples.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
+    while (stackDrag.samples.length > 2 && e.timeStamp - stackDrag.samples[0].t > 100) stackDrag.samples.shift();
+});
+function stackRelease(e) {
+    if (!stackDrag.on || e.pointerId !== stackDrag.id) return;
+    stackDrag.on = false;
+    if (!stackDrag.moved) return;
+    // How fast it was moving over the last tenth of a second
+    const first = stackDrag.samples[0];
+    const dt = Math.max(1, e.timeStamp - first.t);
+    const vx = (e.clientX - first.x) / dt, vy = (e.clientY - first.y) / dt;
+    const speed = Math.hypot(vx, vy);
+    const outward = vx * stackDrag.dx + vy * stackDrag.dy > 0;
+    if (speed > STACK.throwSpeed && outward) stackThrow(vx, vy, speed);
+    else if (speed <= STACK.throwSpeed && Math.hypot(stackDrag.dx, stackDrag.dy) > STACK.throwPx) {
+        stackThrow(stackDrag.dx, stackDrag.dy, speed);
+    }
+    // Anything else springs back on its own
+    setTimeout(() => { hasDragged = false; }, 50);
+}
+window.addEventListener('pointerup', stackRelease);
+window.addEventListener('pointercancel', stackRelease);
+
+// Back to the ring when the window is widened past a phone
+function stackRestoreRing() {
+    const s = getCardScale(), r = getCarouselRadius();
+    cards.forEach((c, i) => {
+        if (!c) return;
+        const a = i * stackApc();
+        c.position.set(Math.sin(a) * r, 0, Math.cos(a) * r);
+        if (!cbOwns(i)) { c.rotation.set(0, a, 0); c.scale.setScalar(s); }
+        if (c.userData.stackAlpha !== undefined && c.userData.stackAlpha !== 1) { stackSetAlpha(c, 1); c.userData.stackAlpha = 1; }
+    });
+    stackFlights.clear();
+    stackDrag.on = false;
+    stackPose.length = 0;
+}
+
+// A soft drop shadow behind each card in the pile, so the cards read as
+// layered paper. One blurred rounded rectangle, shared by every card.
+// Kept light: the shadows of the cards underneath pile up on each other, so
+// those get less again than the one on top.
+const STACK_SHADOW = { opacity: 0.11, under: 0.5, dropY: 0.03, grow: 1.03 };
+let stackShadowTex = null;
+const stackShadows = [];
+function stackShadowFor(i) {
+    if (stackShadows[i]) return stackShadows[i];
+    if (!stackShadowTex) {
+        const W = 256, Hh = Math.round(W / (1059 / 1449)), pad = 36;
+        const cv = document.createElement('canvas');
+        cv.width = W + pad * 2; cv.height = Hh + pad * 2;
+        const cx = cv.getContext('2d');
+        cx.filter = 'blur(14px)';
+        cx.fillStyle = '#000';
+        cx.beginPath();
+        cx.roundRect(pad, pad, W, Hh, 22);
+        cx.fill();
+        stackShadowTex = new THREE.CanvasTexture(cv);
+        stackShadowTex.userData = { padX: pad / W, padY: pad / Hh };
+    }
+    const cardH = 1.7, cardW = cardH * (1059 / 1449);
+    const { padX, padY } = stackShadowTex.userData;
+    const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(cardW * (1 + 2 * padX), cardH * (1 + 2 * padY)),
+        new THREE.MeshBasicMaterial({ map: stackShadowTex, transparent: true, depthWrite: false, opacity: 0 }));
+    m.raycast = () => {};
+    m.renderOrder = -1;
+    cardgroup.add(m);
+    stackShadows[i] = m;
+    return m;
+}
+
+// A card fades a little as it crosses the edge of the screen (thrown off,
+// dragged out, or flying back in), so it slips away rather than being cut
+// off by the border. 0 = all on screen, 1 = all of it past the edge.
+const STACK_EDGE_FADE = { from: 0.15, to: 1.0, min: 0.15 };
+function stackEdgeAlpha(P, upp) {
+    const hw = (1.7 * (1059 / 1449) * P.s) / 2 / upp;
+    const hh = (1.7 * P.s) / 2 / upp;
+    const ox = Math.abs(P.x / upp), oy = Math.abs(P.y / upp);
+    const past = Math.max(
+        Math.max(0, ox + hw - window.innerWidth / 2) / (2 * hw),
+        Math.max(0, oy + hh - window.innerHeight / 2) / (2 * hh));
+    const u = Math.min(1, Math.max(0, (past - STACK_EDGE_FADE.from) / (STACK_EDGE_FADE.to - STACK_EDGE_FADE.from)));
+    return 1 - (1 - STACK_EDGE_FADE.min) * u * u * (3 - 2 * u);
+}
+// Sets a whole card's opacity, remembering what each material had to start with
+function stackSetAlpha(obj, a) {
+    obj.traverse((o) => {
+        // The floor shadow is handled by the pile itself (kept at 0 there)
+        if (!o.material || cardShadows.includes(o)) return;
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+            // The shared, never-drawn edge cap: leave it alone (it is every card's)
+            if (m.visible === false) return;
+            if (!m.userData.stackBase) m.userData.stackBase = { t: m.transparent, o: m.opacity };
+            const b = m.userData.stackBase;
+            // three.js bakes 'opaque' into the shader (alpha forced to 1), so a
+            // change of transparent has to rebuild it; same build is cached after
+            const t = b.t || a < 0.999;
+            if (m.transparent !== t) { m.transparent = t; m.needsUpdate = true; }
+            m.opacity = b.o * a;
+        });
+    });
+}
+
+// Every frame, last of all the transforms: lays the cards out as the pile.
+// Poses are worked out on screen and turned into the ring's own space, so
+// whatever the ring is doing underneath, the pile stays put.
+function stackUpdate() {
+    if (!isStackMode()) {
+        if (stackWas) { stackRestoreRing(); stackShadows.forEach((m) => { if (m) m.visible = false; }); }
+        stackWas = false;
+        ringDepthUpdate();
+        return;
+    }
+    if (!stackWas) { stackWas = true; stackTop = -1; stackPrevTop = -1; stackFlights.clear(); stackPose.length = 0; }
+    const now = performance.now();
+
+    // The swipe decides what is on top, except while the nav or the scrubber
+    // is turning the ring to a card: then the pile follows the ring.
+    if (stackTop < 0 || targetRotation !== null || scrubberDragging) stackTop = stackNearest(cardgroup.rotation.y);
+    else if (!introAnimActive) cardgroup.rotation.y = stackRotFor(stackTop, cardgroup.rotation.y);
+    if (stackPrevTop >= 0 && stackTop !== stackPrevTop && introPhase === 'done') stackTransit(stackPrevTop, stackTop, now);
+    stackPrevTop = stackTop;
+
+    const theta = cardgroup.rotation.y;
+    const cs = Math.cos(theta), sn = Math.sin(theta);
+    const r = getCarouselRadius();
+    const base = getCardScale() * STACK.scale;
+    const H = 1.7 * base;
+    const upp = stackUnitsPerPx();
+    const apc = stackApc();
+    const D = camera.position.z - r;
+
+    for (let i = 0; i < cardCount; i++) {
+        const d = (((stackTop - i) % cardCount) + cardCount) % cardCount;
+        const dv = Math.min(d, STACK.seen);
+        const sc = 1 - dv * STACK.shrink;
+        const tx = 0;
+        // Further back reads smaller, so its TOP edge is placed in
+        // perspective: it shows dv peeks above the top card on screen.
+        const dz = dv * STACK.back;
+        const ty = (H / 2 + dv * STACK.peek) * (D + dz) / D - (H * sc) / 2;
+        const tz = r - dz - d * 0.002;
+        const ts = base * sc;
+        const P = stackPose[i] || (stackPose[i] = { x: tx, y: ty, z: tz, rz: 0, s: ts, fa: 1, fs: 0 });
+        const f = stackFlights.get(i);
+        if (f && f.kind === 'in') {
+            // Back from off screen along its direction, easing down onto the pile
+            const u = Math.max(0, Math.min(1, (now - f.t0) / f.dur));
+            const e = 1 - Math.pow(1 - u, 3);
+            const off = f.dist * (1 - e) * upp;
+            P.x = tx + f.dirX * off;
+            P.y = ty - f.dirY * off;
+            P.z = tz + 0.08 * (1 - e);
+            P.rz = f.rz0 * (1 - e);
+            P.s = ts;
+            if (u >= 1) stackFlights.delete(i);
+        } else if (f) {
+            const u = Math.max(0, Math.min(1, (now - f.t0) / f.dur));
+            P.x = (f.sx + f.dirX * f.dist * u) * upp;
+            P.y = -(f.sy + f.dirY * f.dist * u) * upp;
+            P.z = r + 0.02;
+            P.rz = f.srz - f.dirX * STACK.spin * u;
+            P.s = base;
+            // Off screen: straight to the bottom of the pile, out of sight
+            if (u >= 1) { stackFlights.delete(i); Object.assign(P, { x: tx, y: ty, z: tz, rz: 0, s: ts }); }
+        } else if (d === 0 && stackDrag.on) {
+            P.x = stackDrag.dx * upp;
+            P.y = -stackDrag.dy * upp;
+            P.z = tz;
+            P.rz = -stackDrag.dx * STACK.tilt;
+            P.s += (ts - P.s) * STACK.ease;
+        } else {
+            const k = STACK.ease;
+            P.x += (tx - P.x) * k;
+            P.y += (ty - P.y) * k;
+            P.z += (tz - P.z) * k;
+            P.rz += (0 - P.rz) * k;
+            P.s += (ts - P.s) * k;
+        }
+
+        // Depth: down the pile is fainter and softer. Thrown and incoming
+        // cards are the top card; cards past the ones on show are out of
+        // sight; still building, it stays clear until it is done.
+        if (f || d === 0 || cbOwns(i)) { P.fa = 1; P.fs = 0; }
+        else if (d > STACK.seen) { P.fa = 0; P.fs = CARD_DEPTH.pile[STACK.seen].s; }
+        else {
+            const T = CARD_DEPTH.pile[d], k = CARD_DEPTH.ease;
+            P.fa += (T.a - P.fa) * k;
+            P.fs += (T.s - P.fs) * k;
+        }
+
+        // Screen pose Ã¢â€ â€™ the ring's space
+        const lx = P.x * cs - P.z * sn;
+        const lz = P.x * sn + P.z * cs;
+        const st = cbCards[i];
+        const card = cards[i];
+        if (card) {
+            card.position.set(lx, P.y, lz);
+            if (!cbOwns(i)) {
+                card.rotation.set(0, -theta, P.rz);
+                card.scale.setScalar(P.s);
+                cardSetLook(card, stackEdgeAlpha(P, upp) * P.fa, P.fs);
+            } else if (st.takenOver) {
+                // Still building: keep its spin, just face it out of the pile,
+                // at the pile's size (the build sizes it for the ring, with
+                // its grow and thump on top: those are kept)
+                card.rotation.y = -theta + (card.rotation.y - i * apc);
+                card.scale.multiplyScalar(P.s / getCardScale());
+            }
+        }
+        if (st && st.ghost && st.ghost.visible) {
+            st.ghost.position.set(lx, P.y, lz);
+            st.ghost.rotation.y = -theta + (st.ghost.rotation.y - i * apc);
+            st.ghost.scale.multiplyScalar(P.s / getCardScale());
+        }
+        // Under the top card, the pieces still flying in (and Playground's
+        // dice and chips dropping) start out further forward than the gap
+        // between cards, so they would show through the card on top. Those
+        // just land where they belong, out of sight.
+        if (st && cbOwns(i) && d > 0 && st.els) {
+            st.els.forEach((el) => { if (el.mesh) el.mesh.visible = false; });
+            if (st.props) st.props.forEach((p) => {
+                const rest = p.userData.cbRest;
+                if (rest) { p.position.copy(rest.pos); p.scale.copy(rest.scale); }
+            });
+        }
+        // In the pile the floor shadows are off; each card drops a soft
+        // shadow onto the one behind it instead, a touch below and behind.
+        const sh = cardShadows[i];
+        if (sh) sh.material.opacity = 0;
+        if (st && st.ghostShadow) st.ghostShadow.material.opacity = 0;
+        const ds = stackShadowFor(i);
+        const shown = (card && card.visible) || (st && st.ghost && st.ghost.visible);
+        const deep = d > STACK.seen && !f;
+        ds.visible = !!shown && !deep;
+        if (ds.visible) {
+            const sx = P.x, sy = P.y - STACK_SHADOW.dropY * P.s, sz = P.z - 0.012;
+            ds.position.set(sx * cs - sz * sn, sy, sx * sn + sz * cs);
+            ds.rotation.set(0, -theta, P.rz);
+            ds.scale.setScalar(P.s * STACK_SHADOW.grow);
+            // A card still being drawn only casts as much shadow as it has filled in
+            const built = st && cbOwns(i) && st.U ? st.U.uCbCard.value.z : 1;
+            ds.material.opacity = STACK_SHADOW.opacity * (d === 0 || f ? 1 : STACK_SHADOW.under)
+                * THEME_COLORS[currentTheme].shadow * stackEdgeAlpha(P, upp) * built * P.fa;
+        }
+    }
+}
+
 // Render loop
 const renderloop = (now = 0) => {
 
@@ -4904,8 +6337,8 @@ const renderloop = (now = 0) => {
 
     // Card 0's photo changes each time the pointer arrives on it. Watched from
     // here rather than from the mousemove handler because hoveredCard is
-    // cleared in half a dozen places — a drag, a scroll, the pointer leaving
-    // the canvas, a change of view — and this is the one spot that sees all
+    // cleared in half a dozen places Ã¢â‚¬â€ a drag, a scroll, the pointer leaving
+    // the canvas, a change of view Ã¢â‚¬â€ and this is the one spot that sees all
     // of them, so it is the only one that can tell an arrival from a frame
     // that merely still has the pointer on the same card.
     if (hoveredCard !== lastHoveredCard) {
@@ -4931,11 +6364,11 @@ const renderloop = (now = 0) => {
     // Hover lift + intro drop animation
     cards.forEach((card, i) => {
         if (!card) return;
-        // Hover lift — suppressed until intro is fully done
+        // Hover lift Ã¢â‚¬â€ suppressed until intro is fully done
         const isHovered = card === hoveredCard && introPhase === 'done';
         const hoverTarget = isHovered ? HOVER_Y : 0;
         cardHoverY[i] += (hoverTarget - cardHoverY[i]) * HOVER_ANIM_SPEED;
-        // rAF-driven drop trigger — no setTimeout jitter
+        // rAF-driven drop trigger Ã¢â‚¬â€ no setTimeout jitter
         if (cardDropOffset[i] < Infinity && cardDropStartTime[i] === -Infinity
             && now >= introAnimStartTime + cardDropOffset[i]) {
             cards[i].visible = true;
@@ -4980,7 +6413,7 @@ const renderloop = (now = 0) => {
         pinCardShadow(cardShadows[0], card0TiltCurrX, card0TiltCurrY, cardShadows[0].userData.baseY - cardHoverY[0]);
     }
 
-    // Continuous intro rotation (linear sweep across all cards — no per-step easing)
+    // Continuous intro rotation (linear sweep across all cards Ã¢â‚¬â€ no per-step easing)
     if (introAnimActive) {
         const elapsed = Math.max(0, now - introAnimStartTime);
         const t = easeOutCubic(Math.min(1, elapsed / introAnimDuration));
@@ -4991,7 +6424,7 @@ const renderloop = (now = 0) => {
         }
     }
 
-    // Momentum after a fast drag/swipe release — decays each frame, possibly
+    // Momentum after a fast drag/swipe release Ã¢â‚¬â€ decays each frame, possibly
     // carrying the carousel through several full laps, then hands off to the
     // snap-to-nearest-card easing below once it slows enough to settle.
     if (isFlinging) {
@@ -5017,7 +6450,8 @@ const renderloop = (now = 0) => {
 
     // Auto-rotate after idle
     if (introPhase === 'done' && !isDragging && !isFlinging && !scrubberDragging
-        && !introAnimActive && targetRotation === null
+        && !introAnimActive && targetRotation === null && !isStackMode() && !cbRing
+        && cbIntroDone && cbCards.every((st) => st.finished)
         && now - lastInteractionTime > IDLE_TIMEOUT) {
         if (!autoRotating) {
             autoRotating = true;
@@ -5044,7 +6478,7 @@ const renderloop = (now = 0) => {
 
     carouselSettled = !isDragging && !isFlinging && targetRotation === null && stillFrames >= STILL_FRAMES_NEEDED;
 
-    // Loader progress — the shuffle keeps running until every face is in.
+    // Loader progress Ã¢â‚¬â€ the shuffle keeps running until every face is in.
     // The bar crawls with the clock for the minimum beat, then follows the
     // assets if they are still arriving.
     if (loaderEl && !loaderDone) {
@@ -5078,7 +6512,7 @@ const renderloop = (now = 0) => {
 
     // Remember which card is facing the viewer. Sampled from the loop rather
     // than from the input handlers because there is no single "rotation ended"
-    // moment — wheel, drag, fling momentum, the scrubber and the snap easing all
+    // moment Ã¢â‚¬â€ wheel, drag, fling momentum, the scrubber and the snap easing all
     // keep moving the group for a while after the last event, and it's where
     // they come to rest that's worth storing. Gated on 'done' so the deal's own
     // full-circle sweep never gets written down as a resting position.
@@ -5087,7 +6521,7 @@ const renderloop = (now = 0) => {
         schedulePersist();
     }
 
-    // ── Update ember particles ──
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Update ember particles Ã¢â€â‚¬Ã¢â€â‚¬
     const posAttr = particleGeo.attributes.position;
     const tSec    = now * 0.001;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -5095,7 +6529,7 @@ const renderloop = (now = 0) => {
         const lifetime = (P_TOP - P_BOTTOM) / pSpeeds[i];
         const frac     = (elapsed % lifetime) / lifetime;
         const y        = P_BOTTOM + frac * (P_TOP - P_BOTTOM);
-        // horizontal wobble — fire-like side sway
+        // horizontal wobble Ã¢â‚¬â€ fire-like side sway
         const x        = pStartX[i]
                        + Math.sin(tSec * 0.9 + pPhases[i]) * pWobbleAmp[i]
                        + Math.sin(tSec * 2.1 + pPhases[i] * 1.3) * pWobbleAmp[i] * 0.4;
@@ -5103,21 +6537,28 @@ const renderloop = (now = 0) => {
     }
     posAttr.needsUpdate = true;
 
-    // ── Update spin particles ──
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Update spin particles Ã¢â€â‚¬Ã¢â€â‚¬
     updateSpinParticles();
 
     // The cards drawing themselves in. Last, so it has the final say on the
     // transforms it is animating this frame.
     cbUpdate();
+    // On a phone the ring is a pile instead; this has the last word on it.
+    stackUpdate();
+    // The About Me card's own animation (typing, rising copy, doodles)
+    aboutTick(performance.now());
 
     // The cursor light the card stock is shaded by
     updateCardStockLight();
 
-    // Render last — all positions are current, no stale-position flash possible.
+    // Render last Ã¢â‚¬â€ all positions are current, no stale-position flash possible.
     // Not while the loader still covers the canvas: a render there uploads
     // card textures on the same thread the CSS shuffle is running on.
     if (!loaderEl || loaderEl.classList.contains('fade-out')) {
+        const __p = renderer.info.programs.length, __t = performance.now();
         renderer.render(scene, camera);
+        const __d = performance.now() - __t;
+        if (renderer.info.programs.length !== __p || __d > 30) console.log('[pg] render', Math.round(__t), Math.round(__d), 'programs', __p, '->', renderer.info.programs.length, renderer.info.programs.slice(__p).map(p => p.cacheKey.length + ':' + p.cacheKey.slice(-220)).join(' || '), 'tex', renderer.info.memory.textures);
     }
 };
 
@@ -5131,7 +6572,7 @@ function snaptoNearestCard() {
 
 
 // --- Scrubber ---
-// NOTE: this is NOT indexed by card index — it's indexed by rotation "step"
+// NOTE: this is NOT indexed by card index Ã¢â‚¬â€ it's indexed by rotation "step"
 // distance from About Me (card 0), same scheme the nav-link data-card-index
 // attributes use. Card i's slot here is at position (cardCount - i) % cardCount.
 const CARD_NAMES = [
@@ -5146,7 +6587,7 @@ const CARD_NAMES = [
     'Puregym Redesign',    // card 1
 ];
 
-// Tick heights (px) — repeating 3-pattern: short, short, tall
+// Tick heights (px) Ã¢â‚¬â€ repeating 3-pattern: short, short, tall
 const TICK_HEIGHTS = Array.from({ length: 50 }, (_, i) => i % 3 === 2 ? 30 : 20);
 const TICK_COUNT = TICK_HEIGHTS.length;
 
@@ -5173,7 +6614,7 @@ if (scrubberTrack) {
     }
 }
 
-// Map tick index → card index (distribute ticks evenly across cards)
+// Map tick index Ã¢â€ â€™ card index (distribute ticks evenly across cards)
 function tickToCardIndex(tickIdx) {
     return Math.round((tickIdx / (TICK_COUNT - 1)) * (cardCount - 1));
 }
@@ -5209,7 +6650,7 @@ function onScrubMove(e) {
     cardgroup.rotation.y = scrubberStartRotation + dx * SCRUB_SENSITIVITY;
     // scrubberWrap.setPointerCapture() redirects pointer events to it while
     // dragging, which suppresses the normal 'mousemove' updates that drive the
-    // custom cursor overlay — leaving it frozen until release, then jumping to
+    // custom cursor overlay Ã¢â‚¬â€ leaving it frozen until release, then jumping to
     // catch up. Drive it directly from these pointer events instead so it
     // keeps tracking smoothly throughout the drag.
     if (!isTouch) {
@@ -5249,7 +6690,7 @@ scrubberWrap?.addEventListener('pointercancel', (e) => {
     onScrubEnd();
 });
 
-// Touch (mobile) — handled independently so it never conflicts with canvas
+// Touch (mobile) Ã¢â‚¬â€ handled independently so it never conflicts with canvas
 scrubberWrap?.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     scrubberDragging = true;
@@ -5263,6 +6704,27 @@ scrubberWrap?.addEventListener('touchstart', (e) => {
     e.preventDefault();
 }, { passive: false });
 
+// On phones a swipe moves the pile to the next card in one step, so the
+// rotation jumps a whole card in a single frame. The ticks glide there
+// instead (the ring on desktop already turns smoothly, so it is followed
+// as is). Dragging the ticks themselves follows the finger exactly.
+let scrubShownRot = null;
+let scrubLastT = 0;
+function scrubberRotation() {
+    const target = cardgroup.rotation.y;
+    const now = performance.now();
+    const dt = Math.min(64, now - (scrubLastT || now));
+    scrubLastT = now;
+    if (scrubShownRot === null || !isStackMode() || scrubberDragging
+        || Math.abs(target - scrubShownRot) > Math.PI) {
+        scrubShownRot = target;
+    } else {
+        scrubShownRot += (target - scrubShownRot) * (1 - Math.exp(-dt / 85));
+        if (Math.abs(target - scrubShownRot) < 1e-4) scrubShownRot = target;
+    }
+    return scrubShownRot;
+}
+
 // Called every frame from the render loop
 function updateScrubber() {
     const TWO_PI = Math.PI * 2;
@@ -5271,19 +6733,19 @@ function updateScrubber() {
     // Single-copy strip pixel width (gap:4px, tick width:2px)
     const stripWidth = TICK_COUNT * 2 + (TICK_COUNT - 1) * 4;
 
-    // Map raw rotation to pixels — no modulo, so it grows continuously.
+    // Map raw rotation to pixels Ã¢â‚¬â€ no modulo, so it grows continuously.
     // Then modulo into [0, stripWidth) for the looped offset.
     // We start at -stripWidth (middle copy) so both sides are buffered.
     // Negated so the ticks travel the same way as the cards (and the finger).
-    const rawOffset = -(cardgroup.rotation.y / TWO_PI) * stripWidth;
+    const rawOffset = -(scrubberRotation() / TWO_PI) * stripWidth;
     const loopedOffset = ((rawOffset % stripWidth) + stripWidth) % stripWidth;
     if (scrubberTrack) scrubberTrack.style.transform = `translateX(${-(stripWidth + loopedOffset)}px)`;
 
-    // Label + active tick highlight — only recalculate when snapped card changes
+    // Label + active tick highlight Ã¢â‚¬â€ only recalculate when snapped card changes
     const raw = Math.round(cardgroup.rotation.y / apc);
     const activeIdx = ((raw % cardCount) + cardCount) % cardCount;
     if (activeIdx !== lastScrubberActiveIdx) {
-        // Ratchet click each time the ticker passes a card — only for user-driven
+        // Ratchet click each time the ticker passes a card Ã¢â‚¬â€ only for user-driven
         // rotation (scroll/drag/scrubber), not during the intro deal or idle auto-rotate
         if (lastScrubberActiveIdx !== -1 && introPhase === 'done' && !autoRotating) playTickThrottled();
         lastScrubberActiveIdx = activeIdx;
@@ -5298,8 +6760,8 @@ function updateScrubber() {
 renderloop();
 
 // --- Keyboard navigation ---
-// ArrowLeft / ArrowRight  →  snap one card in that direction
-// Enter / Space           →  activate (select) the front card
+// ArrowLeft / ArrowRight  Ã¢â€ â€™  snap one card in that direction
+// Enter / Space           Ã¢â€ â€™  activate (select) the front card
 window.addEventListener('keydown', (e) => {
     resetIdleTimer();
     // Ignore if focus is inside a text input / textarea
@@ -5312,7 +6774,7 @@ window.addEventListener('keydown', (e) => {
         e.preventDefault();
         // Work out the currently snapped index
         const current = Math.round(cardgroup.rotation.y / apc);
-        // Right arrow → advance carousel forward (next card), Left → back
+        // Right arrow Ã¢â€ â€™ advance carousel forward (next card), Left Ã¢â€ â€™ back
         const step = e.key === 'ArrowRight' ? 1 : -1;
         isFlinging = false;
         targetRotation = (current + step) * apc;
@@ -5327,9 +6789,9 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// ── Theme toggle (light ↔ dark) ───────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Theme toggle (light Ã¢â€ â€ dark) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // `persist` is false whenever this is only catching up with a choice made
-// somewhere else — the OS changing, or a restored page re-reading storage.
+// somewhere else Ã¢â‚¬â€ the OS changing, or a restored page re-reading storage.
 // Writing those down would turn a mirror into a decision, and a reader who has
 // never pressed the toggle would end up pinned to whatever their OS happened
 // to be at the moment they first scrolled past.
@@ -5347,8 +6809,8 @@ function applyTheme(theme, persist = true) {
 }
 
 // Half-turns of the day/night wheel. The count only ever grows, so the wheel
-// always spins clockwise — the icon swings off to the right and the other
-// comes up from the left — instead of rocking back to where it came from.
+// always spins clockwise Ã¢â‚¬â€ the icon swings off to the right and the other
+// comes up from the left Ã¢â‚¬â€ instead of rocking back to where it came from.
 const themeWheel = document.querySelector('#theme-toggle .theme-wheel');
 let themeTurns = currentTheme === 'dark' ? 1 : 0;
 
@@ -5369,7 +6831,7 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
 });
 
 // Restored from the back/forward cache rather than loaded. Nothing above has
-// re-run — not the <head> block that stamps data-theme, not this module — so
+// re-run Ã¢â‚¬â€ not the <head> block that stamps data-theme, not this module Ã¢â‚¬â€ so
 // <html>, currentTheme, the fog and every card texture are all still the theme
 // this page was left in. A reader who pressed the toggle on a case page and
 // came back arrives here with a stored choice this page has never seen, which
@@ -5398,9 +6860,9 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
     applyTheme(e.matches ? 'dark' : 'light', false);
 });
 
-// ── View toggle (cards ↔ grid) ───────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ View toggle (cards Ã¢â€ â€ grid) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // The grid's project clips carry preload="none", so nothing about them is
-// fetched until the grid is actually opened — most visits never open it, and
+// fetched until the grid is actually opened Ã¢â‚¬â€ most visits never open it, and
 // the five of them together used to be the bulk of the page's weight. Playing
 // them here is also what starts the download; pausing on the way out stops
 // five videos decoding behind a hidden panel.
@@ -5448,7 +6910,7 @@ let ghPlayDesignsIntro = () => {};
 
 // The "art" doodles (green droplets, orange arcs, pink dots, squiggle) stay
 // off (animation-name: none, see .gh-art .gh-green etc. in style.css) until
-// .gh-doodles-play is added — which happens only once "designs" has finished
+// .gh-doodles-play is added Ã¢â‚¬â€ which happens only once "designs" has finished
 // growing in, so the two intros play in sequence rather than at once.
 // Turning the class off first discards any running animation instance
 // outright, so re-adding it later always restarts from a clean 0%, instead
@@ -5473,7 +6935,7 @@ function replayGridHeroReveal() {
     // Jump straight back to the hidden position with transitions off, then
     // force a reflow to commit that jump, before re-enabling transitions and
     // re-adding .visible. Without this, removing .visible while a transition
-    // is defined on transform just starts a reverse transition — which gets
+    // is defined on transform just starts a reverse transition Ã¢â‚¬â€ which gets
     // overridden the instant .visible is re-added a few lines below, all
     // within the same synchronous tick, so it never actually renders a
     // frame. The element stays visually stuck at its already-revealed
@@ -5571,13 +7033,13 @@ toggleBtns.forEach(btn => {
 let pendingGridScrollRestore = null;
 
 // The grid is its own scroll container (position: fixed with overflow-y: auto),
-// so its offset lives on the element, not on the window — nothing about the
+// so its offset lives on the element, not on the window Ã¢â‚¬â€ nothing about the
 // page's own scroll position describes where the visitor is inside it.
 gridView.addEventListener('scroll', () => {
     if (currentView !== 'grid') return;
     // A restore that got clamped short still fires a scroll event, and writing
     // that back would overwrite the offset we're in the middle of restoring with
-    // the clamped one — the stored position would decay a little on every trip.
+    // the clamped one Ã¢â‚¬â€ the stored position would decay a little on every trip.
     // Anything at or past the target is real movement, so the restore is done.
     if (pendingGridScrollRestore !== null) {
         if (gridView.scrollTop < pendingGridScrollRestore - 1) return;
@@ -5611,9 +7073,9 @@ gridView.addEventListener('scroll', () => {
     }, { passive: true });
 }
 
-// ── Grid-view footer ─────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Grid-view footer Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-// "Last updated" — pick the most-recent mtime among the files this page loads.
+// "Last updated" Ã¢â‚¬â€ pick the most-recent mtime among the files this page loads.
 // Falls back to document.lastModified when fetch isn't available (e.g. file:// URLs).
 //
 // Asked of the document rather than named as './style.css' and './script.js':
@@ -5639,7 +7101,7 @@ async function _gfSetLastUpdated() {
             })
         );
         results.forEach(t => { if (!isNaN(t) && t > latest) latest = t; });
-    } catch (_) { /* fetch unavailable — fall through to document.lastModified */ }
+    } catch (_) { /* fetch unavailable Ã¢â‚¬â€ fall through to document.lastModified */ }
     if (!latest) {
         const d = Date.parse(document.lastModified);
         if (!isNaN(d)) latest = d;
@@ -5665,7 +7127,7 @@ function _gfTickClocks() {
                 hour: '2-digit', minute: '2-digit', second: '2-digit',
                 hour12: false, timeZone: tz
             }).format(new Date());
-        } catch (_) { /* invalid tz — leave placeholder */ }
+        } catch (_) { /* invalid tz Ã¢â‚¬â€ leave placeholder */ }
     });
 }
 if (_gfTimes.length) {
@@ -5673,7 +7135,7 @@ if (_gfTimes.length) {
     setInterval(_gfTickClocks, 1000);
 }
 
-// Footer nav — HOME switches to card view, PROJECT scrolls grid to top,
+// Footer nav Ã¢â‚¬â€ HOME switches to card view, PROJECT scrolls grid to top,
 // PLAYGROUND / ABOUT switch to card view then rotate to that card.
 document.querySelectorAll('#grid-footer .gf-nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -5722,7 +7184,7 @@ document.querySelector('#top-nav .nav-logo')?.addEventListener('click', (e) => {
     rotateToCard(0);
 });
 
-// ── Grid card reveal-on-scroll (fade + slide up, staggered DOM order) ───────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Grid card reveal-on-scroll (fade + slide up, staggered DOM order) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const _gridCardObserver = new IntersectionObserver((entries) => {
     // Stagger cards that enter together (e.g., initial grid view open) in DOM order.
     const intersecting = entries
@@ -5748,12 +7210,12 @@ function replayGridCardReveal() {
 }
 
 // Coming Soon grid cards (marked with data-coming-soon) don't have a real
-// page yet — block the click instead of following href="#".
+// page yet Ã¢â‚¬â€ block the click instead of following href="#".
 document.querySelectorAll('.grid-card[data-coming-soon]').forEach(card => {
     card.addEventListener('click', (e) => e.preventDefault());
 });
 
-// ── Grid-card hover swap: title scrolls up, description scrolls in ──────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Grid-card hover swap: title scrolls up, description scrolls in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 document.querySelectorAll('.grid-card-info').forEach(info => {
     const title = info.querySelector('.grid-card-title');
     const desc  = info.querySelector('.grid-card-desc');
@@ -5781,11 +7243,11 @@ document.querySelectorAll('.grid-card-info').forEach(info => {
     swap.appendChild(descRow);
 });
 
-// ── Restore the grid view a returning visitor left off in ────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Restore the grid view a returning visitor left off in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Deliberately placed at this point in the file rather than next to the toggle
-// handler: everything above has finished building the grid's final DOM — the
+// handler: everything above has finished building the grid's final DOM Ã¢â‚¬â€ the
 // hover-swap block just above physically re-parents every card's title and
-// description — and a scroll offset measured against a layout that is still
+// description Ã¢â‚¬â€ and a scroll offset measured against a layout that is still
 // about to change is an offset that lands in the wrong place.
 
 // The same end state replayGridHeroReveal() and replayGridCardReveal() animate
@@ -5796,7 +7258,7 @@ function revealGridSilently() {
     if (gridHero && gridHeroMask && gridHeroInner) {
         // Suppress the slide-up transition across the class change and commit it
         // with a reflow before handing transitions back, exactly as the replay
-        // path does — otherwise adding .visible here animates from below.
+        // path does Ã¢â‚¬â€ otherwise adding .visible here animates from below.
         gridHeroInner.style.transition = 'none';
         gridHero.classList.add('visible');
         gridHeroMask.classList.add('revealed');
@@ -5826,17 +7288,17 @@ function revealGridSilently() {
 }
 
 // Setting scrollTop on a container whose content is shorter than the target is
-// silently clamped to whatever the max happens to be at that instant — and the
+// silently clamped to whatever the max happens to be at that instant Ã¢â‚¬â€ and the
 // grid's content is still growing at this point: the webfonts are async, so the
 // hero and every card caption reflow taller once they swap in. So the offset is
-// applied straight away (which is what makes it silent — the grid's first paint
+// applied straight away (which is what makes it silent Ã¢â‚¬â€ the grid's first paint
 // is already at the right place, with no frame at the top and no scroll
 // animation) and then re-asserted at the two moments the height can jump, but
 // only while it is still short of the target and the visitor hasn't taken over.
 function restoreGridScroll(top) {
     if (!(top > 0)) return;
     pendingGridScrollRestore = top;
-    // Stop re-asserting the moment the visitor touches the grid themselves —
+    // Stop re-asserting the moment the visitor touches the grid themselves Ã¢â‚¬â€
     // yanking them back to a stored offset mid-scroll would be worse than
     // simply having missed it.
     const release = () => { pendingGridScrollRestore = null; };
@@ -5847,7 +7309,7 @@ function restoreGridScroll(top) {
     const apply = () => {
         if (pendingGridScrollRestore === null) return;
         // A short read means the previous set was clamped, not that the visitor
-        // scrolled up — that case is covered by `release` above.
+        // scrolled up Ã¢â‚¬â€ that case is covered by `release` above.
         if (gridView.scrollTop < top - 1) gridView.scrollTop = top;
     };
     gridView.scrollTop = top;
@@ -5905,7 +7367,7 @@ function markIntroPlayed() {
 let loaderRevealedAbout = false;
 
 // How tall the front card is on screen. Same projection the camera uses:
-// an 80° lens at z = 3.6, the card standing at the ring's radius.
+// an 80Ã‚Â° lens at z = 3.6, the card standing at the ring's radius.
 function aboutCardScreenHeight() {
     const dist = 3.6 - getCarouselRadius();
     const visible = 2 * dist * Math.tan((80 * Math.PI / 180) / 2);
@@ -5916,7 +7378,7 @@ function aboutCardScreenHeight() {
 // actually be on screen. The blocky type was a small canvas scaled up
 // with a CSS transform: the layer was rasterised at the shuffle card's
 // 88px and stretched. The card is given the screen size instead, and
-// this copy is one device pixel per screen pixel — never a second
+// this copy is one device pixel per screen pixel Ã¢â‚¬â€ never a second
 // enlargement, which is what softens the type.
 function paintLoaderAboutFace(card) {
     const src = aboutmeSwap.faces[0] && aboutmeSwap.faces[0].canvas;
@@ -5962,7 +7424,7 @@ function dismissLoader(delay) {
 }
 
 // Where the shuffle is in its cycle. One beat is a single card leaving the
-// deck and landing back in it — a third of card-shuffle, matching the three
+// deck and landing back in it Ã¢â‚¬â€ a third of card-shuffle, matching the three
 // staggered cards. Null if the animation can't be read.
 function shuffleClock() {
     const card = loaderEl.querySelector('.shuffle-card');
@@ -5976,7 +7438,7 @@ function shuffleClock() {
 
 // Assets are ready. Keep shuffling until the card that's out has landed,
 // then hand off. A landing that just happened (the first few frames of a
-// beat) counts — stopping there is the shuffle finishing, not cutting it.
+// beat) counts Ã¢â‚¬â€ stopping there is the shuffle finishing, not cutting it.
 function noteShuffleAndMaybeArrive() {
     if (!loaderEl || !loaderEl.isConnected) { loaderAwaitShuffle = false; return; }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -5993,7 +7455,7 @@ function noteShuffleAndMaybeArrive() {
     const beat = Math.floor(clock.t / clock.beat);
     const intoBeat = clock.t - beat * clock.beat;
     // Still on the stack. Wider than this and the next card has already
-    // started out — a late wake (the texture upload blocks the thread, and
+    // started out Ã¢â‚¬â€ a late wake (the texture upload blocks the thread, and
     // the shuffle keeps time while it does) must not freeze that pull.
     const landed = intoBeat <= 36;
     if (shuffleBeatSeen === null) {
@@ -6025,7 +7487,7 @@ function revealSize(card) {
 
 // The shuffle has landed. Square the deck and let the cards underneath
 // disappear, so one card is all that's left. The turn waits until that
-// has finished — the flip is the next thing, not part of the shuffle.
+// has finished Ã¢â‚¬â€ the flip is the next thing, not part of the shuffle.
 function beginLoaderArrival() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const deck = [...loaderEl.querySelectorAll('.shuffle-card')];
@@ -6086,7 +7548,7 @@ function flipLoaderHero(hero) {
 
     // #loader-cards has perspective, and perspective is a containing block
     // for position:fixed. Left/top are viewport coordinates; applied inside
-    // that 88×120 box they land in the bottom-right of the screen. The
+    // that 88Ãƒâ€”120 box they land in the bottom-right of the screen. The
     // loader itself is the full screen, so the hero has to move up to it
     // before those coordinates mean anything.
     loaderEl.appendChild(hero);
@@ -6273,7 +7735,7 @@ function playPanelNameType(panels) {
 
 function startIntro() {
     if (introAlreadyPlayed()) { skipIntro(); return; }
-    // No extra delay needed — loader fade already provides the transition buffer
+    // No extra delay needed Ã¢â‚¬â€ loader fade already provides the transition buffer
     const c = cards[0];
     if (!c) return;
     c.visible = true;
@@ -6319,7 +7781,7 @@ function triggerDealing() {
     const STEP_MS = 500; // ms per card slot
     const totalDuration = STEP_MS * cardCount; // one full circle over cardCount steps
 
-    // One continuous linear rotation: current → current - 2π (full circle, lands on About Me)
+    // One continuous linear rotation: current Ã¢â€ â€™ current - 2Ãâ‚¬ (full circle, lands on About Me)
     introAnimStartTime = performance.now();
     introAnimStartRot = cardgroup.rotation.y;
     introAnimEndRot = cardgroup.rotation.y - (Math.PI * 2);
@@ -6328,17 +7790,17 @@ function triggerDealing() {
     targetRotation = null;
 
     // Precompute each card's drop offset from introAnimStartTime so each card's
-    // drop — and its landing click — finishes right as the eased rotation brings
+    // drop Ã¢â‚¬â€ and its landing click Ã¢â‚¬â€ finishes right as the eased rotation brings
     // it to centre, not after. The rotation keeps moving continuously, so any
     // later finish means the click fires once that card has already rotated
-    // past centre, while a *different* (still-falling) card is now in focus —
+    // past centre, while a *different* (still-falling) card is now in focus Ã¢â‚¬â€
     // reading as if the click were mistimed against whatever card you're
     // actually looking at. Starting the drop a full CARD_DROP_DURATION before
     // centreTime makes it finish (fully landed, y=0) exactly at centreTime.
     // The eased rotation curve is front-loaded, so the first few cards' centreTime
-    // values land less than CARD_DROP_DURATION apart — without a floor, their raw
+    // values land less than CARD_DROP_DURATION apart Ã¢â‚¬â€ without a floor, their raw
     // offsets all clamp to 0 and they drop simultaneously instead of staggered.
-    const MIN_DROP_GAP = 100; // ms — minimum stagger between consecutive drop starts
+    const MIN_DROP_GAP = 100; // ms Ã¢â‚¬â€ minimum stagger between consecutive drop starts
     let prevOffset = -Infinity;
     for (let i = 1; i < cardCount; i++) {
         const rotFraction = i / cardCount; // fraction of full rotation when card i faces front
@@ -6364,6 +7826,11 @@ function triggerDealing() {
     }, totalDuration + 200);
 }
 
+function cbHoldsChrome() {
+    return CB_ENABLED && !cbIntroDone
+        && document.documentElement.getAttribute('data-restore-view') !== 'grid';
+}
+
 function skipIntro() {
     // Instantly show all cards and jump straight to interactive state
     cards.forEach((c, i) => {
@@ -6376,11 +7843,15 @@ function skipIntro() {
     });
     introPhase = 'done';
     markIntroPlayed();
-    const sl = document.getElementById('social-links');
-    if (sl) sl.classList.add('ui-intro-visible');
-    const tn = document.getElementById('top-nav');
-    if (tn) tn.classList.add('visible');
-    revealViewToggle(0);
+    // While the cards are still building in, the bars wait for them
+    // (cbFinishIntro). Coming back to the grid there is nothing to wait for.
+    if (!cbHoldsChrome()) {
+        const sl = document.getElementById('social-links');
+        if (sl) sl.classList.add('ui-intro-visible');
+        const tn = document.getElementById('top-nav');
+        if (tn) tn.classList.add('visible');
+        revealViewToggle(0);
+    }
     if (panelRevealTimeout !== null) {
         clearTimeout(panelRevealTimeout);
         panelRevealTimeout = null;
@@ -6413,7 +7884,7 @@ if (introSkipped || !CB_ENABLED) {
             const url = el.getAttribute('parent-href') || el.dataset.href || el.getAttribute('href');
             if (!url || url === '#') return;
             try {
-                // Open in a new tab — use window.top.open so popup isn't blocked inside an iframe
+                // Open in a new tab Ã¢â‚¬â€ use window.top.open so popup isn't blocked inside an iframe
                 (window.top || window).open(url, '_blank', 'noopener,noreferrer');
             } catch (err) {
                 window.open(url, '_blank', 'noopener,noreferrer');
@@ -6422,7 +7893,7 @@ if (introSkipped || !CB_ENABLED) {
     });
 })();
 
-// ── "designs" box corner handles — drag to scale just that word ─────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ "designs" box corner handles Ã¢â‚¬â€ drag to scale just that word Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Dragging the tl/tr/br handles resizes only the word "designs" (via the
 // --gh-scale CSS var, consumed by .gh-boxed's font-size); the opposite
 // corner of the box stays anchored, like resizing a shape in a design tool.
@@ -6446,7 +7917,7 @@ if (introSkipped || !CB_ENABLED) {
     // "designs" entrance: grows from tiny up to its normal size via the same
     // --gh-scale/font-size mechanism dragging uses (bypassing applyScale's
     // MIN_SCALE clamp, since 0.15 is intentionally far below the drag
-    // floor) — a real size change, not a visual-only transform, so "I treat
+    // floor) Ã¢â‚¬â€ a real size change, not a visual-only transform, so "I treat
     // my" and "like" genuinely reflow closer together while it's small and
     // ease apart as it grows, instead of sitting at their final spacing the
     // whole time.
@@ -6505,8 +7976,8 @@ if (introSkipped || !CB_ENABLED) {
             // preventDefault stops the browser from starting a native text
             // selection drag (user-select: none alone wasn't reliable here).
             // That also suppresses the *compatibility mouse events* the
-            // site's custom cursor tracker depends on — but not genuine
-            // pointer events — so we mirror the cursor position ourselves
+            // site's custom cursor tracker depends on Ã¢â‚¬â€ but not genuine
+            // pointer events Ã¢â‚¬â€ so we mirror the cursor position ourselves
             // in onMove below instead of relying on the global mousemove handler.
             e.preventDefault();
             html.classList.add('gh-handle-drag');
@@ -6540,7 +8011,7 @@ if (introSkipped || !CB_ENABLED) {
     });
 })();
 
-// ── Greeting typewriter — types "Jennifer", deletes it, types "HFYJ", loops ──
+// Ã¢â€â‚¬Ã¢â€â‚¬ Greeting typewriter Ã¢â‚¬â€ types "Jennifer", deletes it, types "HFYJ", loops Ã¢â€â‚¬Ã¢â€â‚¬
 (function () {
     const el = document.getElementById('gh-typewriter');
     if (!el) return;

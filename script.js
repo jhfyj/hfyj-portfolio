@@ -5237,8 +5237,12 @@ async function cbStart() {
             st.t0 = cbStartTime + (depth === 0 ? 0
                 : ((CB_T.fillAt + CB_T.fill) + (depth - 1) * CB_T.stagger) * k);
         } else {
+            // Desktop: out from the front card in pairs. The two either side
+            // of it start together, then the next two out, and so on round
+            // to the back (Jen).
             const order = (st.i - cbFront + cardCount) % cardCount;
-            st.t0 = cbStartTime + order * CB_T.stagger * k;
+            const step = Math.min(order, cardCount - order);
+            st.t0 = cbStartTime + step * CB_T.stagger * k;
         }
         st.started = true;
     });

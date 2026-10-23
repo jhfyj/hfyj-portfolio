@@ -1845,6 +1845,30 @@ function updateCardStockLight() {
     else u.uStockLight.value.lerp(_stockTarget, 0.18);
 }
 
+// A blurred fill that also works on iPhone. iOS Safari ignores ctx.filter, so
+// a filter blur comes out as a hard-edged block there. Instead the shape is
+// drawn far off the canvas and only its shadow (shadowBlur, which every
+// browser supports) is sent back to where the shape belongs. shadowBlur is
+// about twice the blur radius, and both it and the offset ignore the
+// canvas transform, so the shape is moved in device space to match.
+function softFill(ctx, blurPx, color, tracePath) {
+    const AWAY = 10000;
+    ctx.save();
+    const m = ctx.getTransform();
+    const det = m.a * m.d - m.b * m.c || 1;
+    // local step that lands AWAY px to the left on the canvas itself
+    ctx.translate((-AWAY * m.d) / det, (AWAY * m.b) / det);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blurPx * 2;
+    ctx.shadowOffsetX = AWAY;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    tracePath();
+    ctx.fill();
+    ctx.restore();
+}
+
 // Procedural card shadow texture Ã¢â‚¬â€ soft ellipse #8D88A2 at 50%.
 // Uses a radial gradient (not ctx.filter blur) because iOS Safari ignores
 // canvas filter, which caused the shadow to render as a sharp ellipse on mobile.
@@ -3857,13 +3881,9 @@ function loadCard8() {
         // Only what a chip leaves on the cloth. The chip itself is a
         // cylinder standing on the face Ã¢â‚¬â€ see buildProps below.
         function drawChipCast(cx, cy, d) {
-            ctx.save();
-            ctx.filter = `blur(${Math.max(1, d * 0.03)}px)`;
-            ctx.beginPath();
-            ctx.arc(cx + d * 0.12, cy + d * 0.16, d / 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,0,0,0.50)';
-            ctx.fill();
-            ctx.restore();
+            softFill(ctx, Math.max(1, d * 0.03), 'rgba(0,0,0,0.50)', () => {
+                ctx.arc(cx + d * 0.12, cy + d * 0.16, d / 2, 0, Math.PI * 2);
+            });
         }
 
         // Same cube the playground page casts: rotateX(52) rotateY(36),
@@ -3977,11 +3997,9 @@ function loadCard8() {
             // A canvas turns the opposite way to a mesh, and the slab this
             // belongs to is a mesh.
             ctx.rotate(rot * Math.PI / 180);
-            ctx.filter = `blur(${6 * s}px)`;
-            ctx.fillStyle = 'rgba(0,0,0,0.32)';
-            ctx.beginPath();
-            ctx.roundRect(-w / 2, -h / 2, w, h, 36 * (w / CARD_BACK_DESIGN.w));
-            ctx.fill();
+            softFill(ctx, 6 * s, 'rgba(0,0,0,0.32)', () => {
+                ctx.roundRect(-w / 2, -h / 2, w, h, 36 * (w / CARD_BACK_DESIGN.w));
+            });
             ctx.restore();
         }
 
@@ -6298,11 +6316,7 @@ function stackShadowFor(i) {
         const cv = document.createElement('canvas');
         cv.width = W + pad * 2; cv.height = Hh + pad * 2;
         const cx = cv.getContext('2d');
-        cx.filter = 'blur(14px)';
-        cx.fillStyle = '#000';
-        cx.beginPath();
-        cx.roundRect(pad, pad, W, Hh, 22);
-        cx.fill();
+        softFill(cx, 14, '#000', () => cx.roundRect(pad, pad, W, Hh, 22));
         stackShadowTex = new THREE.CanvasTexture(cv);
         stackShadowTex.userData = { padX: pad / W, padY: pad / Hh };
     }

@@ -1126,19 +1126,22 @@ function openCard(index) {
 
 
 // Responsive card scale Ã¢â‚¬â€ steps down at medium and narrow screens
+// Above the phone pile it grows smoothly with the window instead of in
+// steps, so dragging the window between tablet and laptop never jumps.
+const CARD_SIZE_RAMP = { from: 900, to: 1450 };   // window widths, px
+function cardSizeRamp() {
+    const t = (window.innerWidth - CARD_SIZE_RAMP.from) / (CARD_SIZE_RAMP.to - CARD_SIZE_RAMP.from);
+    return Math.min(1, Math.max(0, t));
+}
 function getCardScale() {
     if (window.innerWidth <= 768)  return 0.68;
-    if (window.innerWidth <= 1100) return 0.72;
-    if (window.innerWidth <= 1400) return 0.76;
-    return 0.78;
+    return 0.72 + (0.78 - 0.72) * cardSizeRamp();
 }
 
 // Carousel ring radius Ã¢â‚¬â€ proportional to card scale so spacing stays consistent
 function getCarouselRadius() {
     if (window.innerWidth <= 768)  return 1.75;
-    if (window.innerWidth <= 1100) return 1.85;
-    if (window.innerWidth <= 1400) return 1.95;
-    return 2.05;
+    return 1.85 + (2.05 - 1.85) * cardSizeRamp();
 }
 
 // Builds a flat card with rounded corners (like a playing card).
@@ -1564,6 +1567,9 @@ function applyCardStock(material, { face = true, aspect = 1 } = {}) {
 // nothing extra. Ring (laptop): by how far round the back a card is.
 // Pile (phone): by how far down the pile.
 const CARD_DEPTH = {
+    // pile: a = how strongly the card's art, text and pills show (the card
+    // itself stays solid, its contents fade toward its own paper colour),
+    // s = softness
     pile: [{ a: 1, s: 0 }, { a: 0.8, s: 0.004 }, { a: 0.62, s: 0.008 }],
     ringClear: 1.15,           // card steps from the front that stay clear
     ringA: 0.65, ringS: 0.012, // the very back of the ring
@@ -1571,6 +1577,8 @@ const CARD_DEPTH = {
 };
 const CARD_SOFT_GLSL = `
 uniform float uCardSoft;
+uniform float uCardFade;
+uniform vec3 uCardFadeBg;
 vec4 cardSoftSample( sampler2D s, vec2 uv ) {
     vec4 c = texture2D( s, uv );
     if ( uCardSoft < 0.0001 ) return c;
@@ -1583,7 +1591,7 @@ vec4 cardSoftSample( sampler2D s, vec2 uv ) {
     return c;
 }
 `;
-function cardSoftPatchMat(material, U) {
+function cardSoftPatchMat(material, U, fadeU) {
     if (material.userData.softPatched) return;
     material.userData.softPatched = true;
     const prevCompile = material.onBeforeCompile;
@@ -1591,8 +1599,13 @@ function cardSoftPatchMat(material, U) {
     material.onBeforeCompile = (shader, r) => {
         prevCompile.call(material, shader, r);
         shader.uniforms.uCardSoft = U;
+        shader.uniforms.uCardFade = fadeU || { value: 1 };
+        shader.uniforms.uCardFadeBg = CB_COLORS.uCbBg;
         shader.fragmentShader = shader.fragmentShader
-            .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment)
+            .replace('#include <map_fragment>', THREE.ShaderChunk.map_fragment
+                // What is printed on the card fades toward the card's own
+                // colour, so the card stays solid while its contents go faint
+                + '\n\tdiffuseColor.rgb = mix( uCardFadeBg, diffuseColor.rgb, uCardFade );')
             .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\n' + CARD_SOFT_GLSL)
             .split('texture2D( map, vMapUv )').join('cardSoftSample( map, vMapUv )')
             .split('texture2D( uMapB, vMapUv )').join('cardSoftSample( uMapB, vMapUv )');
@@ -1600,23 +1613,30 @@ function cardSoftPatchMat(material, U) {
     material.customProgramCacheKey = () => prevKey() + '|soft';
     material.needsUpdate = true;
 }
-// A card's whole look for depth and the screen edge: opacity a, softness s
-function cardSetLook(card, a, s) {
+// A card's whole look for depth and the screen edge: opacity a, softness s,
+// and how strongly what is printed on it shows, e
+function cardSetLook(card, a, s, e = 1) {
     const q = Math.round(a * 200) / 200;
     if (card.userData.stackAlpha !== q) { stackSetAlpha(card, q); card.userData.stackAlpha = q; }
     if (card.userData.softU) card.userData.softU.value = s;
+    if (card.userData.fadeU) card.userData.fadeU.value = e;
+}
+// How faint and soft card i is at its place on the ring: [opacity, softness]
+function ringLook(i) {
+    const apc = (Math.PI * 2) / cardCount;
+    let a = (i * apc + cardgroup.rotation.y) % (Math.PI * 2);
+    if (a > Math.PI) a -= Math.PI * 2;
+    if (a < -Math.PI) a += Math.PI * 2;
+    const t = cbClamp((Math.abs(a) / apc - CARD_DEPTH.ringClear) / (cardCount / 2 - CARD_DEPTH.ringClear));
+    const e = t * t * (3 - 2 * t);
+    return [1 - (1 - CARD_DEPTH.ringA) * e, CARD_DEPTH.ringS * e];
 }
 function ringDepthUpdate() {
-    const apc = (Math.PI * 2) / cardCount;
     for (let i = 0; i < cardCount; i++) {
         const card = cards[i];
         if (!card || cbOwns(i)) continue;
-        let a = (i * apc + cardgroup.rotation.y) % (Math.PI * 2);
-        if (a > Math.PI) a -= Math.PI * 2;
-        if (a < -Math.PI) a += Math.PI * 2;
-        const t = cbClamp((Math.abs(a) / apc - CARD_DEPTH.ringClear) / (cardCount / 2 - CARD_DEPTH.ringClear));
-        const e = t * t * (3 - 2 * t);
-        cardSetLook(card, 1 - (1 - CARD_DEPTH.ringA) * e, CARD_DEPTH.ringS * e);
+        const L = ringLook(i);
+        cardSetLook(card, L[0], L[1]);
     }
 }
 
@@ -1901,7 +1921,8 @@ function _placeCard(i, group) {
     const h = bb.max.y - bb.min.y;
     applyCardStock(frontMesh.material, { aspect: w / h });
     group.userData.softU = { value: 0 };
-    cardSoftPatchMat(frontMesh.material, group.userData.softU);
+    group.userData.fadeU = { value: 1 };
+    cardSoftPatchMat(frontMesh.material, group.userData.softU, group.userData.fadeU);
     cardWinPatchMat(frontMesh.material, winMakeUniforms(frontMesh.material));
     cbAttach(i, group);
 
@@ -1921,7 +1942,7 @@ function _placeCard(i, group) {
             map: backTex, side: THREE.FrontSide
         });
         applyCardStock(mat, { aspect: w / h });
-        cardSoftPatchMat(mat, group.userData.softU);
+        cardSoftPatchMat(mat, group.userData.softU, group.userData.fadeU);
         const backMesh = new THREE.Mesh(geo, mat);
         backMesh.rotation.y = Math.PI;
         backMesh.position.z = -CARD_STOCK.thickness;
@@ -5190,8 +5211,17 @@ async function cbStart() {
         // One by one: the front card first, then each next card in the order
         // the ring turns them to the front (on a phone: the top of the pile,
         // then the ones under it)
-        const order = (st.i - cbFront + cardCount) % cardCount;
-        st.t0 = cbStartTime + order * CB_T.stagger * k;
+        if (isStackMode()) {
+            // Phone: the top card builds first and alone. The ones under it
+            // wait until it has filled in (so their outlines never show
+            // through it), then go in pile order, the ones peeking first.
+            const depth = (cbFront - st.i + cardCount) % cardCount;
+            st.t0 = cbStartTime + (depth === 0 ? 0
+                : ((CB_T.fillAt + CB_T.fill) + (depth - 1) * CB_T.stagger) * k);
+        } else {
+            const order = (st.i - cbFront + cardCount) % cardCount;
+            st.t0 = cbStartTime + order * CB_T.stagger * k;
+        }
         st.started = true;
     });
 }
@@ -5258,6 +5288,15 @@ function cbWarmCard(st) {
         });
     });
     const jobs = [renderer.compileAsync(g, camera, scene)];
+    // The flying wireframe pieces too (all cards share the one shader)
+    const fly = st.els && st.els.find((el) => el.mesh);
+    if (fly && !cbWarmCard.fly) {
+        cbWarmCard.fly = true;
+        const v = fly.mesh.visible;
+        fly.mesh.visible = true;
+        jobs.push(renderer.compileAsync(fly.mesh, camera, scene));
+        fly.mesh.visible = v;
+    }
     const flip = mats.filter((m) => !m.transparent);
     flip.forEach((m) => { m.transparent = true; m.needsUpdate = true; });
     jobs.push(renderer.compileAsync(g, camera, scene));
@@ -5599,6 +5638,8 @@ window.addEventListener("wheel", (e) => {
     resetIdleTimer();
     if (introPhase === 'waitForScroll') { playWhooshThrottled(); triggerDealing(); return; }
     if (introPhase !== 'done') return;
+    // Phone-width pile on a laptop: the wheel deals the pile instead
+    if (isStackMode()) { stackWheel(e); return; }
     // deltaY = vertical scroll/swipe, deltaX = horizontal two-finger trackpad swipe
     hoveredCard = null;
     lastScrollMs = performance.now();
@@ -5976,6 +6017,42 @@ const STACK = {
     spin: 0.9,        // how far a thrown card turns on its way out, in rad
 };
 function isStackMode() { return window.innerWidth <= STACK_MAX_W; }
+// Narrowing the window past the breakpoint: instead of jumping, every card
+// leaves its place on the ring and glides in to the centre to form the pile,
+// turning to face the screen on the way. The ones that end up out of sight
+// fade as they come in.
+const STACK_MORPH = {
+    dur: 650,         // ms for each card's glide
+    stagger: 180,     // the card deepest in the pile sets off this much after the top one
+};
+let stackMorph = null;
+const stackRingLast = { r: 0, s: 0 };
+function stackMorphSeed(now) {
+    const t0 = cardgroup.rotation.y, c0 = Math.cos(t0), s0 = Math.sin(t0);
+    const kr = stackRingLast.r ? stackRingLast.r / getCarouselRadius() : 1;
+    const top = stackNearest(t0);
+    const from = [];
+    let last = 0;
+    for (let i = 0; i < cardCount; i++) {
+        const c = cards[i];
+        if (!c || cbOwns(i)) continue;
+        // Where the ring has it, in the pile's own (screen-facing) frame
+        const lx = c.position.x * kr, lz = c.position.z * kr;
+        let ry = c.rotation.y + t0;
+        ry -= Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
+        const d = (((top - i) % cardCount) + cardCount) % cardCount;
+        const delay = (d / Math.max(1, cardCount - 1)) * STACK_MORPH.stagger;
+        last = Math.max(last, delay);
+        const sh = cardShadows[i];
+        from[i] = {
+            x: lx * c0 + lz * s0, y: c.position.y, z: -lx * s0 + lz * c0, ry, s: c.scale.x,
+            fa: c.userData.stackAlpha !== undefined ? c.userData.stackAlpha : 1,
+            fs: c.userData.softU ? c.userData.softU.value : 0,
+            floor: sh ? sh.material.opacity : 0, delay,
+        };
+    }
+    stackMorph = { t0: now, end: now + STACK_MORPH.dur + last, from };
+}
 let stackWas = false;
 let stackTop = -1;
 const stackPose = [];
@@ -6060,6 +6137,40 @@ function stackThrow(dirX, dirY, speed) {
     playWhooshThrottled();
 }
 
+// The mouse wheel (or a trackpad) on the pile: scrolling down throws the top
+// card off upwards and the next one is on top; scrolling up brings the last
+// card back in. One wheel notch is one card. A trackpad sends a stream of
+// small deltas, so they add up to a notch's worth, and a short gap between
+// cards keeps one fling of momentum from dealing out the whole pile.
+const STACK_WHEEL = { step: 60, gap: 260, idle: 180 };
+const stackWheelState = { acc: 0, lastStep: 0, lastEvent: 0 };
+function stackWheel(e) {
+    if (currentView !== 'cards' || stackDrag.on || stackTop < 0 || scrubberDragging) return;
+    const W = stackWheelState, now = performance.now();
+    if (now - W.lastEvent > STACK_WHEEL.idle) W.acc = 0;
+    W.lastEvent = now;
+    // Lines or pages (some mice, Firefox) into px
+    const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? window.innerHeight : 1;
+    W.acc += (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
+    if (Math.abs(W.acc) < STACK_WHEEL.step || now - W.lastStep < STACK_WHEEL.gap) return;
+    const fwd = W.acc > 0;
+    W.acc = 0;
+    W.lastStep = now;
+    hoveredCard = null;
+    lastScrollMs = now;
+    if (fwd) {
+        // Thrown straight up, as if scrolled off the top
+        stackDrag.dx = 0; stackDrag.dy = 0;
+        stackThrow(0, -1, 1.6);
+    } else {
+        // The card before it comes back onto the pile (the pile flies it in)
+        stackTop = (stackTop + 1) % cardCount;
+        cardgroup.rotation.y = stackRotFor(stackTop, cardgroup.rotation.y);
+        targetRotation = null;
+        playWhooshThrottled();
+    }
+}
+
 canvas.addEventListener('pointerdown', (e) => {
     if (!isStackMode() || introPhase !== 'done' || currentView !== 'cards') return;
     if (stackDrag.on || stackTop < 0) return;
@@ -6100,6 +6211,63 @@ function stackRelease(e) {
 window.addEventListener('pointerup', stackRelease);
 window.addEventListener('pointercancel', stackRelease);
 
+// Widening past the breakpoint: the reverse of the gather. Each card lifts
+// off the pile and glides back out to its place on the ring, turning to face
+// out as it goes; the top card stays at the front, and the cards beside it
+// set off first, so the ring fans open from the middle.
+let stackUnmorph = null;
+function stackUnmorphSeed(now) {
+    stackUnmorph = null;
+    if (introPhase !== 'done' || !stackPose.length) return;
+    const th = cardgroup.rotation.y, cs = Math.cos(th), sn = Math.sin(th);
+    const top = stackTop >= 0 ? stackTop : stackNearest(th);
+    const half = Math.max(1, Math.floor(cardCount / 2));
+    const from = [];
+    let last = 0;
+    for (let i = 0; i < cardCount; i++) {
+        const P = stackPose[i], c = cards[i];
+        if (!P || !c || cbOwns(i)) continue;
+        const k = (((i - top) % cardCount) + cardCount) % cardCount;
+        const delay = (Math.min(k, cardCount - k) / half) * STACK_MORPH.stagger;
+        last = Math.max(last, delay);
+        // The pile's screen-facing pose, put back into the ring's own space
+        from[i] = {
+            x: P.x * cs - P.z * sn, y: P.y, z: P.x * sn + P.z * cs,
+            ry: -th + (P.ry || 0), rz: P.rz || 0, s: P.s,
+            fa: P.fa !== undefined ? P.fa : 1, fs: P.fs || 0, fe: P.fe !== undefined ? P.fe : 1, delay,
+        };
+    }
+    stackUnmorph = { t0: now, end: now + STACK_MORPH.dur + last, from };
+}
+function stackUnmorphStep(now) {
+    const M = stackUnmorph;
+    if (!M) return;
+    if (now >= M.end) { stackUnmorph = null; return; }
+    const s = getCardScale(), r = getCarouselRadius(), apc = stackApc();
+    const TWO_PI = Math.PI * 2;
+    for (let i = 0; i < cardCount; i++) {
+        const F = M.from[i], c = cards[i];
+        if (!F || !c || cbOwns(i)) continue;
+        const u = cbClamp((now - M.t0 - F.delay) / STACK_MORPH.dur);
+        const e = 0.5 - 0.5 * Math.cos(Math.PI * u);
+        const a = i * apc;
+        // (y: the hover lift set it this frame; ease onto that)
+        c.position.set(
+            F.x + (Math.sin(a) * r - F.x) * e,
+            F.y + (c.position.y - F.y) * e,
+            F.z + (Math.cos(a) * r - F.z) * e);
+        let dr = a - F.ry;
+        dr -= Math.round(dr / TWO_PI) * TWO_PI;
+        c.rotation.set(0, F.ry + dr * e, F.rz * (1 - e));
+        c.scale.setScalar(F.s + (s - F.s) * e);
+        const L = ringLook(i);
+        cardSetLook(c, F.fa + (L[0] - F.fa) * e, F.fs + (L[1] - F.fs) * e, F.fe + (1 - F.fe) * e);
+        // The floor shadow comes back as its card arrives over it
+        const sh = cardShadows[i];
+        if (sh) sh.material.opacity = THEME_COLORS[currentTheme].shadow * e;
+    }
+}
+
 // Back to the ring when the window is widened past a phone
 function stackRestoreRing() {
     const s = getCardScale(), r = getCarouselRadius();
@@ -6109,6 +6277,7 @@ function stackRestoreRing() {
         c.position.set(Math.sin(a) * r, 0, Math.cos(a) * r);
         if (!cbOwns(i)) { c.rotation.set(0, a, 0); c.scale.setScalar(s); }
         if (c.userData.stackAlpha !== undefined && c.userData.stackAlpha !== 1) { stackSetAlpha(c, 1); c.userData.stackAlpha = 1; }
+        if (c.userData.fadeU) c.userData.fadeU.value = 1;
     });
     stackFlights.clear();
     stackDrag.on = false;
@@ -6171,13 +6340,18 @@ function stackSetAlpha(obj, a) {
         (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
             // The shared, never-drawn edge cap: leave it alone (it is every card's)
             if (m.visible === false) return;
-            if (!m.userData.stackBase) m.userData.stackBase = { t: m.transparent, o: m.opacity };
+            if (!m.userData.stackBase) m.userData.stackBase = { t: m.transparent, o: m.opacity, dw: m.depthWrite };
             const b = m.userData.stackBase;
             // three.js bakes 'opaque' into the shader (alpha forced to 1), so a
             // change of transparent has to rebuild it; same build is cached after
             const t = b.t || a < 0.999;
             if (m.transparent !== t) { m.transparent = t; m.needsUpdate = true; }
             m.opacity = b.o * a;
+            // A card that has (nearly) faded out must not hide what is behind
+            // it: drawn first, an invisible card still blocked the cards under
+            // it and left a hole to the background, mostly while the pile
+            // gathered or shuffled
+            m.depthWrite = b.dw && a >= 0.5;
         });
     });
 }
@@ -6187,13 +6361,32 @@ function stackSetAlpha(obj, a) {
 // whatever the ring is doing underneath, the pile stays put.
 function stackUpdate() {
     if (!isStackMode()) {
-        if (stackWas) { stackRestoreRing(); stackShadows.forEach((m) => { if (m) m.visible = false; }); }
+        if (stackWas) {
+            // Read where the pile has each card before the ring takes them back
+            stackUnmorphSeed(performance.now());
+            stackRestoreRing();
+            stackShadows.forEach((m) => { if (m) m.visible = false; });
+        }
         stackWas = false;
+        // The ring's size as last seen, so the glide into the pile starts from
+        // the ring that was on screen (the resize has already shrunk it a step)
+        stackRingLast.r = getCarouselRadius(); stackRingLast.s = getCardScale();
         ringDepthUpdate();
+        stackUnmorphStep(performance.now());
         return;
     }
-    if (!stackWas) { stackWas = true; stackTop = -1; stackPrevTop = -1; stackFlights.clear(); stackPose.length = 0; }
+    stackUnmorph = null;
     const now = performance.now();
+    if (!stackWas) {
+        stackWas = true; stackTop = -1; stackPrevTop = -1; stackFlights.clear(); stackPose.length = 0;
+        // Coming from the ring (not the first frame of a page opened narrow):
+        // seed every card from where the ring has it, before the pile
+        // squares the ring up on its top card
+        stackMorph = null;
+        if (introPhase === 'done') stackMorphSeed(now);
+    }
+    if (stackMorph && now >= stackMorph.end) stackMorph = null;
+    const morph = stackMorph;
 
     // The swipe decides what is on top, except while the nav or the scrubber
     // is turning the ring to a card: then the pile follows the ring.
@@ -6222,9 +6415,21 @@ function stackUpdate() {
         const ty = (H / 2 + dv * STACK.peek) * (D + dz) / D - (H * sc) / 2;
         const tz = r - dz - d * 0.002;
         const ts = base * sc;
-        const P = stackPose[i] || (stackPose[i] = { x: tx, y: ty, z: tz, rz: 0, s: ts, fa: 1, fs: 0 });
+        const P = stackPose[i] || (stackPose[i] = { x: tx, y: ty, z: tz, rz: 0, ry: 0, s: ts, fa: 1, fs: 0 });
         const f = stackFlights.get(i);
-        if (f && f.kind === 'in') {
+        const F = morph && morph.from[i];
+        let me = 1;   // how far this card is through the glide in from the ring
+        if (F && !f) {
+            const u = cbClamp((now - morph.t0 - F.delay) / STACK_MORPH.dur);
+            // eased in and out, but gently at the start so it answers the resize at once
+            me = 0.5 - 0.5 * Math.cos(Math.PI * u);
+            P.x = F.x + (tx - F.x) * me;
+            P.y = F.y + (ty - F.y) * me;
+            P.z = F.z + (tz - F.z) * me;
+            P.s = F.s + (ts - F.s) * me;
+            P.ry = F.ry * (1 - me);
+            P.rz = 0;
+        } else if (f && f.kind === 'in') {
             // Back from off screen along its direction, easing down onto the pile
             const u = Math.max(0, Math.min(1, (now - f.t0) / f.dur));
             const e = 1 - Math.pow(1 - u, 3);
@@ -6256,18 +6461,32 @@ function stackUpdate() {
             P.y += (ty - P.y) * k;
             P.z += (tz - P.z) * k;
             P.rz += (0 - P.rz) * k;
+            P.ry = (P.ry || 0) * (1 - k);
             P.s += (ts - P.s) * k;
         }
 
-        // Depth: down the pile is fainter and softer. Thrown and incoming
-        // cards are the top card; cards past the ones on show are out of
-        // sight; still building, it stays clear until it is done.
-        if (f || d === 0 || cbOwns(i)) { P.fa = 1; P.fs = 0; }
-        else if (d > STACK.seen) { P.fa = 0; P.fs = CARD_DEPTH.pile[STACK.seen].s; }
+        // Depth: down the pile, what is printed on a card is fainter and
+        // softer while the card itself stays solid (fa: the card, fe: its
+        // contents). Thrown and incoming cards are the top card; cards past
+        // the ones on show are out of sight; still building, it stays clear
+        // until it is done.
+        if (P.fe === undefined) P.fe = 1;
+        if (f || d === 0 || cbOwns(i)) { P.fa = 1; P.fs = 0; P.fe = 1; }
+        else if (d > STACK.seen) { P.fa = 0; P.fs = CARD_DEPTH.pile[STACK.seen].s; P.fe = CARD_DEPTH.pile[STACK.seen].a; }
         else {
             const T = CARD_DEPTH.pile[d], k = CARD_DEPTH.ease;
-            P.fa += (T.a - P.fa) * k;
+            P.fa += (1 - P.fa) * k;
+            P.fe += (T.a - P.fe) * k;
             P.fs += (T.s - P.fs) * k;
+        }
+        // Gliding in from the ring: from the look it had there to its place in the pile
+        if (F && !f) {
+            const ta = d > STACK.seen ? 0 : 1;
+            const te = d === 0 ? 1 : CARD_DEPTH.pile[Math.min(d, STACK.seen)].a;
+            const ts2 = d === 0 ? 0 : CARD_DEPTH.pile[Math.min(d, STACK.seen)].s;
+            P.fa = F.fa + (ta - F.fa) * me;
+            P.fe = 1 + (te - 1) * me;
+            P.fs = F.fs + (ts2 - F.fs) * me;
         }
 
         // Screen pose Ã¢â€ â€™ the ring's space
@@ -6278,9 +6497,9 @@ function stackUpdate() {
         if (card) {
             card.position.set(lx, P.y, lz);
             if (!cbOwns(i)) {
-                card.rotation.set(0, -theta, P.rz);
+                card.rotation.set(0, -theta + (P.ry || 0), P.rz);
                 card.scale.setScalar(P.s);
-                cardSetLook(card, stackEdgeAlpha(P, upp) * P.fa, P.fs);
+                cardSetLook(card, stackEdgeAlpha(P, upp) * P.fa, P.fs, P.fe);
             } else if (st.takenOver) {
                 // Still building: keep its spin, just face it out of the pile,
                 // at the pile's size (the build sizes it for the ring, with
@@ -6308,7 +6527,8 @@ function stackUpdate() {
         // In the pile the floor shadows are off; each card drops a soft
         // shadow onto the one behind it instead, a touch below and behind.
         const sh = cardShadows[i];
-        if (sh) sh.material.opacity = 0;
+        // (the ring's floor shadow fades out as its card glides in from the ring)
+        if (sh) sh.material.opacity = F && !f ? F.floor * (1 - me) : 0;
         if (st && st.ghostShadow) st.ghostShadow.material.opacity = 0;
         const ds = stackShadowFor(i);
         const shown = (card && card.visible) || (st && st.ghost && st.ghost.visible);
@@ -6322,7 +6542,8 @@ function stackUpdate() {
             // A card still being drawn only casts as much shadow as it has filled in
             const built = st && cbOwns(i) && st.U ? st.U.uCbCard.value.z : 1;
             ds.material.opacity = STACK_SHADOW.opacity * (d === 0 || f ? 1 : STACK_SHADOW.under)
-                * THEME_COLORS[currentTheme].shadow * stackEdgeAlpha(P, upp) * built * P.fa;
+                * THEME_COLORS[currentTheme].shadow * stackEdgeAlpha(P, upp) * built * P.fa * P.fe * me;
+            ds.rotation.y += P.ry || 0;
         }
     }
 }

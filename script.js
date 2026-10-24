@@ -4917,6 +4917,20 @@ function loadCard8() {
 // re-uploaded while it plays: the per-frame texture upload is exactly the cost
 // the About Me reveal above was moved into the shader to avoid.
 const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The load-in is a soft fade, after naheeljawaid.com: each card comes in
+// whole, from see-through, blurred and a touch small, to sharp and in place.
+// No outlines, guides or flying pieces (Jen). The wireframe build below is
+// kept but not used while this is on.
+const CB_FADE = true;
+const CB_FADE_T = {
+    dur: 1000,      // ms for one card to come in (before CB_SPEED)
+    stagger: 140,   // between one pair and the next, out from the front card
+    pileLead: 450,  // phone: the top card is this far in before the ones under it start
+    blur: 0.022,    // starting softness (card widths)
+    scale: 0.94,    // starting size
+    rise: 0.05,     // starts this far low (card units) and settles up into place
+    solidBy: 0.5,   // fully opaque by this far in; the blur keeps clearing after
+};
 // Back from a project page: the same build, quicker, and the ring stays put.
 // On localhost, ?buildslow=4 plays it four times slower, for looking at it.
 const CB_SLOW = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
@@ -5636,6 +5650,25 @@ async function cbStart() {
 
     cbCards.forEach((st) => {
         if (st.finished) return;
+        if (CB_FADE) {
+            // Nothing to lay out: the card fades in whole once its art is in.
+            // Desktop: out from the front card in pairs. Phone: the top card, then
+            // the ones under it, in pile order.
+            st.els = [];
+            st.U.uCbCount.value = 0;
+            let delay;
+            if (isStackMode()) {
+                const depth = (cbFront - st.i + cardCount) % cardCount;
+                delay = depth === 0 ? 0 : CB_FADE_T.pileLead + (depth - 1) * CB_FADE_T.stagger;
+            } else {
+                const order = (st.i - cbFront + cardCount) % cardCount;
+                delay = Math.min(order, cardCount - order) * CB_FADE_T.stagger;
+            }
+            st.t0 = cbStartTime + delay * k;
+            st.fadeAt = 0;
+            st.started = true;
+            return;
+        }
         const spec = st.spec || { type: 'template', opts: { title: '', description: '', pills: [] } };
         const { els, cut } = cbLayout(spec);
         st.els = els.slice(0, CB_MAX);
@@ -5906,7 +5939,54 @@ function cbBeginStop(st, t) {
     });
 }
 
+// One card's fade in: from see-through, soft and a touch small and low, to
+// itself. Waits for its art (and its turn) so it never comes in half drawn.
+function cbFadeStep(st, now) {
+    const k = CB_SPEED;
+    if (st.real && !st.prepQueued && cardFaceRepaints.some((e) => e.index === st.i)) {
+        st.prepQueued = true;
+        cbPrepQueue.push(st);
+    }
+    if (st.real && !st.fadeAt) {
+        st.real.children.forEach((c) => { if (c.userData.buildProp) c.visible = false; });
+    }
+    if (now < st.t0) return;
+    if (!st.fadeAt) {
+        if (!(st.real && st.ready && st.compiled !== false && st.propsWarm !== false)) return;
+        st.fadeAt = now;
+        st.content = now;
+        st.U.uCbOn.value = 0;       // the face draws as itself from the first frame
+        st.U.uCbHasMap.value = 1;
+        cbTakeover(st);
+        (st.props || []).forEach((p) => {
+            const r = p.userData.cbRest;
+            p.visible = true;
+            if (r) { p.position.copy(r.pos); p.scale.copy(r.scale); }
+        });
+        if (st.i === 0 && aboutLive.ready) aboutPlay(now);
+    }
+    const u = cbClamp((now - st.fadeAt) / (CB_FADE_T.dur * k));
+    const e = u * u * (3 - 2 * u);
+    const g = st.real;
+    g.rotation.x = 0;
+    g.rotation.y = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
+    g.scale.setScalar(getCardScale() * (CB_FADE_T.scale + (1 - CB_FADE_T.scale) * e));
+    const pile = isStackMode();
+    if (!pile) g.position.y = -CB_FADE_T.rise * (1 - e);
+    // Ends on the look the ring gives it, so nothing jumps when it lets go
+    // Solid early, soft for longer: a card is only see-through for the first
+    // part, so the backs of the cards across the ring never show through it
+    const ao = 1 - Math.pow(1 - cbClamp(u / CB_FADE_T.solidBy), 2);
+    const L = pile ? [1, 0] : ringLook(st.i);
+    cardSetLook(g, L[0] * ao, L[1] + CB_FADE_T.blur * Math.pow(1 - e, 1.5));
+    st.U.uCbCard.value.z = e;       // the pile's drop shadow comes in with it
+    const sh = cardShadows[st.i];
+    if (sh) sh.material.opacity = (pile ? 0 : THEME_COLORS[currentTheme].shadow) * ao;
+    if (u >= 1) cbFinishCard(st);
+}
+
 function cbStep(st, now) {
+    if (CB_FADE) return cbFadeStep(st, now);
     const U = st.U, k = CB_SPEED;
     if (st.real && !st.prepQueued && cardFaceRepaints.some((e) => e.index === st.i)) {
         st.prepQueued = true;

@@ -4917,11 +4917,10 @@ function loadCard8() {
 // re-uploaded while it plays: the per-frame texture upload is exactly the cost
 // the About Me reveal above was moved into the shader to avoid.
 const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// The load-in is a soft fade, after naheeljawaid.com: each card comes in
-// whole, from see-through, blurred and a touch small, to sharp and in place.
-// No outlines, guides or flying pieces (Jen). The wireframe build below is
-// kept but not used while this is on.
-const CB_FADE = true;
+// Whole-card fade only, with no build after it. Off: Jen wants the build
+// kept, with just its first step (the outline drawing round the card in the
+// theme colour) swapped for the blank card fading in, naheeljawaid.com style.
+const CB_FADE = false;
 const CB_FADE_T = {
     dur: 1000,      // ms for one card to come in (before CB_SPEED)
     stagger: 140,   // between one pair and the next, out from the front card
@@ -4943,11 +4942,13 @@ const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4, POP: 5, IMG_PLAIN: -1 };
 // Every duration and offset in the build, in ms, before CB_SPEED.
 // The whole build fits inside 4 s when the art arrives in time.
 const CB_T = {
-    // The outline draws itself all the way round before the card fills in
-    grow: 500, outline: 950, fillAt: 820, fill: 400,
+    // The blank card fades in (see-through, soft-edged and a touch small to
+    // solid, sharp and full size, like naheeljawaid.com), no outline (Jen)
+    grow: 750, outline: 950, fillAt: 0, fill: 750,
+    fadeSoft: 48,                  // how soft its edge starts, in design px
     // Per-card timing only (the card itself never spins; see cbRingStep)
     spinRate: 10,                  // sets how long the settle step takes
-    spinMin: 1150,                 // nothing lands before the card has filled in
+    spinMin: 750,                  // nothing lands before the card has faded in
     spinCap: 1600,                 // and starts slowing by now even if the art is late
     stopMin: 400, stopMax: 750,    // how long the slow-down takes
     flyFrom: 0.5,                  // pieces start flying this far into the slow-down
@@ -5234,25 +5235,15 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
         lineA = max( lineA, sa );
     }
 
-    // The card's own outline: one pen point sets off from the top left and
-    // travels round the edge, clockwise, at an even pace (by distance along
-    // the edge, so the long sides and the corners take their fair share).
-    // The last stretch behind the pen is a touch brighter and bolder.
-    {
-        vec2 h = vec2( 529.5, 724.5 );
-        vec2 rel = p - h;
-        float d = cbBox( rel, h - 2.5, 50.0 );
-        float L;
-        float s = cbPerim( rel, h - 2.5, 50.0, L );
-        float prog = uCbCard.x;
-        float drawn = step( s, prog );
-        float behind = ( prog - s ) * L;
-        float pen = ( 1.0 - smoothstep( 0.0, 110.0, behind ) ) * drawn * step( prog, 0.999 );
-        float a = cbStroke( d, px * ( 1.0 + 0.9 * pen ) ) * drawn * uCbCard.y;
-        c = mix( c, mix( uCbWire, uCbCaret, 0.55 * pen ), a );
-        lineA = max( lineA, a );
+    // No outline (Jen): the blank card just fades in, its edge soft at first
+    // and sharpening as it goes, like naheeljawaid.com's blur-in.
+    // uCbCard.x = edge softness in design px, uCbCard.z = how faded in.
+    float edge = 1.0;
+    if ( uCbCard.x > 0.5 ) {
+        float d = cbBox( p - vec2( 529.5, 724.5 ), vec2( 529.5, 724.5 ), 50.0 );
+        edge = smoothstep( 0.0, uCbCard.x, -d );
     }
-    return vec4( c, max( uCbCard.z, lineA ) );
+    return vec4( c, max( uCbCard.z * edge, lineA ) );
 }
 `;
 
@@ -6008,11 +5999,12 @@ function cbStep(st, now) {
     const spin = 0;
     const e = easeOutCubic(cbClamp(t / (CB_T.grow * k)));
     const thump = st.hit ? Math.exp(-(now - st.hit) / 120) : 0;
-    const sc = getCardScale() * (0.88 + 0.12 * e) * (1 - 0.018 * thump);
+    const sc = getCardScale() * (0.95 + 0.05 * e) * (1 - 0.018 * thump);
     const ang = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
     const tilt = -0.06 * thump;
-    const fill = cbClamp((t - CB_T.fillAt * k) / (CB_T.fill * k));
-    U.uCbCard.value.x = cbEaseInOut(cbClamp(t / (CB_T.outline * k)));
+    const fu = cbClamp((t - CB_T.fillAt * k) / (CB_T.fill * k));
+    const fill = cbEaseInOut(fu);
+    U.uCbCard.value.x = CB_T.fadeSoft * Math.pow(1 - fu, 1.5);   // edge softness while it fades in
     U.uCbCard.value.z = fill;
     if (st.ghost) {
         const r = getCarouselRadius();

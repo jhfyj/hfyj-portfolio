@@ -1,0 +1,382 @@
+/* The table in the grid view's header — see grid-table.js.
+   Positions are in the mock's units (1600 across); 0.0625cqw = one unit of
+   the frame, so everything on the table scales together. */
+
+#grid-view { overflow-x: hidden; }
+
+/* Header: the text keeps its look, it just sits in the left half of a
+   taller header with the table on the right */
+#grid-hero.gt-has-table {
+  position: relative;
+  min-height: min(50vw, 860px);
+  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+#grid-hero.gt-has-table > .gh-reveal-mask {
+  position: relative;
+  z-index: 2;
+  max-width: 46vw;
+}
+
+.gt-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  height: 100%;
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+/* Graph paper, fading out before the projects start */
+.gt-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(var(--ink-rgb), 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--ink-rgb), 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  background-position: -1px -1px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+.gt-frame {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  aspect-ratio: 2 / 1;
+  container-type: inline-size;
+}
+
+/* Only touchable while the grid view is showing: the view sits invisible over
+   the home page the rest of the time, and must not catch its clicks */
+#grid-view.visible .gt-item,
+html[data-restore-view="grid"] #grid-view .gt-item { pointer-events: auto; }
+
+/* ---------- every piece ---------- */
+.gt-item {
+  --xx: var(--x); --yy: var(--y); --ww: var(--w); --hh: var(--h); --rr: var(--r);
+  --u: 0.0625cqw;
+  --shadow: 0 1px 1.5px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-up: 0 2px 3px rgba(0, 0, 0, 0.05), 0 10px 22px rgba(0, 0, 0, 0.09);
+  position: absolute;
+  left: calc(var(--xx) * var(--u));
+  top: calc(var(--yy) * var(--u));
+  width: calc(var(--ww) * var(--u));
+  height: calc(var(--hh) * var(--u));
+  transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) rotate(calc(var(--rr) * 1deg));
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html[data-theme="dark"] .gt-item {
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 6px 16px rgba(0, 0, 0, 0.28);
+  --shadow-up: 0 2px 5px rgba(0, 0, 0, 0.26), 0 12px 28px rgba(0, 0, 0, 0.36);
+}
+.gt-lift {
+  position: absolute;
+  inset: 0;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gt-cardsize { --rad: calc(var(--ww) * var(--u) * 0.055); }
+
+/* Drop onto the table: hidden until the header text is in, then each piece
+   falls from a little above, slightly big, and lands with a small give */
+.gt-stage:not(.gt-in) .gt-lift { opacity: 0; }
+.gt-stage.gt-in .gt-lift {
+  animation: gt-drop 560ms cubic-bezier(0.3, 0.7, 0.3, 1) var(--d, 0ms) backwards;
+}
+@keyframes gt-drop {
+  0%   { opacity: 0; transform: translateY(calc(-40 * var(--u))) scale(1.14); }
+  45%  { opacity: 1; }
+  72%  { transform: translateY(0) scale(0.985); }
+  100% { transform: none; }
+}
+
+/* ---------- cards ---------- */
+.gt-card { cursor: grab; perspective: 1200px; }
+.gt-card.is-dragging { cursor: grabbing; }
+.gt-card:hover .gt-lift, .gt-deck:hover .gt-lift { transform: translateY(calc(-8 * var(--u))); }
+.gt-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 560ms cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+.gt-card.is-flipped .gt-inner { transform: rotateY(180deg); }
+.gt-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--rad);
+  background: var(--card-stock);
+  box-shadow: var(--shadow);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: box-shadow 240ms ease;
+}
+.gt-card:hover .gt-face, .gt-card.is-dragging .gt-face { box-shadow: var(--shadow-up); }
+.gt-back { transform: rotateY(180deg); overflow: hidden; }
+.gt-dealt.is-leaving { opacity: 0; transition: opacity 280ms ease; }
+
+/* ---------- the card box: a poker tuck box lying on the table ----------
+   The open end faces into the table (the box's bottom edge), with the tuck
+   flap and dust flaps folded flat. One card peeks out; hover slides it out
+   a little further. --bw = the box width. */
+.gt-deck { cursor: grab; --bw: calc(var(--ww) * var(--u)); --brad: calc(var(--bw) * 0.03); }
+.gt-box-flap, .gt-box-body, .gt-box-card, .gt-box-front { position: absolute; display: block; }
+
+/* Flaps: the inside of the board, so plain stock, a touch shaded */
+.gt-box-flap {
+  left: 0;
+  top: 100%;
+  width: 100%;
+  aspect-ratio: 100 / 48;
+  /* tucked a hair under the box so the hinge has no gap */
+  margin-top: calc(var(--bw) * -0.01);
+}
+/* Lying flat on the table: barely any shadow, just enough to lift the edge */
+.gt-box-flap svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0.5px 0.8px rgba(0, 0, 0, 0.08)); }
+/* The inside of the board: unprinted, a shade duller than the printed front */
+.gt-box-tuck { fill: color-mix(in srgb, var(--card-stock) 94%, rgb(var(--ink-rgb))); stroke: rgba(var(--ink-rgb), 0.12); stroke-width: 0.35; stroke-linejoin: round; }
+.gt-box-crease { stroke: rgba(var(--ink-rgb), 0.12); stroke-width: 0.35; }
+.gt-box-hinge { fill: url(#gtBoxHinge); }
+/* Dust flaps seen edge-on: the board's cut edge, a little darker */
+.gt-box-dust { fill: color-mix(in srgb, var(--card-stock) 84%, rgb(var(--ink-rgb))); stroke: rgba(var(--ink-rgb), 0.10); stroke-width: 0.25; stroke-linejoin: round; }
+html[data-theme="dark"] .gt-box-tuck { fill: color-mix(in srgb, var(--card-stock) 90%, #000); }
+html[data-theme="dark"] .gt-box-dust { fill: color-mix(in srgb, var(--card-stock) 80%, #000); }
+
+/* The box's thickness: a darker edge just showing below and to the right */
+.gt-box-body {
+  inset: 0;
+  border-radius: var(--brad);
+  background: color-mix(in srgb, var(--card-stock) 86%, rgb(var(--ink-rgb)));
+  transform: translate(calc(var(--bw) * 0.012), calc(var(--bw) * 0.026));
+  box-shadow: var(--shadow);
+}
+
+/* The stack inside: a few cards under the front, each one lower in the stack
+   stepping a sliver further out of the open end, so you see their edges
+   layered like a real stack. --i = 0 is the top card. */
+.gt-box-card {
+  left: 4%;
+  top: 4%;
+  width: 92%;
+  height: 92%;
+  transform: translateY(calc(var(--bw) * (0.035 + var(--i) * 0.022)));
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gt-deck:hover .gt-box-top { transform: translateY(calc(var(--bw) * 0.3)); }
+.gt-box-card .gt-face {
+  transform: none;
+  /* each card's edge: a hairline plus a tight shadow onto the card below */
+  box-shadow: 0 0 0 0.5px rgba(var(--ink-rgb), 0.14), 0 calc(var(--bw) * 0.004) calc(var(--bw) * 0.006) rgba(0, 0, 0, 0.10);
+}
+.gt-box-plain { background: var(--card-stock); }
+
+/* The front: the card-back art printed on the box, with a thumb notch cut
+   into the open end so you can see the card under it */
+.gt-box-front {
+  inset: 0;
+  border-radius: var(--brad);
+  filter: drop-shadow(0 calc(var(--bw) * 0.008) calc(var(--bw) * 0.01) rgba(0, 0, 0, 0.14));
+}
+.gt-box-front .gt-face {
+  transform: none;
+  border-radius: var(--brad);
+  /* Printed like the card back: plain stock, blue frame + blue mark */
+  background: var(--card-stock);
+  box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.10);
+  -webkit-mask-image: radial-gradient(circle calc(var(--bw) * 0.11) at 50% 100%, transparent 97%, #000 100%);
+  mask-image: radial-gradient(circle calc(var(--bw) * 0.11) at 50% 100%, transparent 97%, #000 100%);
+}
+/* The box sits open end down, so its print reads upside down */
+.gt-box-front .gf-card-mark { transform: translate(-50%, -50%) rotate(180deg); }
+
+/* ---------- a card pulled out of the box (grid-table.js pullFromBox) ----------
+   Sits over the page at its big size in the middle of the screen; JS moves it
+   with a transform from the box to the pointer, then to the middle. It starts
+   back up and turns over to the face once it's on its way. */
+.gt-pull {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 100002;
+  pointer-events: none;
+  perspective: 1400px;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 18px 40px rgba(0, 0, 0, 0.16);
+  will-change: transform;
+}
+html[data-theme="dark"] .gt-pull { --shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 20px 44px rgba(0, 0, 0, 0.5); }
+.gt-pull .gt-inner { transform: rotateY(180deg); }
+.gt-pull.is-open .gt-inner { transform: none; }
+.gt-pull.is-flying { transition: transform 620ms cubic-bezier(0.2, 0.8, 0.25, 1); }
+.gt-pull.is-back { transition: transform 560ms cubic-bezier(0.5, 0, 0.3, 1); }
+/* On the way back it settles down onto the table: the lift shadow shrinks to
+   the box card's own so the hand-over to the real card doesn't show */
+.gt-pull.is-back { --shadow: 0 1px 2px rgba(0, 0, 0, 0.10); }
+.gt-pull.is-back .gt-face { transition: box-shadow 520ms ease; }
+
+/* Everything else blurs out behind it */
+.gt-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 400ms ease;
+  cursor: pointer;
+}
+.gt-veil.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .gt-pull.is-flying, .gt-pull.is-back, .gt-veil { transition: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gt-box-card { transition: none; } }
+
+/* ---------- the drawable card ---------- */
+.gt-canvas { cursor: crosshair; }
+.gt-paper { overflow: hidden; }
+.gt-paper canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.gt-clear {
+  position: absolute;
+  right: 7%;
+  bottom: 5%;
+  padding: 0.2em 0.6em;
+  border: 1px solid rgba(var(--ink-rgb), 0.15);
+  border-radius: 999px;
+  background: var(--card-stock);
+  color: rgba(var(--ink-rgb), 0.55);
+  font: 500 clamp(10px, 0.7cqw, 12px)/1.3 'DM Sans', system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.gt-clear.is-on { opacity: 1; pointer-events: auto; }
+.gt-clear:hover { color: var(--t1); }
+
+/* Eraser crumbs: one overlay over the page, under the tool in hand */
+.gt-crumbs {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* ---------- tools ---------- */
+.gt-tool { cursor: pointer; }
+.gt-tool svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.gt-tool .gt-lift { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.16)); }
+html[data-theme="dark"] .gt-tool .gt-lift { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)); }
+.gt-tool:hover .gt-lift { transform: translateY(calc(-6 * var(--u))); }
+.gt-pbody { fill: var(--gt-ink, var(--accent)); transition: fill 200ms ease; }
+/* Picked up: it leaves the table (mouse) or lifts in place (touch) */
+body.gt-holding .gt-tool.is-held .gt-lift { opacity: 0; transition: opacity 120ms ease; }
+.gt-tool.is-held .gt-lift { transform: translateY(calc(-12 * var(--u))); }
+/* A fresh eraser, after the last one was rubbed down to nothing: it drops
+   onto the table from just above, lands with a little settle */
+.gt-eraser.gt-fresh svg { animation: gt-fresh-eraser 560ms cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes gt-fresh-eraser {
+  0%   { opacity: 0; transform: translateY(-22%) scale(1.12); }
+  55%  { opacity: 1; transform: translateY(2%) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gt-eraser.gt-fresh svg { animation: none; } }
+
+.gt-held {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100000;
+  pointer-events: none;
+  display: none;
+}
+.gt-held svg { position: absolute; display: block; }
+body.gt-holding .gt-held { display: block; }
+/* Tip on the pointer */
+.gt-held-pencil svg {
+  width: 10px; height: 152px;
+  left: -5px; top: -152px;
+  transform-origin: 50% 100%;
+  transform: rotate(32deg);
+  filter: drop-shadow(-3px 6px 6px rgba(0, 0, 0, 0.2));
+}
+.gt-held-eraser svg {
+  width: 28px; height: 52px;
+  left: -14px; top: -52px;
+  transform-origin: 50% 100%;
+  transform: rotate(-22deg);
+  filter: drop-shadow(-3px 6px 6px rgba(0, 0, 0, 0.2));
+}
+/* One cursor at a time */
+body.gt-holding #dot-cursor, body.gt-holding #card-cursor, body.gt-holding #cursor-dot { opacity: 0 !important; }
+body.gt-holding #grid-view .gt-canvas { cursor: none; }
+
+
+/* ---------- palette ---------- */
+.gt-palette .gt-lift {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  border-radius: calc(var(--hh) * 0.2 * var(--u));
+  background: var(--card-stock);
+  box-shadow: var(--shadow);
+}
+.gt-swatch {
+  width: calc(var(--ww) * 0.153 * var(--u));
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--c);
+  cursor: pointer;
+  box-shadow: 0 0 0 0 transparent;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+/* The picked colour stays full; the rest step back (and come up on hover) */
+.gt-swatch:not(.is-on) { opacity: 0.4; }
+.gt-swatch:hover { transform: scale(1.12); opacity: 1; }
+.gt-swatch.is-on { box-shadow: 0 0 0 calc(var(--ww) * 0.018 * var(--u)) var(--card-stock), 0 0 0 calc(var(--ww) * 0.03 * var(--u)) rgba(var(--ink-rgb), 0.35); }
+
+/* ---------- phones: text on top, a smaller table under it ---------- */
+@media (max-width: 760px) {
+  #grid-hero.gt-has-table { min-height: 0; display: block; padding-top: 128px; }
+  #grid-hero.gt-has-table > .gh-reveal-mask { max-width: none; }
+  .gt-stage {
+    position: relative;
+    left: auto;
+    transform: none;
+    width: calc(100% + 1rem);
+    height: auto;
+    margin-top: 1.5rem;
+  }
+  .gt-frame { position: relative; width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .gt-desk-only { display: none; }
+  .gt-item { --xx: var(--mx); --yy: var(--my); --ww: var(--mw); --hh: var(--mh); --rr: var(--mr); }
+}
+@media (max-width: 500px) {
+  #grid-hero.gt-has-table { padding-top: 112px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-stage.gt-in .gt-lift { animation: none; }
+  .gt-inner, .gt-lift { transition: none; }
+}

@@ -66,7 +66,7 @@
   --accent: #FFFA50;
   --accent-tint: #6b6a2c;
   --accent-ink: #16160A;   /* the yellow wants its own, warmer */
-  --card-stock: #373737;
+  --card-stock: #282828;
   --cast: rgba(0, 0, 0, 0.62);
   --ink: rgb(var(--ink-rgb));
   --back-stock: #373737;

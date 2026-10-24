@@ -38,7 +38,7 @@ const THEME_COLORS = {
     },
     dark: {
         // The lavender ground shadow glows on the dark floor, so it sits lower.
-        fog: 0x121212, accent: '#FFFA50', cardBg: '#373737', shadow: 0.55,
+        fog: 0x121212, accent: '#FFFA50', cardBg: '#282828', shadow: 0.55,
         ink: '#F2F2F2', inkSub: '#A8A8A8', inkBody: '#A8AEBC',
         rule: '#8F8F8F', placeholder: '#4A4A4A',
     },

@@ -53,6 +53,7 @@ const CLASSIC_SCRIPTS = [
     'dice.js',
     'felt.js',
     'footer-deck.js',
+    'grid-table.js',
     'photo-viewer.js',
     'site.js',
     'sketchbook.js',

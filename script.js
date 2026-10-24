@@ -2435,7 +2435,8 @@ function aboutTypedText(now) {
 function aboutPlay(at) {
     const L = aboutLive;
     L.playAt = at;
-    if (!L.started) L.typeAt = at;
+    // the greeting is already there on load ("Jennifer"); its loop carries on from there
+    if (!L.started) L.typeAt = at - ABOUT.words[0].length * ABOUT.typeMs;
     L.started = true;
     L.growAt = at + ABOUT.reveal;
     L.doodleAt = at + ABOUT.reveal + ABOUT.grow;
@@ -5151,21 +5152,16 @@ vec4 cbFace( vec4 inCol, vec2 uv ) {
                 c = mix( c, uCbWire, ea );
                 lineA = max( lineA, ea );
             } else if ( kind < 2.5 ) {
-                // Text types in from the left, a caret riding the edge
+                // Text fades in where it sits: no typing, no caret
                 if ( q.x >= -4.0 && q.y >= -6.0 && q.x <= size.x + 14.0 && q.y <= size.y + 6.0 ) {
-                    float edgeX = R.x + A.w * size.x;
-                    if ( A.w >= 0.999 || p.x <= edgeX ) c = mapCol;
-                    else if ( kind < 1.5 ) {
+                    float fa = A.w * A.w * ( 3.0 - 2.0 * A.w );
+                    if ( kind < 1.5 && fa < 0.999 ) {
                         vec4 w = cbWire( 1.0, q, size, R.xy, 1.0, px, march );
-                        c = mix( c, w.rgb, w.a );
-                        lineA = max( lineA, w.a );
+                        float wa = w.a * ( 1.0 - fa );
+                        c = mix( c, w.rgb, wa );
+                        lineA = max( lineA, wa );
                     }
-                    if ( A.w > 0.001 && A.w < 0.999 ) {
-                        float hw = max( 2.5, 0.9 * px );
-                        float ca = 1.0 - smoothstep( hw, hw + px, abs( p.x - edgeX - hw ) );
-                        ca *= step( -2.0, q.y ) * step( q.y, size.y + 2.0 );
-                        c = mix( c, uCbCaret, ca );
-                    }
+                    c = mix( c, mapCol, fa );
                 }
             } else if ( kind < 3.5 ) {
                 vec4 w = cbWire( 3.0, q, size, R.xy, 1.0, px, march );
@@ -5854,9 +5850,10 @@ function cbPlanContent(st) {
         st.els.forEach((el) => {
             if (el.role === 'pill') plan.push({ el, start: (pop++ * 60) * k, dur: 280 * k, type: false });
             else if (el.role === 'text') {
-                const dur = Math.min(320, Math.max(160, (el.chars || 10) * 9)) * k;
+                // each line fades in, a beat after the one above
+                const dur = 300 * k;
                 plan.push({ el, start: at, dur, type: true });
-                at += dur * 0.6;
+                at += 50 * k;
             }
         });
         st.plan = plan;
@@ -5868,19 +5865,15 @@ function cbPlanContent(st) {
     const titleAt = 160 * k;
     st.els.forEach((el) => {
         if (el.role === 'img') plan.push({ el, start: 0, dur: 440 * k, type: false });
-        else if (el.role === 'tag') plan.push({ el, start: 60 * k, dur: Math.min(260, Math.max(120, el.chars * 20)) * k, type: true });
-        else if (el.role === 'title') plan.push({ el, start: titleAt, dur: Math.min(340, Math.max(180, el.chars * 24)) * k, type: true });
+        else if (el.role === 'tag') plan.push({ el, start: 60 * k, dur: 260 * k, type: true });
+        else if (el.role === 'title') plan.push({ el, start: titleAt, dur: 300 * k, type: true });
         else if (el.role === 'pill') plan.push({ el, start: (280 + pill++ * 60) * k, dur: 280 * k, type: false });
     });
-    // The description types in a line at a time, all of it in under half a second
+    // The description fades in under the title, all its lines together
     const lines = st.els.filter((el) => el.role === 'line');
-    const chars = lines.reduce((n, el) => n + Math.max(1, el.chars || 1), 0);
-    let cursor = titleAt + 140 * k;
-    lines.forEach((el) => {
-        const dur = ((380 * Math.max(1, el.chars || 1)) / chars) * k;
-        plan.push({ el, start: cursor, dur, type: true });
-        cursor += dur;
-    });
+    let cursor = titleAt + 100 * k;
+    lines.forEach((el) => plan.push({ el, start: cursor, dur: 300 * k, type: true }));
+    if (lines.length) cursor += 300 * k;
     const box = st.els.find((el) => el.role === 'box');
     if (box) plan.push({ el: box, start: cursor + 30 * k, dur: 220 * k, type: false });
     const gap = Math.min(70, 400 / Math.max(1, st.props.length));
@@ -6021,7 +6014,7 @@ function cbStep(st, now) {
             return;
         }
         const A = U.uCbA.value[it.el.j];
-        if (it.type) A.w = it.el.chars ? Math.floor(u * it.el.chars + 1e-6) / it.el.chars : u;
+        if (it.type) A.w = u;   // text fades in (it used to type itself in)
         else A.w = it.el.role === 'img' ? cbEaseInOut(u) : u;
     });
     if (tc >= st.contentEnd) {

@@ -4,101 +4,191 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PureGym, motion test | HFYJ</title>
-    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // same pre-paint theme block as every case page
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+    <!-- DM Sans = the page. Lexend + Roboto Condensed = the PureGym app UI, as in Figma. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Figtree:wght@300;400;600&family=Lexend:wght@400;500;700&family=Roboto+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css">
+    <link rel="stylesheet" href="case.css">
+    <link rel="stylesheet" href="puregym.css">
     <link rel="stylesheet" href="puregym-test.css">
 </head>
 <body>
 
-<!-- Test page only: not in vite.config.js PAGES, so it never ships. -->
-<div class="test-flag">Motion test &middot; not live &middot; <a href="puregym.html">current page</a></div>
-
-<!-- 1. HERO: product first, one claim -->
-<header class="pg-hero">
-    <div class="pg-hero-copy">
-        <p class="pg-label">PureGym &middot; Self-initiated concept</p>
-        <h1>Check in to PureGym in&nbsp;one&nbsp;tap.</h1>
-        <dl class="pg-meta">
-            <div><dt>Role</dt><dd>Research, UX, UI</dd></div>
-            <div><dt>Timeline</dt><dd>Dec 2025 &ndash; Jan 2026</dd></div>
-            <div><dt>Tested with</dt><dd>7 gym members</dd></div>
-        </dl>
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html#cards">Home</a>
+        <span class="sep">/</span>
+        <span class="here">PureGym</span>
     </div>
+    <div class="topbar-right">
+        <span>Motion test, not live</span>
+        <span class="sep-lg">/</span>
+        <a href="puregym.html">Current page</a>
+    </div>
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <span class="theme-wheel">
+            <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </span>
+    </button>
+</nav>
 
-    <div class="pg-hero-phone">
-        <div class="phone" id="hero-phone">
-            <img class="phone-screen" src="assets/puregym/v2/checkin-east-village.png" width="393" height="852" alt="The redesigned check-in screen: QR code on the first screen">
-            <!-- The gym card swipes between saved gyms; the header name crossfades with it -->
-            <div class="gym-swap gym-swap-card" aria-hidden="true">
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<aside id="toc" aria-label="Sections">
+    <a href="#top"><span class="suit">&spades;</span> OVERVIEW</a>
+    <a href="#solution"><span class="suit">&hearts;</span> SOLUTION</a>
+</aside>
+
+<!-- One phone screen, built in real HTML from the Figma frame "iPhone 16 - 33".
+     JS clones it into each .iphone slot so the hero and the zoom share one source. -->
+<template id="pg-screen">
+    <div class="app">
+        <div class="app-top">
+            <button class="app-gymname" type="button" tabindex="-1">
+                <span class="gymname-roll"><span class="n1">East Village</span><span class="n2">Washington Heights</span></span>
+                <img src="assets/puregym/v2/ui/chevron-head.svg" width="22" height="22" alt="">
+            </button>
+            <img class="app-bell" src="assets/puregym/v2/ui/bell.svg" width="22" height="22" alt="">
+        </div>
+
+        <div class="app-col">
+            <div class="gym-slider">
                 <div class="gym-track">
-                    <span style="background-image:url(assets/puregym/v2/checkin-east-village.png)"></span>
-                    <span style="background-image:url(assets/puregym/v2/checkin-washington-heights.png)"></span>
+                    <div class="gym-card" data-part="gym">
+                        <img class="gym-photo" src="assets/puregym/v2/ui/gym-photo.png" width="51" height="50" alt="">
+                        <div class="gym-text">
+                            <p class="gym-name">East Village</p>
+                            <p class="gym-addr">98 Avenue A, New York</p>
+                        </div>
+                        <img class="gym-chev" src="assets/puregym/v2/ui/chevron.svg" width="22" height="22" alt="">
+                    </div>
+                    <div class="gym-card">
+                        <img class="gym-photo" src="assets/puregym/v2/ui/gym-photo.png" width="51" height="50" alt="">
+                        <div class="gym-text">
+                            <p class="gym-name">Washington Heights</p>
+                            <p class="gym-addr">4200 Broadway Suite 1.3, New York</p>
+                        </div>
+                        <img class="gym-chev" src="assets/puregym/v2/ui/chevron.svg" width="22" height="22" alt="">
+                    </div>
                 </div>
             </div>
-            <div class="gym-swap gym-swap-head" aria-hidden="true">
-                <span class="a" style="background-image:url(assets/puregym/v2/checkin-east-village.png)"></span>
-                <span class="b" style="background-image:url(assets/puregym/v2/checkin-washington-heights.png)"></span>
+
+            <div class="qr-card">
+                <div class="seg" data-part="seg">
+                    <span class="seg-thumb"></span>
+                    <span class="seg-opt on">Just me</span>
+                    <span class="seg-opt">Guest pass</span>
+                </div>
+                <div class="qr-wrap">
+                    <img class="qr" data-part="qr" src="assets/puregym/v2/ui/qr.svg" width="247" height="247" alt="">
+                    <p class="member"><span>Member ID</span> <b>ABCD1234567</b></p>
+                </div>
+                <div class="wallet" data-part="wallet">
+                    <img src="assets/puregym/v2/ui/wallet.svg" width="28" height="28" alt="">
+                    <span>Add to wallet</span>
+                </div>
+            </div>
+
+            <div class="tiles">
+                <div class="tile"><p>occupancy level</p></div>
+                <div class="tile"><p>number of visits<br>this year</p></div>
             </div>
         </div>
-        <p class="pg-caption">Swipe between your saved gyms. The code is already there.</p>
+
+        <nav class="app-tabs">
+            <span class="tab"><img src="assets/puregym/v2/ui/tab-progress.svg" width="24" height="24" alt="">progress</span>
+            <span class="tab on"><img src="assets/puregym/v2/ui/tab-checkin.svg" width="24" height="24" alt="">Check-in</span>
+            <span class="tab"><img src="assets/puregym/v2/ui/tab-account.svg" width="24" height="24" alt="">Account</span>
+        </nav>
     </div>
-</header>
+</template>
 
-<!-- 2. SOLUTION: Linear-style zoom into the check-in screen -->
-<section class="zoom" id="zoom">
-    <div class="zoom-stage">
-        <div class="zoom-intro">
-            <p class="pg-label">The solution</p>
-            <h2>Your gym, your code, on the first screen.</h2>
+<main class="case" id="top">
+
+    <!-- 1. HERO: the product first, inside the column -->
+    <figure class="pg-stage pg-hero" aria-label="The redesigned PureGym check-in screen">
+        <div class="pg-fit" data-fit="hero">
+            <div class="iphone" id="hero-phone"></div>
         </div>
+        <figcaption class="pg-cap">Swipe between your saved gyms. The code is already there.</figcaption>
+    </figure>
 
-        <div class="camera" id="camera">
-            <div class="phone phone-zoom" id="zoom-phone">
-                <img class="phone-screen" src="assets/puregym/v2/checkin-east-village.png" width="393" height="852" alt="">
-                <!-- Pieces that lift out of the screen. x/y/w/h are Figma frame px. -->
-                <div class="lift" data-step="0" data-bg="#FAF8F7" data-x="27" data-y="151" data-w="334" data-h="88"></div>
-                <div class="lift" data-step="1" data-x="45" data-y="281" data-w="300" data-h="60"></div>
-                <div class="lift" data-step="2" data-x="70" data-y="355" data-w="250" data-h="250"></div>
-                <div class="lift" data-step="3" data-x="69" data-y="645" data-w="252" data-h="50"></div>
+    <header class="case-head">
+        <h1>Check in to PureGym in one tap.</h1>
+        <p class="lede">A self-initiated redesign of the PureGym member app.</p>
+        <dl class="meta">
+            <div><dt>Role</dt><dd>Research, UX, UI</dd></div>
+            <div><dt>Timeline</dt><dd>December 2025 - January 2026</dd></div>
+            <div><dt>Tested with</dt><dd>7 gym members</dd></div>
+        </dl>
+    </header>
+
+    <!-- 2. SOLUTION: the zoom stays inside the column -->
+    <section class="case-section" id="solution">
+        <p class="eyebrow">Solution</p>
+        <p class="statement">Your gym, your code, on the first screen.</p>
+        <p class="body-copy">Scroll to walk through the check-in screen piece by piece.</p>
+
+        <div class="zoom" id="zoom">
+            <div class="pg-stage zoom-stage">
+                <div class="camera" id="camera">
+                    <div class="iphone" id="zoom-phone"></div>
+                </div>
+
+                <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+
+                <div class="callouts" id="callouts">
+                    <div class="callout" data-step="0">
+                        <span class="num">01</span>
+                        <p class="c-title">Gym switcher</p>
+                        <p class="c-body">Save every gym you go to and swipe between them.</p>
+                    </div>
+                    <div class="callout" data-step="1">
+                        <span class="num">02</span>
+                        <p class="c-title">Just me / Guest pass</p>
+                        <p class="c-body">Side by side, not stacked. Testers picked this version.</p>
+                    </div>
+                    <div class="callout" data-step="2">
+                        <span class="num">03</span>
+                        <p class="c-title">The code is the home screen</p>
+                        <p class="c-body">Open the app and it&rsquo;s already there.</p>
+                    </div>
+                    <div class="callout" data-step="3">
+                        <span class="num">04</span>
+                        <p class="c-title">Add to Wallet</p>
+                        <p class="c-body">Skip the app at the door entirely.</p>
+                    </div>
+                </div>
+
+                <div class="zoom-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
             </div>
         </div>
+    </section>
 
-        <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+    <section class="case-section pg-after">
+        <p class="eyebrow">Next on this page</p>
+        <p class="body-copy">The problem: the old home screen, with the pieces people complained about floating out of the phone.</p>
+    </section>
 
-        <div class="callouts" id="callouts">
-            <div class="callout" data-step="0">
-                <span class="num">01</span>
-                <p class="c-title">Gym switcher</p>
-                <p class="c-body">Save every gym you go to and swipe between them.</p>
-            </div>
-            <div class="callout" data-step="1">
-                <span class="num">02</span>
-                <p class="c-title">Just me / Guest pass</p>
-                <p class="c-body">Side by side, not stacked under your pass. Testers picked this version.</p>
-            </div>
-            <div class="callout" data-step="2">
-                <span class="num">03</span>
-                <p class="c-title">The code is the home screen</p>
-                <p class="c-body">Open the app and it&rsquo;s there. No Scan&nbsp;in tab, no menu.</p>
-            </div>
-            <div class="callout" data-step="3">
-                <span class="num">04</span>
-                <p class="c-title">Add to Wallet</p>
-                <p class="c-body">Skip the app at the door entirely.</p>
-            </div>
-        </div>
+    <div style="height: 30vh"></div>
+</main>
 
-        <div class="zoom-progress" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    </div>
-</section>
-
-<section class="pg-after">
-    <p class="pg-label">Next on this page</p>
-    <p class="pg-next">The problem: the old home screen, with the pieces people complained about floating out of the phone. That one goes in once your Figma file is free.</p>
-</section>
-
+<script src="site.js"></script>
 <script src="puregym-test.js"></script>
 </body>
 </html>

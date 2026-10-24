@@ -1,191 +1,238 @@
 /* PureGym case study, motion test.
-   System draft: DM Sans only, lots of white, one accent (PureGym teal #00C1C6),
-   ink #0F1A1B, quiet grey #6B7476. Spacing on an 8px grid. */
+   Page chrome comes from site.css + case.css (same column, TOC and top bar as
+   the live case pages). This file only adds the stage, the phone and the motion.
+
+   System draft
+   - page type: DM Sans (site.css)
+   - app type: Lexend + Roboto Condensed (the PureGym UI, as in Figma)
+   - case accent: PureGym teal #00C1C6, progress gradient teal -> coral
+   - stages: rounded 12px panels inside the column, never wider than it */
 
 :root {
-  --ink: #0F1A1B;
-  --muted: #6B7476;
-  --line: #E6EAEA;
-  --bg: #FFFFFF;
-  --soft: #F6F7F7;
-  --accent: #00C1C6;
-  --accent-ink: #013739;
-  --ease: cubic-bezier(.22, 1, .36, 1);
-  --phone-w: 393;
-  --phone-h: 852;
+  --pg-teal: #00C1C6;
+  --pg-teal-2: #0EBABF;
+  --pg-coral: #FB7572;
+  --pg-ink: #013739;
+  --pg-stage: #F3F5F5;
+  --pg-ease: cubic-bezier(.22, 1, .36, 1);
 }
+:root[data-theme="dark"] { --pg-stage: #1C1E1F; }
 
-* { box-sizing: border-box; }
-html { -webkit-font-smoothing: antialiased; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-optical-sizing: auto;
-}
-
-.test-flag {
-  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-  z-index: 50; padding: 6px 12px; border-radius: 999px;
-  background: var(--ink); color: #fff; font-size: 12px; letter-spacing: .02em;
-}
-.test-flag a { color: var(--accent); }
-
-.pg-label {
-  margin: 0 0 16px; font-size: 13px; font-weight: 500;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
-}
-
-/* ---------- phone ---------- */
-.phone {
+/* ---------- stage panels (column width, rounded like the case media) ---------- */
+.pg-stage {
   position: relative;
-  width: calc(var(--phone-w) * 1px);
-  height: calc(var(--phone-h) * 1px);
-  border-radius: 48px;
+  margin: 40px 0 0;
+  border-radius: 12px;
+  background: var(--pg-stage);
   overflow: hidden;
-  background: #FBFBFA;
-  box-shadow: 0 0 0 1px rgba(15, 26, 27, .06), 0 40px 80px -30px rgba(1, 55, 57, .25);
 }
-.phone-screen { display: block; width: 100%; height: 100%; }
-
-/* ---------- 1. hero ---------- */
 .pg-hero {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  align-items: center;
-  gap: 64px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 96px 48px 64px;
+  margin-top: 0;
+  height: clamp(460px, 68vh, 620px);
+  display: flex; align-items: center; justify-content: center;
 }
-.pg-hero h1 {
-  margin: 0;
-  font-size: clamp(40px, 5.2vw, 72px);
-  line-height: 1.02;
-  letter-spacing: -.035em;
-  font-weight: 600;
-  max-width: 11ch;
+.pg-fit { position: relative; }
+.pg-cap {
+  position: absolute; left: 0; right: 0; bottom: 18px;
+  text-align: center; font-size: 13px; color: var(--caption);
 }
-.pg-meta {
-  display: flex; gap: 40px; margin: 48px 0 0; padding-top: 24px;
-  border-top: 1px solid var(--line);
-}
-.pg-meta dt { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-.pg-meta dd { margin: 0; font-size: 15px; white-space: nowrap; }
 
-.pg-hero-phone { display: flex; flex-direction: column; align-items: center; }
-#hero-phone { transform: scale(var(--hero-scale, .78)); transform-origin: top center; margin-bottom: calc(var(--phone-h) * -1px * (1 - var(--hero-scale, .78))); }
-.pg-caption { margin: 24px 0 0; font-size: 14px; color: var(--muted); }
-
-/* gym swap: the card slides like a carousel, the header name rolls up */
-.gym-swap { position: absolute; overflow: hidden; }
-.gym-swap-card { left: 27px; top: 151px; width: 334px; height: 88px; border-radius: 16px; overflow: visible; clip-path: inset(-4px -27px -4px -27px); background: #FAF8F7; }
-.gym-track { position: absolute; inset: 0; transition: transform .9s var(--ease); }
-.gym-track span {
-  position: absolute; top: 0; width: 100%; height: 100%; border-radius: 16px;
-  background-size: 393px 852px; background-position: -27px -151px;
-}
-.gym-track span:nth-child(1) { left: 0; }
-.gym-track span:nth-child(2) { left: calc(100% + 16px); }
-.gym-swap-head { left: 60px; top: 82px; width: 268px; height: 32px; background: #FEFEFD; }
-.gym-swap-head span {
-  position: absolute; left: 0; width: 100%; height: 100%;
-  background-size: 393px 852px; background-position: -60px -82px;
-  transition: transform .7s var(--ease), opacity .5s ease;
-}
-.gym-swap-head .a { top: 0; }
-.gym-swap-head .b { top: 0; transform: translateY(100%); opacity: 0; }
-#hero-phone.wh .gym-track { transform: translateX(calc(-100% - 16px)); }
-#hero-phone.wh .gym-swap-head .a { transform: translateY(-100%); opacity: 0; }
-#hero-phone.wh .gym-swap-head .b { transform: none; opacity: 1; }
-/* ---------- 2. zoom ---------- */
-.zoom { position: relative; height: 520vh; }
-.zoom-stage {
-  position: sticky; top: 0; height: 100vh; overflow: hidden;
-  background: var(--soft);
-}
-.zoom-intro {
-  position: absolute; left: 48px; top: 96px; z-index: 3; max-width: 360px;
-  transition: opacity .5s ease, transform .5s var(--ease);
-}
-.zoom-intro h2 {
-  margin: 0; font-size: clamp(28px, 3vw, 44px); line-height: 1.08;
-  letter-spacing: -.03em; font-weight: 600;
-}
-.zoom-stage.zoomed .zoom-intro { opacity: 0; transform: translateY(-12px); }
-
-.camera {
-  position: absolute; left: 0; top: 0;
+/* ---------- iPhone frame (CSS only) ---------- */
+.iphone {
+  position: relative;
+  width: 393px; height: 852px;
+  isolation: isolate;
   transform-origin: 0 0;
-  will-change: transform;
+}
+.iphone::before {               /* titanium band + black bezel */
+  content: ''; position: absolute; inset: -13px; z-index: -1;
+  border-radius: 62px;
+  background: #0b0c0d;
+  box-shadow:
+    inset 0 0 0 1px #3a3e42,
+    0 0 0 2px #8a8f94,
+    0 0 0 3px #50555a,
+    0 36px 70px -28px rgba(1, 55, 57, .38),
+    0 10px 22px -10px rgba(0, 0, 0, .28);
+}
+.iphone .btn {
+  position: absolute; width: 4px; border-radius: 2px; z-index: -2;
+  background: linear-gradient(90deg, #6a6f74, #2f3236);
+}
+.iphone .btn.l { left: -17px; }
+.iphone .btn.r { right: -17px; background: linear-gradient(270deg, #6a6f74, #2f3236); }
+.iphone .screen {
+  position: absolute; inset: 0; border-radius: 50px; overflow: hidden;
+  background: #FAF8F7;
+}
+.iphone .island {
+  position: absolute; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px;
+  border-radius: 20px; background: #000; z-index: 20;
+}
+.iphone .status {
+  position: absolute; top: 0; left: 0; right: 0; height: 52px; z-index: 19;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 30px 0 52px;
+  font: 600 16px/1 -apple-system, 'SF Pro Text', 'DM Sans', system-ui, sans-serif;
+  color: #0F1A1B; pointer-events: none;
+}
+.iphone .status svg { display: block; }
+.iphone .home {
+  position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px;
+  border-radius: 3px; background: #0F1A1B; z-index: 19;
 }
 
-.lift {
-  position: absolute;
-  border-radius: 14px;
-  background-image: url(assets/puregym/v2/checkin-east-village.png);
-  background-size: 393px 852px;
-  opacity: 0;
-  transition: transform .7s var(--ease), box-shadow .7s var(--ease), opacity .4s ease;
+/* ---------- the PureGym app screen, from Figma "iPhone 16 - 33" ---------- */
+.app { position: absolute; inset: 0; font-family: 'Lexend', sans-serif; color: #345F61; }
+.app p { margin: 0; }
+.app-top {
+  position: absolute; top: 0; left: 0; right: 0; height: 120px; z-index: 3;
+  background: #FEFEFD; box-shadow: 0 2px 4px rgba(103, 135, 136, .1);
 }
-.lift.on {
-  opacity: 1;
-  transform: translate(-6px, -10px) scale(1.04);
-  box-shadow: 0 0 0 1.5px var(--accent), 0 24px 40px -12px rgba(1, 55, 57, .35);
+.app-gymname {
+  position: absolute; top: 86px; left: calc(50% + 11.5px); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; height: 23px; padding: 1px 9px;
+  border: 0; background: none; font: 500 14px/1 'Lexend', sans-serif; color: #345F61;
+  width: max-content; white-space: nowrap;
+}
+.gymname-roll { position: relative; display: block; height: 18px; overflow: hidden; text-align: right; }
+.gymname-roll span { display: block; height: 18px; line-height: 18px; white-space: nowrap; transition: transform .7s var(--pg-ease); }
+.app-bell { position: absolute; left: 331px; top: 84px; }
+
+.app-col {
+  position: absolute; left: 27px; top: 151px; width: 334px;
+  display: flex; flex-direction: column; gap: 18px;
 }
 
-.leaders {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 2; overflow: visible;
+.gym-slider { position: relative; height: 88px; }
+.gym-track { position: relative; height: 100%; transition: transform .9s var(--pg-ease); }
+.gym-card {
+  position: absolute; top: 0; width: 334px; height: 88px;
+  display: flex; align-items: center; gap: 12px; padding: 0 20px;
+  background: #fff; border-radius: 20px;
 }
-.leaders path {
-  fill: none; stroke: var(--accent); stroke-width: 1.5;
-  transition: stroke-dashoffset .7s var(--ease), opacity .3s ease;
+.gym-card + .gym-card { left: calc(100% + 40px); }
+.gym-photo { width: 51px; height: 50px; border-radius: 8px; object-fit: cover; flex: none; }
+.gym-text { flex: 1; min-width: 0; }
+.gym-name {
+  font: 700 20px/1.17 'Roboto Condensed', sans-serif; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--pg-teal); white-space: nowrap;
 }
-.leaders circle { fill: var(--accent); transition: opacity .3s ease; }
+.gym-addr { font: 500 14px/1.25 'Lexend', sans-serif; color: #66DADD; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gym-chev { transform: rotate(-90deg); flex: none; }
 
-.callouts { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
-.callout {
-  position: absolute; width: 330px;
-  opacity: 0; transform: translateY(10px);
-  transition: opacity .5s ease, transform .6s var(--ease);
+.qr-card { position: relative; height: 463px; background: #fff; border-radius: 16px; }
+.seg {
+  position: absolute; top: 24px; left: 50%; width: 298px; height: 60px; margin-left: -149px;
+  display: flex; align-items: center; padding: 8px; border-radius: 100px; background: #F4F9F9;
 }
-.callout.on { opacity: 1; transform: none; }
-.callout.dim { opacity: .35; transform: none; }
-.callout .num { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .04em; }
-.callout .c-title { margin: 6px 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
-.callout .c-body { margin: 0; font-size: 15px; line-height: 1.45; color: var(--muted); }
-
-.zoom-progress {
-  position: absolute; left: 48px; bottom: 40px; display: flex; gap: 6px; z-index: 3;
+.seg-thumb { position: absolute; left: 8px; top: 8px; width: 142px; height: 44px; border-radius: 100px; background: #fff; }
+.seg-opt {
+  position: relative; flex: 1; text-align: center;
+  font: 600 18px/1 'Roboto Condensed', sans-serif; letter-spacing: .36px; text-transform: uppercase; color: #99AFB0;
 }
-.zoom-progress i { width: 28px; height: 3px; border-radius: 2px; background: var(--line); transition: background .3s; }
-.zoom-progress i.on { background: var(--accent); }
-
-.pg-after { max-width: 760px; margin: 0 auto; padding: 160px 48px; }
-.pg-next { font-size: 22px; line-height: 1.4; letter-spacing: -.01em; margin: 0; color: var(--muted); }
-
-/* ---------- small screens ---------- */
-@media (max-width: 860px) {
-  .pg-hero { grid-template-columns: 1fr; padding: 96px 24px 48px; gap: 40px; }
-  .pg-meta { gap: 24px; flex-wrap: wrap; }
-  .zoom-intro { left: 24px; top: 72px; }
-  .callout { width: auto; left: 24px !important; right: 24px; top: auto !important; bottom: 72px; }
-  .callout.dim { opacity: 0; }
-  .zoom-progress { left: 24px; bottom: 32px; }
-  .leaders { display: none; }
+.seg-opt.on { color: #33CDD1; }
+.qr-wrap { position: absolute; left: 44px; top: 99px; width: 247px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qr { display: block; border-radius: 24px; }
+.member { font: 500 14px/1.25 'Lexend', sans-serif; color: #678788; }
+.member b { font-weight: 500; color: var(--pg-ink); margin-left: 2px; }
+.wallet {
+  position: absolute; left: 44px; top: 390px; width: 247px; height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: 62px; background: var(--pg-teal-2); color: #fff;
+  font: 600 20px/1 'Roboto Condensed', sans-serif; letter-spacing: .4px; text-transform: uppercase;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gym-track, .gym-swap-head span, .lift, .callout, .leaders path { transition: none; }
+.tiles { display: flex; gap: 12px; }
+.tile {
+  flex: 1; height: 158px; border-radius: 24px; background: #fff;
+  box-shadow: inset 0 0 4px rgba(153, 175, 176, .5);
+  padding-top: 16px; text-align: center;
+  font: 500 14px/1.2 'Lexend', sans-serif; color: #678788;
 }
 
-/* the slot a lifted piece leaves behind */
+.app-tabs {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 94px; z-index: 3;
+  display: flex; justify-content: center; gap: 60px; padding: 4px 20px 0;
+  background: #FEFEFD; box-shadow: 0 -2px 4px rgba(103, 135, 136, .1);
+}
+.tab {
+  width: 60px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  font: 400 11px/1 'Lexend', sans-serif; letter-spacing: -.11px; color: #99AFB0;
+}
+.tab.on { color: var(--pg-ink); }
+
+/* hero: swipe to the second gym */
+#hero-phone.wh .gym-track { transform: translateX(calc(-100% - 40px)); }
+#hero-phone.wh .gymname-roll span { transform: translateY(-100%); }
+
+/* ---------- lifted pieces: the real element rises, its own shape outlined ---------- */
+.iphone [data-part] {
+  z-index: 1;
+  transition: transform .7s var(--pg-ease), box-shadow .7s var(--pg-ease);
+}
+.qr { position: relative; }
+.iphone [data-part].lift {
+  z-index: 5;
+  transform: translateY(-6px) scale(1.035);
+  box-shadow: 0 0 0 2px var(--pg-teal), 0 22px 36px -14px rgba(1, 55, 57, .38);
+}
+.seg[data-part].lift { transform: translateY(-6px) scale(1.035); }
+.qr[data-part].lift { box-shadow: 0 0 0 2px var(--pg-teal), 0 22px 36px -14px rgba(1, 55, 57, .3); }
+/* the empty slot it leaves behind, same radius as the piece */
 .slot {
-  position: absolute; border-radius: 14px; opacity: 0;
-  outline: 1.5px dashed rgba(0, 193, 198, .45); outline-offset: -1px;
+  position: absolute; pointer-events: none; z-index: 0; opacity: 0;
+  border: 1.5px dashed rgba(0, 193, 198, .55);
   transition: opacity .4s ease;
 }
 .slot.on { opacity: 1; }
+
+/* ---------- zoom section ---------- */
+.zoom { position: relative; height: 420vh; margin-top: 40px; }
+.zoom-stage {
+  position: sticky;
+  top: max(72px, calc(50vh - var(--zh) / 2 + 24px));
+  margin: 0;
+  --zh: clamp(480px, calc(100vh - 140px), 680px);
+  height: var(--zh);
+}
+.camera { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+
+.leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+.leaders path { fill: none; stroke: var(--pg-teal); stroke-width: 1.5; transition: stroke-dashoffset .6s var(--pg-ease), opacity .3s ease; }
+.leaders circle { fill: var(--pg-teal); transition: opacity .3s ease; }
+
+.callouts { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.callout {
+  position: absolute; width: 250px;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .45s ease, transform .55s var(--pg-ease);
+}
+.callout.on { opacity: 1; transform: none; }
+.callout .num { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--pg-teal); }
+.callout .c-title { margin: 6px 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; color: var(--head); }
+.callout .c-body { margin: 0; font-size: 14px; line-height: 1.45; color: var(--body); }
+
+/* progress: one teal -> coral gradient running across all four bars */
+.zoom-progress { position: absolute; right: 28px; bottom: 26px; display: flex; gap: 6px; z-index: 3; }
+.zoom-progress i { position: relative; width: 30px; height: 3px; border-radius: 2px; overflow: hidden; background: rgba(var(--ink-rgb), .1); }
+.zoom-progress b {
+  position: absolute; inset: 0; width: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--pg-teal), #7FD6C8 45%, var(--pg-coral));
+  background-size: 144px 100%;
+}
+.zoom-progress i:nth-child(1) b { background-position: 0 0; }
+.zoom-progress i:nth-child(2) b { background-position: -36px 0; }
+.zoom-progress i:nth-child(3) b { background-position: -72px 0; }
+.zoom-progress i:nth-child(4) b { background-position: -108px 0; }
+
+/* narrow column: notes sit at the bottom of the stage, no leader lines */
+@media (max-width: 700px) {
+  .callout { left: 20px !important; right: 20px; width: auto; top: auto !important; bottom: 52px; }
+  .leaders { display: none; }
+  .zoom-progress { right: 20px; bottom: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gym-track, .gymname-roll span, .iphone [data-part], .callout, .leaders path { transition: none; }
+}

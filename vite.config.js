@@ -26,7 +26,9 @@ const PAGES = {
     aboutme: 'aboutme.html',
     clarusai: 'clarusai.html',
     povi: 'povi.html',
-    puregym: 'puregym.html',
+    // PureGym: the redesign (puregym-test.html) IS the PureGym page now. It is
+    // built under its own name and served as puregym.html (PUREGYM_LIVE below);
+    // the old puregym.html stays in the repo, unbuilt.
     puregymtest: 'puregym-test.html',
     techatnyu: 'techatnyu.html',
     thedial: 'the-dial.html',
@@ -102,10 +104,20 @@ const CLASSIC_STYLES = [
 // @font-face urls are plain relative paths again.
 const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo', 'fonts'];
 
+// The PureGym redesign is the real PureGym page: every link on the site points
+// at puregym.html, so that address serves the redesign, in dev and in the build.
+const PUREGYM_LIVE = { from: 'puregym-test.html', to: 'puregym.html' };
+
 function copyStaticFiles() {
     return {
         name: 'copy-static-files',
         configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                if (/^\/puregym(\.html)?(?=[?#]|$)/.test(req.url)) {
+                    req.url = req.url.replace(/^\/puregym(\.html)?/, '/' + PUREGYM_LIVE.from);
+                }
+                next();
+            });
             server.middlewares.use('/' + OUTSIDE_LIST, (req, res) => {
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify(outsidePhotos()));
@@ -120,6 +132,7 @@ function copyStaticFiles() {
                 cpSync(resolve(__dirname, d), resolve(__dirname, 'dist', d), { recursive: true });
             }
             writeFileSync(resolve(__dirname, 'dist', OUTSIDE_LIST), JSON.stringify(outsidePhotos()));
+            copyFileSync(resolve(__dirname, 'dist', PUREGYM_LIVE.from), resolve(__dirname, 'dist', PUREGYM_LIVE.to));
         },
     };
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PureGym, motion test | HFYJ</title>
+    <title>PureGym Redesign — HFYJ</title>
     <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
     <script>
         // same pre-paint theme block as every case page
@@ -35,9 +35,11 @@
         <span class="here">PureGym</span>
     </div>
     <div class="topbar-right">
-        <span>Motion test, not live</span>
+        <span>Mobile</span>
         <span class="sep-lg">/</span>
-        <a href="puregym.html">Current page</a>
+        <span>Product Design</span>
+        <span class="sep-lg">/</span>
+        <span>Case Study</span>
     </div>
     <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
         <span class="theme-wheel">
@@ -399,6 +401,45 @@
                 </figcaption>
             </figure>
         </div>
+    </section>
+
+    <!-- 6b. FINAL DESIGN: Jen's own screen recordings of the prototype, cropped
+         to the screen and played inside the same iPhone frame as the demos -->
+    <section class="case-section" id="final">
+        <p class="eyebrow">Final design</p>
+        <p class="statement">Everything else a member needs is one tap from the code.</p>
+
+        <article class="demo rec-demo">
+            <div class="demo-stage glow-teal">
+                <div class="demo-phone">
+                    <div class="iphone rec" data-x="1165">
+                        <div class="screen">
+                            <video src="assets/puregym/clip-3.mp4" muted loop playsinline preload="metadata" aria-label="Screen recording: checking in, saving the pass to Wallet and switching to a guest pass"></video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="demo-cap">
+                <p class="demo-title">Checking in</p>
+                <p class="demo-body">Scan in through the QR code, save your pass to your digital wallet, and check in a friend straight from the same screen.</p>
+            </div>
+        </article>
+
+        <article class="demo rec-demo">
+            <div class="demo-stage glow-coral">
+                <div class="demo-phone">
+                    <div class="iphone rec" data-x="351">
+                        <div class="screen">
+                            <video src="assets/puregym/clip-4.mp4" muted loop playsinline preload="metadata" aria-label="Screen recording: opening the gym card to see hours, location and contact details"></video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="demo-cap">
+                <p class="demo-title">Viewing gym info</p>
+                <p class="demo-body">Tap the gym card and it drops down to show opening hours, the location on a map and contact details, without leaving check-in.</p>
+            </div>
+        </article>
     </section>
 
     <!-- 7. SUCCESS MEANS: what I'd measure if this shipped -->

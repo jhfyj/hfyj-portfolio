@@ -627,8 +627,24 @@
       show(i);
       t = setTimeout(next, i === steps.length - 1 ? 3600 : 2400);
     }
+    // click (or Enter/Space) on any version: stop the loop and keep that one lit
+    var manual = false;
+    function pick(k) {
+      clearTimeout(t); manual = true; i = k;
+      rail.classList.add('manual');
+      steps.forEach(function (s, j) { s.classList.toggle('on', j === k); s.classList.remove('seen'); });
+    }
+    steps.forEach(function (s, k) {
+      s.setAttribute('tabindex', '0');
+      s.setAttribute('role', 'button');
+      s.addEventListener('click', function () { pick(k); });
+      s.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(k); }
+      });
+    });
     whenSeen(rail, 0.6, function (v) {
       clearTimeout(t);
+      if (manual) return;
       if (!v) { i = -1; show(-1); return; }
       if (reduce) { steps.forEach(function (s) { s.classList.add('seen'); }); return; }
       t = setTimeout(next, 300);

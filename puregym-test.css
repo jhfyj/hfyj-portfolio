@@ -552,7 +552,14 @@
   display: flex; align-items: center; justify-content: center; overflow: hidden;
   box-shadow: 0 0 0 0 rgba(0, 193, 198, 0); transition: box-shadow .5s ease;
 }
-.rail-step.on .rail-shot { box-shadow: 0 0 0 2px var(--pg-teal); }
+.rail-step.on .rail-shot { box-shadow: 0 0 0 2px var(--pg-leader); }
+/* every version is clickable: picking one stops the loop and keeps it lit */
+.rail-step { cursor: pointer; outline: none; }
+.rail-step:hover { opacity: 1; }
+.rail-step:hover:not(.on) .rail-shot { box-shadow: 0 0 0 1px var(--pg-leader); }
+.rail-step:focus-visible .rail-shot { box-shadow: 0 0 0 2px var(--pg-leader); }
+.rail.manual .rail-step:not(.on) { opacity: .7; transform: none; }
+.rail.manual .rail-step:not(.on):hover { opacity: 1; }
 .rail-shot > img { display: block; width: auto; height: 300px; max-width: 92%; object-fit: contain; border-radius: 10px; }
 .rail-mini { position: relative; width: 146px; height: 306px; }
 .rail-mini .iphone { position: absolute; left: 0; top: 0; }
@@ -614,7 +621,7 @@
 
 /* Version A: the check-in page scrolled down, Bring a friend at the bottom */
 .vera { background: #FAF8F7; }
-.va-col { position: absolute; left: 27px; top: -14px; width: 334px; display: flex; flex-direction: column; gap: 14px; }
+.va-col { position: absolute; left: 27px; top: 64px; width: 334px; display: flex; flex-direction: column; gap: 14px; }
 .va-wallet { position: relative; left: 44px; top: 0; }
 .va-col .tiles { margin-top: 10px; }
 .va-col .tile { position: relative; }

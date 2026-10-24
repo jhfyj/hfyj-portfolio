@@ -1,0 +1,191 @@
+/* PureGym case study, motion test.
+   System draft: DM Sans only, lots of white, one accent (PureGym teal #00C1C6),
+   ink #0F1A1B, quiet grey #6B7476. Spacing on an 8px grid. */
+
+:root {
+  --ink: #0F1A1B;
+  --muted: #6B7476;
+  --line: #E6EAEA;
+  --bg: #FFFFFF;
+  --soft: #F6F7F7;
+  --accent: #00C1C6;
+  --accent-ink: #013739;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --phone-w: 393;
+  --phone-h: 852;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+
+.test-flag {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 50; padding: 6px 12px; border-radius: 999px;
+  background: var(--ink); color: #fff; font-size: 12px; letter-spacing: .02em;
+}
+.test-flag a { color: var(--accent); }
+
+.pg-label {
+  margin: 0 0 16px; font-size: 13px; font-weight: 500;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+
+/* ---------- phone ---------- */
+.phone {
+  position: relative;
+  width: calc(var(--phone-w) * 1px);
+  height: calc(var(--phone-h) * 1px);
+  border-radius: 48px;
+  overflow: hidden;
+  background: #FBFBFA;
+  box-shadow: 0 0 0 1px rgba(15, 26, 27, .06), 0 40px 80px -30px rgba(1, 55, 57, .25);
+}
+.phone-screen { display: block; width: 100%; height: 100%; }
+
+/* ---------- 1. hero ---------- */
+.pg-hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: 64px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 96px 48px 64px;
+}
+.pg-hero h1 {
+  margin: 0;
+  font-size: clamp(40px, 5.2vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  font-weight: 600;
+  max-width: 11ch;
+}
+.pg-meta {
+  display: flex; gap: 40px; margin: 48px 0 0; padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.pg-meta dt { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.pg-meta dd { margin: 0; font-size: 15px; white-space: nowrap; }
+
+.pg-hero-phone { display: flex; flex-direction: column; align-items: center; }
+#hero-phone { transform: scale(var(--hero-scale, .78)); transform-origin: top center; margin-bottom: calc(var(--phone-h) * -1px * (1 - var(--hero-scale, .78))); }
+.pg-caption { margin: 24px 0 0; font-size: 14px; color: var(--muted); }
+
+/* gym swap: the card slides like a carousel, the header name rolls up */
+.gym-swap { position: absolute; overflow: hidden; }
+.gym-swap-card { left: 27px; top: 151px; width: 334px; height: 88px; border-radius: 16px; overflow: visible; clip-path: inset(-4px -27px -4px -27px); background: #FAF8F7; }
+.gym-track { position: absolute; inset: 0; transition: transform .9s var(--ease); }
+.gym-track span {
+  position: absolute; top: 0; width: 100%; height: 100%; border-radius: 16px;
+  background-size: 393px 852px; background-position: -27px -151px;
+}
+.gym-track span:nth-child(1) { left: 0; }
+.gym-track span:nth-child(2) { left: calc(100% + 16px); }
+.gym-swap-head { left: 60px; top: 82px; width: 268px; height: 32px; background: #FEFEFD; }
+.gym-swap-head span {
+  position: absolute; left: 0; width: 100%; height: 100%;
+  background-size: 393px 852px; background-position: -60px -82px;
+  transition: transform .7s var(--ease), opacity .5s ease;
+}
+.gym-swap-head .a { top: 0; }
+.gym-swap-head .b { top: 0; transform: translateY(100%); opacity: 0; }
+#hero-phone.wh .gym-track { transform: translateX(calc(-100% - 16px)); }
+#hero-phone.wh .gym-swap-head .a { transform: translateY(-100%); opacity: 0; }
+#hero-phone.wh .gym-swap-head .b { transform: none; opacity: 1; }
+/* ---------- 2. zoom ---------- */
+.zoom { position: relative; height: 520vh; }
+.zoom-stage {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  background: var(--soft);
+}
+.zoom-intro {
+  position: absolute; left: 48px; top: 96px; z-index: 3; max-width: 360px;
+  transition: opacity .5s ease, transform .5s var(--ease);
+}
+.zoom-intro h2 {
+  margin: 0; font-size: clamp(28px, 3vw, 44px); line-height: 1.08;
+  letter-spacing: -.03em; font-weight: 600;
+}
+.zoom-stage.zoomed .zoom-intro { opacity: 0; transform: translateY(-12px); }
+
+.camera {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.lift {
+  position: absolute;
+  border-radius: 14px;
+  background-image: url(assets/puregym/v2/checkin-east-village.png);
+  background-size: 393px 852px;
+  opacity: 0;
+  transition: transform .7s var(--ease), box-shadow .7s var(--ease), opacity .4s ease;
+}
+.lift.on {
+  opacity: 1;
+  transform: translate(-6px, -10px) scale(1.04);
+  box-shadow: 0 0 0 1.5px var(--accent), 0 24px 40px -12px rgba(1, 55, 57, .35);
+}
+
+.leaders {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 2; overflow: visible;
+}
+.leaders path {
+  fill: none; stroke: var(--accent); stroke-width: 1.5;
+  transition: stroke-dashoffset .7s var(--ease), opacity .3s ease;
+}
+.leaders circle { fill: var(--accent); transition: opacity .3s ease; }
+
+.callouts { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.callout {
+  position: absolute; width: 330px;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .5s ease, transform .6s var(--ease);
+}
+.callout.on { opacity: 1; transform: none; }
+.callout.dim { opacity: .35; transform: none; }
+.callout .num { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .04em; }
+.callout .c-title { margin: 6px 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.callout .c-body { margin: 0; font-size: 15px; line-height: 1.45; color: var(--muted); }
+
+.zoom-progress {
+  position: absolute; left: 48px; bottom: 40px; display: flex; gap: 6px; z-index: 3;
+}
+.zoom-progress i { width: 28px; height: 3px; border-radius: 2px; background: var(--line); transition: background .3s; }
+.zoom-progress i.on { background: var(--accent); }
+
+.pg-after { max-width: 760px; margin: 0 auto; padding: 160px 48px; }
+.pg-next { font-size: 22px; line-height: 1.4; letter-spacing: -.01em; margin: 0; color: var(--muted); }
+
+/* ---------- small screens ---------- */
+@media (max-width: 860px) {
+  .pg-hero { grid-template-columns: 1fr; padding: 96px 24px 48px; gap: 40px; }
+  .pg-meta { gap: 24px; flex-wrap: wrap; }
+  .zoom-intro { left: 24px; top: 72px; }
+  .callout { width: auto; left: 24px !important; right: 24px; top: auto !important; bottom: 72px; }
+  .callout.dim { opacity: 0; }
+  .zoom-progress { left: 24px; bottom: 32px; }
+  .leaders { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gym-track, .gym-swap-head span, .lift, .callout, .leaders path { transition: none; }
+}
+
+/* the slot a lifted piece leaves behind */
+.slot {
+  position: absolute; border-radius: 14px; opacity: 0;
+  outline: 1.5px dashed rgba(0, 193, 198, .45); outline-offset: -1px;
+  transition: opacity .4s ease;
+}
+.slot.on { opacity: 1; }

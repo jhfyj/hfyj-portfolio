@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PureGym, motion test | HFYJ</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="puregym-test.css">
+</head>
+<body>
+
+<!-- Test page only: not in vite.config.js PAGES, so it never ships. -->
+<div class="test-flag">Motion test &middot; not live &middot; <a href="puregym.html">current page</a></div>
+
+<!-- 1. HERO: product first, one claim -->
+<header class="pg-hero">
+    <div class="pg-hero-copy">
+        <p class="pg-label">PureGym &middot; Self-initiated concept</p>
+        <h1>Check in to PureGym in&nbsp;one&nbsp;tap.</h1>
+        <dl class="pg-meta">
+            <div><dt>Role</dt><dd>Research, UX, UI</dd></div>
+            <div><dt>Timeline</dt><dd>Dec 2025 &ndash; Jan 2026</dd></div>
+            <div><dt>Tested with</dt><dd>7 gym members</dd></div>
+        </dl>
+    </div>
+
+    <div class="pg-hero-phone">
+        <div class="phone" id="hero-phone">
+            <img class="phone-screen" src="assets/puregym/v2/checkin-east-village.png" width="393" height="852" alt="The redesigned check-in screen: QR code on the first screen">
+            <!-- The gym card swipes between saved gyms; the header name crossfades with it -->
+            <div class="gym-swap gym-swap-card" aria-hidden="true">
+                <div class="gym-track">
+                    <span style="background-image:url(assets/puregym/v2/checkin-east-village.png)"></span>
+                    <span style="background-image:url(assets/puregym/v2/checkin-washington-heights.png)"></span>
+                </div>
+            </div>
+            <div class="gym-swap gym-swap-head" aria-hidden="true">
+                <span class="a" style="background-image:url(assets/puregym/v2/checkin-east-village.png)"></span>
+                <span class="b" style="background-image:url(assets/puregym/v2/checkin-washington-heights.png)"></span>
+            </div>
+        </div>
+        <p class="pg-caption">Swipe between your saved gyms. The code is already there.</p>
+    </div>
+</header>
+
+<!-- 2. SOLUTION: Linear-style zoom into the check-in screen -->
+<section class="zoom" id="zoom">
+    <div class="zoom-stage">
+        <div class="zoom-intro">
+            <p class="pg-label">The solution</p>
+            <h2>Your gym, your code, on the first screen.</h2>
+        </div>
+
+        <div class="camera" id="camera">
+            <div class="phone phone-zoom" id="zoom-phone">
+                <img class="phone-screen" src="assets/puregym/v2/checkin-east-village.png" width="393" height="852" alt="">
+                <!-- Pieces that lift out of the screen. x/y/w/h are Figma frame px. -->
+                <div class="lift" data-step="0" data-bg="#FAF8F7" data-x="27" data-y="151" data-w="334" data-h="88"></div>
+                <div class="lift" data-step="1" data-x="45" data-y="281" data-w="300" data-h="60"></div>
+                <div class="lift" data-step="2" data-x="70" data-y="355" data-w="250" data-h="250"></div>
+                <div class="lift" data-step="3" data-x="69" data-y="645" data-w="252" data-h="50"></div>
+            </div>
+        </div>
+
+        <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+
+        <div class="callouts" id="callouts">
+            <div class="callout" data-step="0">
+                <span class="num">01</span>
+                <p class="c-title">Gym switcher</p>
+                <p class="c-body">Save every gym you go to and swipe between them.</p>
+            </div>
+            <div class="callout" data-step="1">
+                <span class="num">02</span>
+                <p class="c-title">Just me / Guest pass</p>
+                <p class="c-body">Side by side, not stacked under your pass. Testers picked this version.</p>
+            </div>
+            <div class="callout" data-step="2">
+                <span class="num">03</span>
+                <p class="c-title">The code is the home screen</p>
+                <p class="c-body">Open the app and it&rsquo;s there. No Scan&nbsp;in tab, no menu.</p>
+            </div>
+            <div class="callout" data-step="3">
+                <span class="num">04</span>
+                <p class="c-title">Add to Wallet</p>
+                <p class="c-body">Skip the app at the door entirely.</p>
+            </div>
+        </div>
+
+        <div class="zoom-progress" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    </div>
+</section>
+
+<section class="pg-after">
+    <p class="pg-label">Next on this page</p>
+    <p class="pg-next">The problem: the old home screen, with the pieces people complained about floating out of the phone. That one goes in once your Figma file is free.</p>
+</section>
+
+<script src="puregym-test.js"></script>
+</body>
+</html>

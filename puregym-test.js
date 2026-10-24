@@ -33,20 +33,38 @@
 
   var FW = 393 + 26, FH = 852 + 26; // phone incl. the bezel
 
-  /* ---------- 1. hero ---------- */
-  var heroPhone = document.getElementById('hero-phone');
-  buildPhone(heroPhone);
-  var heroFit = heroPhone.parentNode, heroStage = heroFit.parentNode;
-  function fitHero() {
-    var s = Math.min((heroStage.clientHeight - 96) / FH, (heroStage.clientWidth - 48) / FW);
-    heroPhone.style.transform = 'translate(' + (13 * s) + 'px,' + (13 * s) + 'px) scale(' + s + ')';
-    heroFit.style.width = (FW * s) + 'px';
-    heroFit.style.height = (FH * s) + 'px';
-    heroFit.style.marginBottom = '28px';
+  // The gym name at the top is always centred, whichever gym it shows: the
+  // name box takes the width of the name in view and eases to the next one's
+  // when the phone switches gyms (class "wh" = Washington Heights).
+  function centreName(phone) {
+    var roll = phone.querySelector('.gymname-roll');
+    if (!roll) return;
+    var n = roll.querySelectorAll('span');
+    function sync() {
+      var el = phone.classList.contains('wh') ? n[1] : n[0];
+      roll.style.width = Math.ceil(el.scrollWidth) + 'px';
+    }
+    sync();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync);
+    new MutationObserver(sync).observe(phone, { attributes: true, attributeFilter: ['class'] });
   }
-  fitHero();
-  window.addEventListener('resize', fitHero);
-  if (!reduce) setInterval(function () { heroPhone.classList.toggle('wh'); }, 3000);
+  var _build = buildPhone;
+  buildPhone = function (host, from) { _build(host, from); centreName(host); };
+
+  // Guest pass, as designed (Figma: Version B, the one testers picked): a
+  // ticket with the visits left, the date it runs to, two lines of copy and
+  // Share link. Used by the decision demo and the testing card.
+  var SHARE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>';
+  function addGuest(card) {
+    card.insertAdjacentHTML('beforeend',
+      '<div class="guest">' +
+        '<div class="g-ticket"><p class="g-big"><b>5</b><span>Visits<br>remaining</span></p></div>' +
+        '<p class="g-valid">Valid until: Feb 1 2026</p>' +
+        '<p class="g-copy">With your current membership you can bring friends to the gym to train together!</p>' +
+        '<p class="g-copy">Share the unique link with your friend and have them sign up via the PureGym site.</p>' +
+        '<div class="g-share">' + SHARE + 'Share link</div>' +
+      '</div>');
+  }
 
   /* ---------- 2. zoom ---------- */
   var zoomPhone = document.getElementById('zoom-phone');
@@ -190,7 +208,7 @@
     var step = null;
     for (var i = 0; i < STEPS.length; i++) if (p >= STEPS[i].from && p < STEPS[i].to) step = STEPS[i].step;
     setActive(step);
-    fills.forEach(function (b, i) { b.style.width = (clamp01((p - STEPS[i].from) / (STEPS[i].to - STEPS[i].from)) * 100) + '%'; });
+    fills.forEach(function (b, i) { b.style.width = (clamp01((p - STEPS[i].from) / (STEPS[i].to - STEPS[i].from)) * 100) + '%'; b.parentNode.classList.toggle('on', step === i); });
     layoutCallouts(W, H, narrow);
     requestAnimationFrame(frame);
   }
@@ -298,6 +316,7 @@
     function fill(step, ms) {
       bars.forEach(function (b, i) {
         var done = step === 'all' || (typeof step === 'number' && i < step);
+        b.parentNode.classList.toggle('on', step === i);
         b.style.transition = 'none';
         b.style.width = done ? '100%' : '0%';
         if (step === i) {
@@ -462,13 +481,7 @@
   var guestEl = document.querySelector('.demo[data-demo="guest"]');
   if (guestEl) makeDemo(guestEl, function (screen) {
     var card = screen.querySelector('.qr-card');
-    card.insertAdjacentHTML('beforeend',
-      '<div class="guest">' +
-        '<p class="g-big"><b>4/5</b><span>Visits<br>remaining</span></p>' +
-        '<p class="g-valid">Valid until: Feb 1 2026</p>' +
-        '<p class="g-copy">With your current membership you can bring friends to the gym to train together!</p>' +
-        '<div class="g-share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Share link</div>' +
-      '</div>');
+    addGuest(card);
     screen.insertAdjacentHTML('beforeend', '<div class="toast">Link copied. Send it to a friend.</div>');
     var opts = card.querySelectorAll('.seg-opt');
     return { card: card, me: opts[0], guest: opts[1], share: card.querySelector('.g-share'), toast: screen.querySelector('.toast') };
@@ -595,21 +608,18 @@
     var rail = document.getElementById('rail');
     if (!rail) return;
     var steps = [].slice.call(rail.querySelectorAll('.rail-step'));
-    var fill = rail.querySelector('.rail-track b');
     var mini = rail.querySelector('.rail-mini'), rp = document.getElementById('rail-phone');
     buildPhone(rp);
     function fit() {
       var s = mini.clientHeight / FH;
       mini.style.width = (FW * s) + 'px';
       rp.style.transform = 'translate(' + (13 * s) + 'px,' + (13 * s) + 'px) scale(' + s + ')';
-      rail.style.setProperty('--rail-w', rail.clientWidth + 'px');
     }
     fit(); window.addEventListener('resize', fit);
     var i = -1, t = null;
+    // no bar on top any more: the version in focus is simply the one lit up
     function show(k) {
       steps.forEach(function (s, j) { s.classList.toggle('on', j === k); s.classList.toggle('seen', j < k); });
-      var r = steps[k] ? steps[k].offsetLeft + steps[k].offsetWidth : 0;
-      fill.style.width = (k < 0 ? 0 : r) + 'px';
     }
     function next() {
       i = (i + 1) % (steps.length + 1);
@@ -676,11 +686,34 @@
     });
   })();
 
-  /* ---------- 6b. testing: Version A vs B ---------- */
+  /* ---------- 6b. testing: Version A vs B, the real screens ---------- */
   (function () {
     var ab = document.querySelector('#ab-card .ab');
     if (!ab) return;
     var t = null;
+    var pa = ab.querySelector('.ab-a'), pb = ab.querySelector('.ab-b');
+    buildPhone(pa, document.getElementById('pg-vera'));
+    buildPhone(pb);
+    // A: popular times bars, coloured by how busy (as in the final chart)
+    var bars = pa.querySelector('.va-bars');
+    [24, 32, 50, 66, 58, 38, 30, 44, 60, 76, 92, 84, 64, 46, 34, 28, 22].forEach(function (h, k) {
+      var b = document.createElement('i');
+      b.style.height = h + '%';
+      b.style.background = k === 6 ? '#0EBABF' : h >= 60 ? '#FB7572' : h >= 44 ? '#F9A9A7' : '#5FD6D9';
+      bars.appendChild(b);
+    });
+    // B: the check-in screen with Guest pass picked
+    var bc = pb.querySelector('.qr-card');
+    addGuest(bc);
+    bc.classList.add('is-guest');
+    function fitAB() {
+      [pa, pb].forEach(function (p) {
+        var box = p.parentNode, s = box.clientWidth / FW;
+        box.style.height = (FH * s) + 'px';
+        p.style.transform = 'translate(' + (13 * s) + 'px,' + (13 * s) + 'px) scale(' + s + ')';
+      });
+    }
+    fitAB(); window.addEventListener('resize', fitAB);
     whenSeen(ab, 0.6, function (v) {
       clearTimeout(t);
       ab.classList.remove('decided');
@@ -697,7 +730,22 @@
   /* ---------- 7. success means: the little loops run while on screen ---------- */
   (function () {
     var m = document.querySelector('.metrics');
-    if (m) whenSeen(m, 0.3, function (v) { m.classList.toggle('in', v); });
+    if (!m) return;
+    // the timer on the first card counts while the app opens, and stops the
+    // moment the code is on screen (kept in step with the CSS loop, 3.2s)
+    var secs = m.querySelector('.m-secs'), raf = 0, t0 = 0;
+    function tick(now) {
+      var k = ((now - t0) % 3200) / 3200;
+      var v = k < 0.1 ? 0 : Math.min(k, 0.3) - 0.1;
+      secs.textContent = (v * 3.2 * 1.4).toFixed(1) + 's';
+      secs.classList.toggle('done', k >= 0.3 && k < 0.9);
+      raf = requestAnimationFrame(tick);
+    }
+    whenSeen(m, 0.3, function (v) {
+      m.classList.toggle('in', v);
+      cancelAnimationFrame(raf);
+      if (v && !reduce && secs) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    });
   })();
 
   /* ---------- 8. next: tester notes tick in, one at a time ---------- */
@@ -705,25 +753,19 @@
     var box = document.getElementById('todo');
     if (!box) return;
     var items = [].slice.call(box.querySelectorAll('li'));
-    var status = box.querySelector('.todo-status'), count = box.querySelector('.todo-count');
     var ts = [];
-    function clear() { ts.forEach(clearTimeout); ts = []; }
     function reset() {
-      clear(); box.classList.remove('done');
-      items.forEach(function (li) { li.classList.remove('in', 'ok'); });
-      status.textContent = 'Going through tester notes'; count.textContent = '0 / ' + items.length;
+      ts.forEach(clearTimeout); ts = [];
+      items.forEach(function (li) { li.classList.remove('in'); });
     }
-    whenSeen(box, 0.5, function (v) {
+    // the rows slide in one at a time under the header, like a list loading
+    whenSeen(box, 0.4, function (v) {
       reset();
       if (!v) return;
-      var gap = reduce ? 0 : 520;
+      var gap = reduce ? 0 : 140;
       items.forEach(function (li, k) {
-        ts.push(setTimeout(function () { li.classList.add('in'); }, 200 + k * gap));
-        ts.push(setTimeout(function () { li.classList.add('ok'); count.textContent = (k + 1) + ' / ' + items.length; }, 200 + k * gap + (reduce ? 0 : 700)));
+        ts.push(setTimeout(function () { li.classList.add('in'); }, 150 + k * gap));
       });
-      ts.push(setTimeout(function () {
-        box.classList.add('done'); status.textContent = 'From 7 testers, still to build';
-      }, 200 + items.length * gap + 800));
     });
   })();
 })();

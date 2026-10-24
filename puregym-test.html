@@ -73,25 +73,25 @@
         </div>
 
         <div class="app-col">
-            <div class="gym-slider">
-                <div class="gym-track">
-                    <div class="gym-card" data-part="gym">
+            <!-- one card; switching gyms rolls what's inside it up to the next gym -->
+            <div class="gym-card" data-part="gym">
+                <div class="gym-roll">
+                    <div class="gym-row">
                         <img class="gym-photo" src="assets/puregym/v2/ui/gym-photo.png" width="51" height="50" alt="">
                         <div class="gym-text">
                             <p class="gym-name">East Village</p>
                             <p class="gym-addr">98 Avenue A, New York</p>
                         </div>
-                        <img class="gym-chev" src="assets/puregym/v2/ui/chevron.svg" width="22" height="22" alt="">
                     </div>
-                    <div class="gym-card">
+                    <div class="gym-row">
                         <img class="gym-photo" src="assets/puregym/v2/ui/gym-photo.png" width="51" height="50" alt="">
                         <div class="gym-text">
                             <p class="gym-name">Washington Heights</p>
                             <p class="gym-addr">4200 Broadway Suite 1.3, New York</p>
                         </div>
-                        <img class="gym-chev" src="assets/puregym/v2/ui/chevron.svg" width="22" height="22" alt="">
                     </div>
                 </div>
+                <img class="gym-chev" src="assets/puregym/v2/ui/chevron.svg" width="22" height="22" alt="">
             </div>
 
             <div class="qr-card">
@@ -140,14 +140,42 @@
     </div>
 </template>
 
+<!-- Version A from testing (Figma: the check-in page scrolled down): Bring a
+     friend stacked under everything else, so you scroll past your own pass to
+     reach it. Version B is the normal screen with the Guest pass toggle on. -->
+<template id="pg-vera">
+    <div class="app vera">
+        <div class="va-col">
+            <div class="wallet va-wallet"><img src="assets/puregym/v2/ui/wallet.svg" width="28" height="28" alt=""><span>Add to wallet</span></div>
+            <div class="tiles">
+                <div class="tile"><p>occupancy level</p><span class="va-ring"><b>75%</b></span></div>
+                <div class="tile"><p>number of visits<br>this year</p><b class="va-big">36</b></div>
+            </div>
+            <div class="va-card va-times">
+                <div class="va-times-head"><span>popular times</span><span class="va-day">Friday</span></div>
+                <div class="va-bars"></div>
+            </div>
+            <div class="va-card va-friend">
+                <p class="va-label">bring a friend</p>
+                <p class="g-big"><b>4/5</b><span>Visits<br>remaining</span></p>
+                <p class="g-valid">Valid until: Feb 1 2026</p>
+                <p class="g-copy">With your current membership you can bring friends to the gym to train together!</p>
+                <div class="g-share va-share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Share link</div>
+            </div>
+        </div>
+        <nav class="app-tabs">
+            <span class="tab"><img src="assets/puregym/v2/ui/tab-progress.svg" width="24" height="24" alt="">progress</span>
+            <span class="tab on"><img src="assets/puregym/v2/ui/tab-checkin.svg" width="24" height="24" alt="">Check-in</span>
+            <span class="tab"><img src="assets/puregym/v2/ui/tab-account.svg" width="24" height="24" alt="">Account</span>
+        </nav>
+    </div>
+</template>
+
 <main class="case" id="top">
 
-    <!-- 1. HERO: the product first, inside the column -->
-    <figure class="pg-stage pg-hero" aria-label="The redesigned PureGym check-in screen">
-        <div class="pg-fit" data-fit="hero">
-            <div class="iphone" id="hero-phone"></div>
-        </div>
-        <figcaption class="pg-cap">Swipe between your saved gyms. The code is already there.</figcaption>
+    <!-- 1. HERO: Jen's original motion graphic, same as the live page -->
+    <figure class="shot shot-hero">
+        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/puregym/hero.gif" width="854" height="640" alt="The redesigned Puregym app: a login screen and a check-in screen with a QR code" data-skel></a>
     </figure>
 
     <header class="case-head">
@@ -155,7 +183,7 @@
         <p class="lede">A self-initiated redesign of the PureGym member app.</p>
         <dl class="meta">
             <div><dt>Role</dt><dd>Research, UX, UI</dd></div>
-            <div><dt>Timeline</dt><dd>December 2025 - January 2026</dd></div>
+            <div><dt>Timeline</dt><dd><span>December 2025 &ndash;</span><br><span>January 2026</span></dd></div>
             <div><dt>Tested with</dt><dd>7 gym members</dd></div>
         </dl>
     </header>
@@ -203,7 +231,7 @@
                     <p class="p-close-note">*Real comments, quoted or paraphrased from member interviews.</p>
                 </div>
 
-                <div class="zoom-progress five" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+                <div class="zoom-progress five" aria-hidden="true"><i><em>Search</em><b></b></i><i><em>Account</em><b></b></i><i><em>Tabs</em><b></b></i><i><em>Scan in</em><b></b></i><i><em>Hierarchy</em><b></b></i></div>
             </div>
         </div>
     </section>
@@ -251,7 +279,7 @@
                     </div>
                 </div>
 
-                <div class="zoom-progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+                <div class="zoom-progress" aria-hidden="true"><i><em>Gym</em><b></b></i><i><em>Guest pass</em><b></b></i><i><em>Code</em><b></b></i><i><em>Wallet</em><b></b></i></div>
             </div>
         </div>
     </section>
@@ -301,7 +329,6 @@
         <p class="eyebrow">Iterations</p>
         <p class="statement">Three versions, each one asking a smaller question.</p>
         <div class="rail" id="rail">
-            <div class="rail-track" aria-hidden="true"><b></b></div>
             <figure class="rail-step" data-i="0">
                 <div class="rail-shot"><img src="assets/puregym/v2/iter-v1.png" alt="Check-in page, version 1" width="162" height="338"></div>
                 <figcaption><span class="rail-v">V1</span>How can we cut the extra details and colours?</figcaption>
@@ -345,20 +372,17 @@
             </figure>
 
             <figure class="test-card" id="ab-card">
+                <!-- the two screens testers chose between, built from the Figma
+                     frames: A stacks Bring a friend under the check-in card,
+                     B puts it behind a Guest pass toggle -->
                 <div class="ab">
                     <div class="ab-opt" data-v="A">
                         <span class="ab-label">Version A</span>
-                        <div class="ab-mini a">
-                            <i class="m-qr"></i><i class="m-wallet"></i>
-                            <i class="m-friend"><small>bring a friend</small><b>4/5</b><s>visits remaining</s><em></em></i>
-                        </div>
+                        <div class="ab-phone"><div class="iphone ab-a"></div></div>
                     </div>
                     <div class="ab-opt win" data-v="B">
                         <span class="ab-label">Version B</span>
-                        <div class="ab-mini b">
-                            <i class="m-seg"><u>JUST ME</u><u class="on">GUEST PASS</u></i>
-                            <i class="m-friend big"><b>5</b><s>visits remaining</s><em></em></i>
-                        </div>
+                        <div class="ab-phone"><div class="iphone ab-b"></div></div>
                     </div>
                 </div>
                 <figcaption>
@@ -375,7 +399,8 @@
         <p class="statement">It&rsquo;s a concept, so here&rsquo;s how I&rsquo;d know it worked.</p>
         <div class="metrics">
             <div class="metric" data-k="time">
-                <div class="m-viz"><span class="m-clock"><i></i></span><span class="m-tap">open</span><span class="m-arrow"></span><span class="m-tap qr">QR</span></div>
+                <!-- tap the app icon, it opens straight onto the code, the timer stops -->
+                <div class="m-viz"><span class="m-open"><span class="m-icon"></span><span class="m-scr"><i></i></span></span><span class="m-secs">0.0s</span></div>
                 <p class="m-name">Time from opening the app to the code</p>
                 <p class="m-why">The whole redesign is a bet on this number going down.</p>
             </div>
@@ -385,7 +410,7 @@
                 <p class="m-why">If the code is always ready, fewer people stand at the gate reloading.</p>
             </div>
             <div class="metric" data-k="guest">
-                <div class="m-viz"><span class="m-link"></span><span class="m-dots"><i></i><i></i><i></i><i></i><i></i></span></div>
+                <div class="m-viz"><span class="m-link"></span><span class="m-dots"><i></i><i></i><i></i></span></div>
                 <p class="m-name">Guest passes shared</p>
                 <p class="m-why">Proof the toggle is found, and a way for friends to become members.</p>
             </div>
@@ -402,13 +427,13 @@
         <p class="eyebrow">What I&rsquo;d do next</p>
         <p class="statement">Testers asked for more than I built.</p>
         <div class="todo" id="todo">
-            <div class="todo-head"><span class="todo-dot"></span><span class="todo-status">Going through tester notes</span><span class="todo-count"></span></div>
+            <div class="todo-head"><span class="todo-title">Tester requests</span><span class="todo-count">5 open</span></div>
             <ul>
-                <li><span class="tick"></span><b>Bigger tap targets</b><em>Two testers struggled to press some buttons and to scroll.</em></li>
-                <li><span class="tick"></span><b>Dark mode</b><em>Asked for by one tester.</em></li>
-                <li><span class="tick"></span><b>Holiday hours</b><em>Opening times that change, shown before the trip.</em></li>
-                <li><span class="tick"></span><b>Open in Google or Apple Maps</b><em>Straight from the gym card.</em></li>
-                <li><span class="tick"></span><b>Last three visits</b><em>A quick history, without opening Progress.</em></li>
+                <li><b>Bigger tap targets</b><em>Two testers struggled to press some buttons and to scroll.</em></li>
+                <li><b>Dark mode</b><em>Asked for by one tester.</em></li>
+                <li><b>Holiday hours</b><em>Opening times that change, shown before the trip.</em></li>
+                <li><b>Open in Google or Apple Maps</b><em>Straight from the gym card.</em></li>
+                <li><b>Last three visits</b><em>A quick history, without opening Progress.</em></li>
             </ul>
         </div>
     </section>
@@ -428,13 +453,32 @@
                 <p class="lesson-b">Bottom sheets, segmented toggles and wallet passes are familiar for a reason. Grounding the design in them let testers focus on the gym, not the app.</p>
             </div>
         </div>
-        <p class="thanks">Thanks for reading. <a href="aboutme.html">Say hi &rarr;</a></p>
     </section>
 
-    <div style="height: 12vh"></div>
+    <!-- same closing as the live case pages -->
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy…</p>
+        <div class="next-cards">
+            <div class="next-slot nc1">
+                <a class="next-card" data-card="the-dial" href="the-dial.html" data-cursor="open project"
+                   aria-label="The Dial — Summer 2026"></a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" data-card="techatnyu" href="techatnyu.html" data-cursor="open project"
+                   aria-label="tech@nyu — Summer 2025"></a>
+            </div>
+        </div>
+    </div>
 </main>
 
 <script src="site.js"></script>
+<script src="case.js"></script>
 <script src="puregym-test.js"></script>
 </body>
 </html>

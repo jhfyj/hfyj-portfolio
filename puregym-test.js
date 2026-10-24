@@ -784,4 +784,45 @@
       });
     });
   })();
+  /* ---------- 6b. final design: screen recordings in the page's iPhone ---------- */
+  // Each recording is Jen's own prototype capture. The video sits in the
+  // phone's screen (cropped by CSS), the frame/island/status are added here
+  // the same way buildPhone dresses the demo phones, and it only plays while
+  // it's on screen, starting from the top each time it comes back.
+  (function () {
+    var arts = [].slice.call(document.querySelectorAll('.rec-demo'));
+    arts.forEach(function (article) {
+      var stage = article.querySelector('.demo-stage');
+      var box = article.querySelector('.demo-phone');
+      var phone = box.querySelector('.iphone');
+      var video = phone.querySelector('video');
+      var K = 393 / 416; // recorded screen is 416 px wide, ours is 393
+      phone.style.setProperty('--rx', (-(+phone.getAttribute('data-x')) * K).toFixed(1) + 'px');
+      phone.insertAdjacentHTML('beforeend',
+        '<div class="island" aria-hidden="true"></div>' +
+        '<div class="status" aria-hidden="true"><span>9:41</span>' + STATUS_ICONS + '</div>' +
+        '<span class="btn l" style="top:118px;height:32px"></span>' +
+        '<span class="btn l" style="top:178px;height:62px"></span>' +
+        '<span class="btn l" style="top:252px;height:62px"></span>' +
+        '<span class="btn r" style="top:206px;height:98px"></span>' +
+        '<span class="btn r" style="top:470px;height:56px"></span>');
+      function fit() {
+        var W = stage.clientWidth, H = stage.clientHeight;
+        var S = Math.min((H - 64) / FH, (W * 0.8) / FW);
+        box.style.left = ((W - FW * S) / 2).toFixed(1) + 'px';
+        box.style.top = ((H - FH * S) / 2).toFixed(1) + 'px';
+        phone.style.transform = 'translate(' + (13 * S) + 'px,' + (13 * S) + 'px) scale(' + S + ')';
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      whenSeen(stage, 0.5, function (v) {
+        if (v) {
+          try { video.currentTime = 0; } catch (e) {}
+          if (!reduce) { var pr = video.play(); if (pr && pr.catch) pr.catch(function () {}); }
+        } else {
+          video.pause();
+        }
+      });
+    });
+  })();
 })();

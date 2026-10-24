@@ -761,3 +761,18 @@
   .gym-row, .gymname-roll, .gymname-roll span, .iphone [data-part], .callout, .leaders path, .p-close, .old::after, .old-phone .old-piece { transition: none; }
 }
 
+
+
+/* ---------- final design: Jen's screen recordings in the same iPhone frame ----------
+   The recordings are 1920x1080 with the phone drawn in them. The video is
+   scaled so the recorded screen (416 x 902 px, top edge at y 88, left edge at
+   data-x) lands exactly on this phone's 393 x 852 screen; the frame, island and
+   status bar on top are the page's own, so it matches the demos above. */
+.iphone.rec .screen { background: #FAF8F7; border-radius: 53px; } /* the recording's own screen corners are a touch rounder */
+.iphone.rec video {
+  position: absolute; left: 0; top: 0; max-width: none;
+  width: 1814px; height: 1020px;                /* 1920 x 1080 at 393/416 */
+  transform: translate(var(--rx, 0px), -83px);
+  pointer-events: none;
+}
+/* the recording's island sits exactly under the page's own (124 x 36 at top 11) */

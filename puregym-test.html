@@ -53,6 +53,11 @@
     <a href="#top"><span class="suit">&spades;</span> OVERVIEW</a>
     <a href="#problem"><span class="suit">&clubs;</span> PROBLEM</a>
     <a href="#solution"><span class="suit">&hearts;</span> SOLUTION</a>
+    <a href="#decisions"><span class="suit">&diams;</span> DECISIONS</a>
+    <a href="#iterations"><span class="suit">&spades;</span> ITERATIONS</a>
+    <a href="#testing"><span class="suit">&clubs;</span> TESTING</a>
+    <a href="#success"><span class="suit">&hearts;</span> SUCCESS</a>
+    <a href="#next"><span class="suit">&diams;</span> NEXT</a>
 </aside>
 
 <!-- One phone screen, built in real HTML from the Figma frame "iPhone 16 - 33".
@@ -203,6 +208,12 @@
         </div>
     </section>
 
+    <!-- 2b. CHALLENGE: just the question, typed out -->
+    <section class="case-section challenge" id="challenge">
+        <p class="eyebrow">Challenge</p>
+        <p class="ask" data-text="How might checking in take one tap, without losing everything else the app does?"><span class="ask-typed"></span><span class="ask-caret"></span></p>
+    </section>
+
     <!-- 3. SOLUTION: the zoom stays inside the column -->
     <section class="case-section" id="solution">
         <p class="eyebrow">Solution</p>
@@ -245,7 +256,182 @@
         </div>
     </section>
 
-    <div style="height: 30vh"></div>
+    <!-- 4. DECISIONS: each one a small looping demo of the real UI, a finger
+         doing the thing (the product-demo tiles on amberlle.com, for a phone) -->
+    <section class="case-section" id="decisions">
+        <p class="eyebrow">Decisions</p>
+        <p class="statement">Three calls that kept the check-in screen calm.</p>
+
+        <article class="demo" data-demo="guest">
+            <div class="demo-stage glow-coral">
+                <div class="demo-phone"><div class="iphone"></div></div>
+                <span class="finger" aria-hidden="true"></span>
+            </div>
+            <div class="demo-cap">
+                <p class="demo-title">Instead of stacking the guest pass under mine, I made it a toggle. <span class="tag tag-teal">Testers picked it</span></p>
+                <p class="demo-body">Most testers preferred Version B: Just me and Guest pass side by side. Bringing a friend is one tap, and your own code never gets pushed off the screen.</p>
+            </div>
+        </article>
+
+        <article class="demo" data-demo="gyms">
+            <div class="demo-stage glow-teal">
+                <div class="demo-phone"><div class="iphone"></div></div>
+                <span class="finger" aria-hidden="true"></span>
+            </div>
+            <div class="demo-cap">
+                <p class="demo-title">Instead of one fixed gym, members keep a list. <span class="tag tag-blue">Version 3</span></p>
+                <p class="demo-body">Some members train at more than one PureGym. Saved gyms sit behind the gym name, and adding one is a search and a pin, not a hunt through every club in the city.</p>
+            </div>
+        </article>
+
+        <article class="demo" data-demo="progress">
+            <div class="demo-stage glow-warm">
+                <div class="demo-phone"><div class="iphone"></div></div>
+                <span class="finger" aria-hidden="true"></span>
+            </div>
+            <div class="demo-cap">
+                <p class="demo-title">Instead of piling stats onto check-in, I gave them their own tab. <span class="tag tag-coral">From testing</span></p>
+                <p class="demo-body">One tester loved the achievements, another didn&rsquo;t care. So hours, streaks and achievements live in Progress, and check-in stays the code and how busy the gym is.</p>
+            </div>
+        </article>
+    </section>
+
+    <!-- 5. ITERATIONS: three versions, each driven by one question -->
+    <section class="case-section" id="iterations">
+        <p class="eyebrow">Iterations</p>
+        <p class="statement">Three versions, each one asking a smaller question.</p>
+        <div class="rail" id="rail">
+            <div class="rail-track" aria-hidden="true"><b></b></div>
+            <figure class="rail-step" data-i="0">
+                <div class="rail-shot"><img src="assets/puregym/v2/iter-v1.png" alt="Check-in page, version 1" width="162" height="338"></div>
+                <figcaption><span class="rail-v">V1</span>How can we cut the extra details and colours?</figcaption>
+            </figure>
+            <figure class="rail-step" data-i="1">
+                <div class="rail-shot"><img src="assets/puregym/v2/iter-v2.png" alt="Check-in page, version 2" width="168" height="349"></div>
+                <figcaption><span class="rail-v">V2</span>Can the bottom sheet be simpler still?</figcaption>
+            </figure>
+            <figure class="rail-step" data-i="2">
+                <div class="rail-shot"><img src="assets/puregym/v2/iter-v3.png" alt="Check-in page, version 3" width="173" height="370"></div>
+                <figcaption><span class="rail-v">V3</span>What if members save more than one gym?</figcaption>
+            </figure>
+            <figure class="rail-step is-final" data-i="3">
+                <div class="rail-shot"><div class="rail-mini"><div class="iphone" id="rail-phone"></div></div></div>
+                <figcaption><span class="rail-v">Final</span>Gym, code and wallet on the first screen.</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- 6. TESTING: what seven members changed -->
+    <section class="case-section" id="testing">
+        <p class="eyebrow">Testing</p>
+        <p class="statement">Seven members caught what I missed.</p>
+        <p class="body-copy">I put the prototype in members&rsquo; hands at the gym. Two changes came straight from them.</p>
+
+        <div class="test-grid">
+            <figure class="test-card" id="times-card">
+                <div class="times">
+                    <div class="times-head"><span>Popular times</span><span class="times-day">Friday</span></div>
+                    <div class="times-plot">
+                        <div class="times-layer before" aria-label="Before: every bar the same teal"></div>
+                        <div class="times-layer after" aria-label="After: busy hours in coral, quiet hours in teal"></div>
+                        <span class="times-wipe" aria-hidden="true"></span>
+                    </div>
+                    <div class="times-axis"><span>6 am</span><span>9 am</span><span>12 pm</span><span>3 pm</span><span>6 pm</span></div>
+                </div>
+                <figcaption>
+                    <p class="test-q">&ldquo;It would help if the colours of the bars matched how busy it is.&rdquo;</p>
+                    <p class="test-a">Before, every bar was teal. After, busy hours turn coral and quiet ones stay teal.</p>
+                </figcaption>
+            </figure>
+
+            <figure class="test-card" id="ab-card">
+                <div class="ab">
+                    <div class="ab-opt" data-v="A">
+                        <span class="ab-label">Version A</span>
+                        <div class="ab-mini a">
+                            <i class="m-qr"></i><i class="m-wallet"></i>
+                            <i class="m-friend"><small>bring a friend</small><b>4/5</b><s>visits remaining</s><em></em></i>
+                        </div>
+                    </div>
+                    <div class="ab-opt win" data-v="B">
+                        <span class="ab-label">Version B</span>
+                        <div class="ab-mini b">
+                            <i class="m-seg"><u>JUST ME</u><u class="on">GUEST PASS</u></i>
+                            <i class="m-friend big"><b>5</b><s>visits remaining</s><em></em></i>
+                        </div>
+                    </div>
+                </div>
+                <figcaption>
+                    <p class="test-q">Stacked under your pass, or side by side?</p>
+                    <p class="test-a">Most testers picked B, side by side. It became the Guest pass toggle.</p>
+                </figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- 7. SUCCESS MEANS: what I'd measure if this shipped -->
+    <section class="case-section" id="success">
+        <p class="eyebrow">Success means</p>
+        <p class="statement">It&rsquo;s a concept, so here&rsquo;s how I&rsquo;d know it worked.</p>
+        <div class="metrics">
+            <div class="metric" data-k="time">
+                <div class="m-viz"><span class="m-clock"><i></i></span><span class="m-tap">open</span><span class="m-arrow"></span><span class="m-tap qr">QR</span></div>
+                <p class="m-name">Time from opening the app to the code</p>
+                <p class="m-why">The whole redesign is a bet on this number going down.</p>
+            </div>
+            <div class="metric" data-k="fail">
+                <div class="m-viz"><span class="m-gate"><i></i><i></i><i></i><i class="x"></i><i></i></span></div>
+                <p class="m-name">Failed scans at the door</p>
+                <p class="m-why">If the code is always ready, fewer people stand at the gate reloading.</p>
+            </div>
+            <div class="metric" data-k="guest">
+                <div class="m-viz"><span class="m-link"></span><span class="m-dots"><i></i><i></i><i></i><i></i><i></i></span></div>
+                <p class="m-name">Guest passes shared</p>
+                <p class="m-why">Proof the toggle is found, and a way for friends to become members.</p>
+            </div>
+            <div class="metric" data-k="wallet">
+                <div class="m-viz"><span class="m-pass"><i></i></span></div>
+                <p class="m-name">Add to Wallet taps</p>
+                <p class="m-why">Members who skip the app at the door are the best outcome of all.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. NEXT: what testers asked for that I didn't get to -->
+    <section class="case-section" id="next">
+        <p class="eyebrow">What I&rsquo;d do next</p>
+        <p class="statement">Testers asked for more than I built.</p>
+        <div class="todo" id="todo">
+            <div class="todo-head"><span class="todo-dot"></span><span class="todo-status">Going through tester notes</span><span class="todo-count"></span></div>
+            <ul>
+                <li><span class="tick"></span><b>Bigger tap targets</b><em>Two testers struggled to press some buttons and to scroll.</em></li>
+                <li><span class="tick"></span><b>Dark mode</b><em>Asked for by one tester.</em></li>
+                <li><span class="tick"></span><b>Holiday hours</b><em>Opening times that change, shown before the trip.</em></li>
+                <li><span class="tick"></span><b>Open in Google or Apple Maps</b><em>Straight from the gym card.</em></li>
+                <li><span class="tick"></span><b>Last three visits</b><em>A quick history, without opening Progress.</em></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 9. REFLECTION -->
+    <section class="case-section" id="reflection">
+        <p class="eyebrow">Reflection</p>
+        <div class="lessons">
+            <div class="lesson">
+                <span class="lesson-n">01</span>
+                <p class="lesson-t">Talk to the people at the door.</p>
+                <p class="lesson-b">I was nervous to walk up to strangers at the gym. Most were kind, and two of them turned out to be UI/UX designers who were especially helpful.</p>
+            </div>
+            <div class="lesson">
+                <span class="lesson-n">02</span>
+                <p class="lesson-t">Borrow the patterns people already know.</p>
+                <p class="lesson-b">Bottom sheets, segmented toggles and wallet passes are familiar for a reason. Grounding the design in them let testers focus on the gym, not the app.</p>
+            </div>
+        </div>
+        <p class="thanks">Thanks for reading. <a href="aboutme.html">Say hi &rarr;</a></p>
+    </section>
+
+    <div style="height: 12vh"></div>
 </main>
 
 <script src="site.js"></script>

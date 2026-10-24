@@ -333,4 +333,397 @@
       if (live) place();
     })();
   })();
+
+  /* ================================================================
+     The rest of the page. Each piece plays only while it's on screen
+     and starts clean every time it comes back.
+     ================================================================ */
+
+  // run fn(true) when el is mostly on screen, fn(false) when it leaves
+  function whenSeen(el, ratio, fn) {
+    if (!('IntersectionObserver' in window)) { fn(true); return; }
+    var on = false;
+    new IntersectionObserver(function (en) {
+      var v = en[0].isIntersecting && en[0].intersectionRatio >= ratio;
+      if (v !== on) { on = v; fn(v); }
+    }, { threshold: [0, ratio, 1] }).observe(el);
+  }
+
+  var GYM = 'assets/puregym/v2/ui/gym-photo.png';
+  var CHECK = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>';
+
+  /* ---------- 2b. challenge: type the question ---------- */
+  (function () {
+    var ask = document.querySelector('.ask');
+    if (!ask) return;
+    var out = ask.querySelector('.ask-typed'), text = ask.getAttribute('data-text'), t = null;
+    function stop() { clearTimeout(t); }
+    whenSeen(ask, 0.9, function (v) {
+      stop();
+      if (!v) return;
+      if (reduce) { out.textContent = text; ask.classList.add('done'); return; }
+      if (ask.classList.contains('done')) return;
+      var i = out.textContent.length;
+      (function step() {
+        out.textContent = text.slice(0, ++i);
+        if (i < text.length) t = setTimeout(step, text[i - 1] === ',' ? 260 : 26 + Math.random() * 34);
+        else ask.classList.add('done');
+      })();
+    });
+  })();
+
+  /* ---------- 4. decision demos ---------- */
+  // A tiny script runner: moves the finger, taps, types. Every wait checks a
+  // run id, so leaving the screen stops a demo mid-step and resets it.
+  function makeDemo(article, extend, script, reset) {
+    var stage = article.querySelector('.demo-stage');
+    var box = article.querySelector('.demo-phone');
+    var phone = box.querySelector('.iphone');
+    var finger = article.querySelector('.finger');
+    buildPhone(phone);
+    var screen = phone.querySelector('.screen');
+    var parts = extend(screen, phone) || {};
+    var S = 1, run = 0;
+
+    function fit() {
+      var W = stage.clientWidth, H = stage.clientHeight;
+      S = Math.min((H - 64) / FH, (W * 0.8) / FW);
+      box.style.left = ((W - FW * S) / 2).toFixed(1) + 'px';
+      box.style.top = ((H - FH * S) / 2).toFixed(1) + 'px';
+      phone.style.transform = 'translate(' + (13 * S) + 'px,' + (13 * S) + 'px) scale(' + S + ')';
+    }
+    fit();
+    window.addEventListener('resize', fit);
+
+    function Stop() {}
+    var api = {
+      parts: parts, screen: screen, phone: phone,
+      wait: function (ms) {
+        var id = run;
+        return new Promise(function (res, rej) { setTimeout(function () { id === run ? res() : rej(new Stop()); }, ms); });
+      },
+      // put the finger on an element (ox/oy = where on it, 0..1)
+      at: function (el, ox, oy, ms) {
+        var sr = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+        var x = r.left - sr.left + r.width * (ox == null ? 0.5 : ox);
+        var y = r.top - sr.top + r.height * (oy == null ? 0.5 : oy);
+        finger.classList.add('on');
+        finger.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+        return api.wait(ms || 820);
+      },
+      park: function () { // rest just off the phone, bottom right
+        var x = stage.clientWidth * 0.5 + FW * S * 0.62, y = stage.clientHeight * 0.78;
+        finger.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      },
+      tap: function () {
+        finger.classList.add('press');
+        return api.wait(150).then(function () {
+          finger.classList.remove('press', 'ripple'); void finger.offsetWidth; finger.classList.add('ripple');
+          return api.wait(120);
+        });
+      },
+      hide: function () { finger.classList.remove('on'); return api.wait(350); },
+      type: function (el, text, speed) {
+        var i = 0;
+        function step() {
+          el.textContent = text.slice(0, ++i);
+          return i < text.length ? api.wait(speed + Math.random() * 30).then(step) : Promise.resolve();
+        }
+        return step();
+      },
+      count: function (el, to, ms) {
+        var id = run, t0 = performance.now();
+        return new Promise(function (res) {
+          (function f(now) {
+            if (id !== run) return res();
+            var k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+            el.textContent = Math.round(to * e);
+            if (k < 1) requestAnimationFrame(f); else res();
+          })(t0);
+        });
+      }
+    };
+
+    function loop() {
+      var id = run;
+      reset(api); api.park();
+      script(api).then(function () { if (id === run) loop(); }, function () {});
+    }
+    whenSeen(stage, 0.5, function (v) {
+      run++;
+      finger.classList.remove('on');
+      if (v && !reduce) { setTimeout(loop, 60); }
+      else reset(api);
+    });
+    return api;
+  }
+
+  // 1) guest pass toggle
+  var guestEl = document.querySelector('.demo[data-demo="guest"]');
+  if (guestEl) makeDemo(guestEl, function (screen) {
+    var card = screen.querySelector('.qr-card');
+    card.insertAdjacentHTML('beforeend',
+      '<div class="guest">' +
+        '<p class="g-big"><b>4/5</b><span>Visits<br>remaining</span></p>' +
+        '<p class="g-valid">Valid until: Feb 1 2026</p>' +
+        '<p class="g-copy">With your current membership you can bring friends to the gym to train together!</p>' +
+        '<div class="g-share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Share link</div>' +
+      '</div>');
+    screen.insertAdjacentHTML('beforeend', '<div class="toast">Link copied. Send it to a friend.</div>');
+    var opts = card.querySelectorAll('.seg-opt');
+    return { card: card, me: opts[0], guest: opts[1], share: card.querySelector('.g-share'), toast: screen.querySelector('.toast') };
+  }, function (d) {
+    var p = d.parts;
+    return d.wait(900)
+      .then(function () { return d.at(p.guest); }).then(d.tap)
+      .then(function () { p.card.classList.add('is-guest'); return d.wait(1500); })
+      .then(function () { return d.at(p.share); }).then(d.tap)
+      .then(function () { p.toast.classList.add('on'); return d.wait(1700); })
+      .then(function () { p.toast.classList.remove('on'); return d.at(p.me); }).then(d.tap)
+      .then(function () { p.card.classList.remove('is-guest'); return d.wait(700); })
+      .then(d.hide).then(function () { return d.wait(1600); });
+  }, function (d) {
+    d.parts.card.classList.remove('is-guest');
+    d.parts.toast.classList.remove('on');
+  });
+
+  // 2) saved gyms: the sheet, adding a gym, switching to it
+  var gymsEl = document.querySelector('.demo[data-demo="gyms"]');
+  if (gymsEl) makeDemo(gymsEl, function (screen) {
+    function row(name, addr, sel) {
+      return '<div class="g-row' + (sel ? ' sel' : '') + '"><img src="' + GYM + '" alt=""><span class="t"><span class="n">' + name + '</span><span class="a">' + addr + '</span></span>' +
+        (sel ? '<span class="g-check">' + CHECK + '</span>' : '') + '</div>';
+    }
+    screen.insertAdjacentHTML('beforeend',
+      '<div class="scrim"></div>' +
+      '<div class="sheet">' +
+        '<div class="sheet-grab"></div>' +
+        '<div class="sheet-page select">' +
+          '<h4>Select your gym</h4><span class="more">&middot;&middot;&middot;</span>' +
+          row('East Village', '98 Avenue A, New York', true) +
+          row('116th', '27 W. 116th Street, New York') +
+          row('Bedford Park', '3000 Jerome Avenue, Bronx') +
+          '<div class="g-add"><span class="plus">+</span>Add Gym</div>' +
+        '</div>' +
+        '<div class="sheet-page add">' +
+          '<h4>Add gym</h4>' +
+          '<div class="g-search"><span><span class="ph">Search</span><span class="typed"></span><span class="caret"></span></span>' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#678788" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>' +
+          '<div class="g-map"><img src="assets/puregym/v2/ui/map.webp" alt="">' +
+            '<svg class="g-pin" viewBox="0 0 26 34"><path d="M13 33s11-11.6 11-20A11 11 0 0 0 2 13c0 8.4 11 20 11 20z" fill="#FB7572"/><circle cx="13" cy="13" r="4.5" fill="#fff"/></svg></div>' +
+          '<div class="g-row g-result"><img src="' + GYM + '" alt=""><span class="t"><span class="n">Washington Heights</span><span class="a">4200 Broadway Suite 1.3, New York</span></span>' +
+            '<span class="g-plus">+</span><span class="g-check">' + CHECK + '</span></div>' +
+          '<div class="g-save">SAVE</div>' +
+        '</div>' +
+      '</div>');
+    var sheet = screen.querySelector('.sheet');
+    return {
+      name: screen.querySelector('.app-gymname'), sheet: sheet,
+      addRow: sheet.querySelector('.g-add'), search: sheet.querySelector('.g-search'),
+      ph: sheet.querySelector('.ph'), typed: sheet.querySelector('.typed'),
+      result: sheet.querySelector('.g-result'), save: sheet.querySelector('.g-save')
+    };
+  }, function (d) {
+    var p = d.parts, scr = d.screen;
+    return d.wait(800)
+      .then(function () { return d.at(p.name); }).then(d.tap)
+      .then(function () { scr.classList.add('open'); return d.wait(1100); })
+      .then(function () { return d.at(p.addRow, 0.3); }).then(d.tap)
+      .then(function () { p.sheet.classList.add('to-add'); return d.wait(800); })
+      .then(function () { return d.at(p.search, 0.4); }).then(d.tap)
+      .then(function () { p.ph.textContent = ''; p.sheet.classList.add('typing'); return d.type(p.typed, 'Washington Heights', 55); })
+      .then(function () { p.sheet.classList.remove('typing'); p.sheet.classList.add('pinned'); return d.wait(900); })
+      .then(function () { return d.at(p.result, 0.92); }).then(d.tap)
+      .then(function () { p.sheet.classList.add('added'); return d.wait(700); })
+      .then(function () { return d.at(p.save); }).then(d.tap)
+      .then(function () { scr.classList.remove('open'); return d.wait(650); })
+      .then(function () { d.phone.classList.add('wh'); return d.wait(400); })
+      .then(d.hide).then(function () { return d.wait(2200); });
+  }, function (d) {
+    var p = d.parts;
+    d.screen.classList.remove('open');
+    p.sheet.classList.remove('to-add', 'typing', 'pinned', 'added');
+    p.typed.textContent = ''; p.ph.textContent = 'Search';
+    d.phone.classList.remove('wh');
+  });
+
+  // 3) the Progress tab
+  var progEl = document.querySelector('.demo[data-demo="progress"]');
+  if (progEl) makeDemo(progEl, function (screen) {
+    var STAR = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FB7572" stroke-width="1.4" stroke-linejoin="round"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>';
+    var MEDAL = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FB7572" stroke-width="1.4" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14l-1.5 7.5 5-2.5 5 2.5-1.5-7.5"/><path d="M12 6.5v5"/></svg>';
+    var app = screen.querySelector('.app');
+    app.insertAdjacentHTML('beforeend',
+      '<div class="prog">' +
+        '<div class="prog-top"><p>Progress</p><img src="assets/puregym/v2/ui/bell.svg" width="22" height="22" alt=""></div>' +
+        '<div class="prog-banner"><span>Find your personal<br>trainer today</span><span>&rsaquo;</span></div>' +
+        '<div class="prog-tiles"><div class="prog-tile">number of hours<br>in Puregym<b class="c1">0</b></div><div class="prog-tile t2">number of<br>achievements<b class="c2">0</b></div></div>' +
+        '<div class="prog-ach"><h5>Achievements</h5><small>Streaks</small><div class="badges">' +
+          '<span class="badge">' + STAR + '2 Weeks Streak</span><span class="badge">' + STAR + '3 Weeks Streak</span><span class="badge">' + MEDAL + '1 Month Streak</span>' +
+        '</div></div>' +
+      '</div>');
+    var tabs = screen.querySelectorAll('.app-tabs .tab');
+    tabs[0].classList.add('t-progress'); tabs[1].classList.add('t-check');
+    return { app: app, prog: app.querySelector('.prog'), tabs: tabs, c1: app.querySelector('.c1'), c2: app.querySelector('.c2') };
+  }, function (d) {
+    var p = d.parts;
+    return d.wait(900)
+      .then(function () { return d.at(p.tabs[0], 0.5, 0.4); }).then(d.tap)
+      .then(function () {
+        p.prog.classList.add('on'); p.app.classList.add('on-progress');
+        p.tabs[0].classList.add('on'); p.tabs[1].classList.remove('on');
+        return d.wait(350);
+      })
+      .then(function () { return Promise.all([d.count(p.c1, 124, 1100), d.count(p.c2, 36, 900)]); })
+      .then(function () { return d.wait(2000); })
+      .then(function () { return d.at(p.tabs[1], 0.5, 0.4); }).then(d.tap)
+      .then(function () {
+        p.prog.classList.remove('on'); p.app.classList.remove('on-progress');
+        p.tabs[1].classList.add('on'); p.tabs[0].classList.remove('on');
+        return d.wait(500);
+      })
+      .then(d.hide).then(function () { return d.wait(1800); });
+  }, function (d) {
+    var p = d.parts;
+    p.prog.classList.remove('on'); p.app.classList.remove('on-progress');
+    p.tabs[1].classList.add('on'); p.tabs[0].classList.remove('on');
+    p.c1.textContent = '0'; p.c2.textContent = '0';
+  });
+
+  /* ---------- 5. iterations rail: V1 -> V2 -> V3 -> final, on a loop ---------- */
+  (function () {
+    var rail = document.getElementById('rail');
+    if (!rail) return;
+    var steps = [].slice.call(rail.querySelectorAll('.rail-step'));
+    var fill = rail.querySelector('.rail-track b');
+    var mini = rail.querySelector('.rail-mini'), rp = document.getElementById('rail-phone');
+    buildPhone(rp);
+    function fit() {
+      var s = mini.clientHeight / FH;
+      mini.style.width = (FW * s) + 'px';
+      rp.style.transform = 'translate(' + (13 * s) + 'px,' + (13 * s) + 'px) scale(' + s + ')';
+      rail.style.setProperty('--rail-w', rail.clientWidth + 'px');
+    }
+    fit(); window.addEventListener('resize', fit);
+    var i = -1, t = null;
+    function show(k) {
+      steps.forEach(function (s, j) { s.classList.toggle('on', j === k); s.classList.toggle('seen', j < k); });
+      var r = steps[k] ? steps[k].offsetLeft + steps[k].offsetWidth : 0;
+      fill.style.width = (k < 0 ? 0 : r) + 'px';
+    }
+    function next() {
+      i = (i + 1) % (steps.length + 1);
+      if (i === steps.length) { show(-1); t = setTimeout(next, 900); return; }
+      show(i);
+      t = setTimeout(next, i === steps.length - 1 ? 3600 : 2400);
+    }
+    whenSeen(rail, 0.6, function (v) {
+      clearTimeout(t);
+      if (!v) { i = -1; show(-1); return; }
+      if (reduce) { steps.forEach(function (s) { s.classList.add('seen'); }); return; }
+      t = setTimeout(next, 300);
+    });
+  })();
+
+  /* ---------- 6a. testing: Popular times, before and after ---------- */
+  (function () {
+    var card = document.getElementById('times-card');
+    if (!card) return;
+    var plot = card.querySelector('.times-plot');
+    var wipe = card.querySelector('.times-wipe');
+    var H = [24, 32, 50, 66, 58, 38, 30, 44, 60, 76, 92, 84, 64, 46, 34, 28, 22];
+    var NOW = 6;
+    var before = card.querySelector('.before'), after = card.querySelector('.after');
+    H.forEach(function (h, k) {
+      // before: one teal for everything, the current hour in coral
+      var b = document.createElement('i');
+      b.style.height = h + '%';
+      b.style.background = k === NOW ? '#FB7572' : '#5FD6D9';
+      b.style.color = '#FB7572';
+      if (k === NOW) { b.className = 'now'; b.setAttribute('data-l', 'less busy'); }
+      before.appendChild(b);
+      // after: coral means busy, teal means quiet, the current hour is the dark dot
+      var a = document.createElement('i');
+      a.style.height = h + '%';
+      a.style.background = k === NOW ? '#0EBABF' : h >= 60 ? '#FB7572' : h >= 44 ? '#F9A9A7' : '#5FD6D9';
+      a.style.color = '#0EBABF';
+      if (k === NOW) { a.className = 'now'; a.setAttribute('data-l', 'less busy'); }
+      after.appendChild(a);
+    });
+    var t = null, run = 0;
+    function sweep(to, ms) {
+      var id = run, from = parseFloat(plot.style.getPropertyValue('--w')) || 0, t0 = performance.now();
+      return new Promise(function (res) {
+        (function f(now) {
+          if (id !== run) return;
+          var k = Math.min(1, (now - t0) / ms), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+          var w = from + (to - from) * e;
+          plot.style.setProperty('--w', w + '%');
+          wipe.setAttribute('data-l', w > 50 ? 'After' : 'Before');
+          if (k < 1) requestAnimationFrame(f); else res();
+        })(t0);
+      });
+    }
+    function wait(ms) { var id = run; return new Promise(function (res) { t = setTimeout(function () { if (id === run) res(); }, ms); }); }
+    function loop() { var id = run; wait(900).then(function () { return sweep(100, 1500); }).then(function () { return wait(2600); })
+      .then(function () { return sweep(0, 1500); }).then(function () { return wait(1600); }).then(function () { if (id === run) loop(); }); }
+    plot.style.setProperty('--w', '0%'); wipe.setAttribute('data-l', 'Before');
+    whenSeen(card, 0.6, function (v) {
+      run++; clearTimeout(t);
+      if (!v) { plot.style.setProperty('--w', '0%'); wipe.setAttribute('data-l', 'Before'); return; }
+      if (reduce) { plot.style.setProperty('--w', '100%'); wipe.setAttribute('data-l', 'After'); return; }
+      loop();
+    });
+  })();
+
+  /* ---------- 6b. testing: Version A vs B ---------- */
+  (function () {
+    var ab = document.querySelector('#ab-card .ab');
+    if (!ab) return;
+    var t = null;
+    whenSeen(ab, 0.6, function (v) {
+      clearTimeout(t);
+      ab.classList.remove('decided');
+      if (!v) return;
+      (function loop() {
+        t = setTimeout(function () {
+          ab.classList.add('decided');
+          t = setTimeout(function () { ab.classList.remove('decided'); loop(); }, 4200);
+        }, reduce ? 0 : 1200);
+      })();
+    });
+  })();
+
+  /* ---------- 7. success means: the little loops run while on screen ---------- */
+  (function () {
+    var m = document.querySelector('.metrics');
+    if (m) whenSeen(m, 0.3, function (v) { m.classList.toggle('in', v); });
+  })();
+
+  /* ---------- 8. next: tester notes tick in, one at a time ---------- */
+  (function () {
+    var box = document.getElementById('todo');
+    if (!box) return;
+    var items = [].slice.call(box.querySelectorAll('li'));
+    var status = box.querySelector('.todo-status'), count = box.querySelector('.todo-count');
+    var ts = [];
+    function clear() { ts.forEach(clearTimeout); ts = []; }
+    function reset() {
+      clear(); box.classList.remove('done');
+      items.forEach(function (li) { li.classList.remove('in', 'ok'); });
+      status.textContent = 'Going through tester notes'; count.textContent = '0 / ' + items.length;
+    }
+    whenSeen(box, 0.5, function (v) {
+      reset();
+      if (!v) return;
+      var gap = reduce ? 0 : 520;
+      items.forEach(function (li, k) {
+        ts.push(setTimeout(function () { li.classList.add('in'); }, 200 + k * gap));
+        ts.push(setTimeout(function () { li.classList.add('ok'); count.textContent = (k + 1) + ' / ' + items.length; }, 200 + k * gap + (reduce ? 0 : 700)));
+      });
+      ts.push(setTimeout(function () {
+        box.classList.add('done'); status.textContent = 'From 7 testers, still to build';
+      }, 200 + items.length * gap + 800));
+    });
+  })();
 })();

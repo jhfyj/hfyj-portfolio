@@ -17,7 +17,8 @@
   --pg-leader: #B4BBBD;
   --pg-ease: cubic-bezier(.22, 1, .36, 1);
 }
-:root[data-theme="dark"] { --pg-stage: #1C1E1F; --pg-leader: #5A5F62; }
+:root[data-theme="dark"] { --pg-stage: #1C1E1F; --pg-leader: #5A5F62; --pg-card: #26292B; }
+:root:not([data-theme="dark"]) { --pg-card: #FFFFFF; }
 
 /* ---------- stage panels (column width, rounded like the case media) ---------- */
 .pg-stage {
@@ -227,13 +228,132 @@
 .zoom-progress i:nth-child(3) b { background-position: -72px 0; }
 .zoom-progress i:nth-child(4) b { background-position: -108px 0; }
 
+/* ---------- visual 1: the old home screen, rebuilt in code ---------- */
+.old-phone .screen { background: #06393B; }
+.old-phone .status { color: #fff; }
+.old-phone .home { background: rgba(255, 255, 255, .85); }
+.old { position: absolute; inset: 0; font-family: 'Figtree', 'DM Sans', sans-serif; color: #fff; }
+.old p { margin: 0; }
+.old svg { display: block; flex: none; }
+
+.old-head { position: absolute; top: 58px; left: 0; right: 0; height: 40px; }
+.old-burger { position: absolute; left: 26px; top: 13px; width: 18px; height: 14px; display: flex; flex-direction: column; justify-content: space-between; }
+.old-burger i { display: block; height: 2px; border-radius: 1px; background: #fff; }
+.old-gym {
+  position: absolute; left: 96px; top: 5px; width: 201px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; font: 600 15px/1 'Figtree', sans-serif; white-space: nowrap;
+}
+
+.old-logo { position: absolute; top: 104px; left: 0; right: 0; height: 40px; }
+.old-help { position: absolute; left: 48px; top: 6px; }
+.old-mark {
+  position: absolute; left: 0; right: 0; top: 9px; text-align: center;
+  font: 600 22px/22px 'Figtree', sans-serif; letter-spacing: .06em;
+}
+.old-mark b { display: inline-block; width: 11px; height: 11px; margin-right: 7px; border-radius: 50%; background: #2EC4C9; vertical-align: 1px; }
+.old-acct { position: absolute; left: 313px; top: 4px; width: 32px; height: 32px; border-radius: 50%; }
+
+.old-tabs {
+  position: absolute; left: 0; right: 0; top: 160px; height: 44px;
+  display: flex; border-radius: 0; background: #06393B;
+}
+.old-tabs span {
+  position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font: 600 15px/1 'Figtree', sans-serif;
+}
+.old-tabs .on { color: #2EC4C9; }
+.old-tabs .on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #E8484D; }
+
+.old-name { position: absolute; left: 0; right: 0; top: 228px; text-align: center; font: 600 17px/1 'Figtree', sans-serif; }
+.old-visits {
+  position: absolute; left: 0; right: 0; top: 278px; height: 28px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 17px/1 'Figtree', sans-serif;
+}
+.old-visits b { font-size: 25px; font-weight: 600; color: #2EC4C9; }
+.old-last { position: absolute; left: 236px; top: 307px; font: 400 8px/1 'Figtree', sans-serif; opacity: .6; }
+
+.old-scan {
+  position: absolute; left: 36px; top: 334px; width: 321px; height: 40px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 4px; background: #E8484D; font: 600 15px/1 'Figtree', sans-serif;
+}
+
+.old-promos {
+  position: absolute; left: 30px; top: 390px; width: 333px;
+  display: flex; flex-direction: column; gap: 11px; border-radius: 6px;
+}
+.old-pay { position: relative; height: 118px; border-radius: 6px; overflow: hidden; text-align: center; }
+.old-pay img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.5) saturate(.8); }
+.old-pay b { position: relative; display: block; padding-top: 30px; font: 600 27px/1 'Figtree', sans-serif; }
+.old-pay span { position: relative; display: block; margin-top: 10px; font: 600 15px/1 'Figtree', sans-serif; }
+.old-busy {
+  height: 42px; display: flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 4px; background: #2EC4C9; font: 600 15px/1 'Figtree', sans-serif;
+}
+.old-pt {
+  position: relative; height: 46px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; padding-left: 18px;
+  border-radius: 4px; background: #F2F5F5; color: #22A9AE; font: 600 15px/1 'Figtree', sans-serif;
+}
+.old-pt i {
+  position: absolute; left: -20px; top: 9px; width: 70px; transform: rotate(-45deg);
+  background: #E8484D; color: #fff; text-align: center; font: 600 6px/9px 'Figtree', sans-serif; font-style: normal; letter-spacing: .05em;
+}
+.old-benefits {
+  height: 118px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  border-radius: 4px; background: #0A2E30; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.old-benefits p { font: 600 15px/1 'Figtree', sans-serif; }
+.old-benefits .old-mp { display: flex; align-items: center; gap: 8px; font-size: 14px; letter-spacing: .24em; }
+.old-benefits span { padding: 5px 12px; border-radius: 10px; background: #2EC4C9; font: 600 10px/1 'Figtree', sans-serif; }
+.old-strip {
+  position: absolute; left: 22px; right: 22px; top: 776px; height: 24px; padding: 0 10px;
+  display: flex; align-items: center; border-radius: 4px; background: #F2F5F5; color: #0A2E30;
+  font: 600 10px/1 'Figtree', sans-serif; white-space: nowrap; overflow: hidden;
+}
+
+/* the complained-about pieces lift out in coral, their own shape */
+/* a thin dark gap first, so the coral still reads on the red Scan button */
+.old-phone [data-part].lift { box-shadow: 0 0 0 2px #06393B, 0 0 0 4px var(--pg-coral), 0 22px 36px -12px rgba(0, 0, 0, .6); }
+.old-phone [data-part].pg-mark { box-shadow: 0 0 0 1.5px #06393B, 0 0 0 3px var(--pg-coral); transition: box-shadow .5s ease; }
+.old-phone .slot { border-color: rgba(251, 117, 114, .6); }
+
+.story { height: 480vh; }
+.story .callout { width: 240px; }
+.story .callout .num { color: var(--pg-coral); }
+.callout .c-quote { margin: 8px 0 0; font-size: 19px; line-height: 1.35; font-weight: 500; letter-spacing: -.012em; color: var(--head); }
+
+/* the ending: zoomed all the way out, one line */
+.p-close {
+  position: absolute; z-index: 3; pointer-events: none;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .55s ease, transform .7s var(--pg-ease);
+}
+.p-close.on { opacity: 1; transform: none; }
+.p-close-q { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.12; font-weight: 600; letter-spacing: -.025em; color: var(--head); }
+.p-close-note { margin: 14px 0 0; font-size: 12px; color: var(--caption); }
+
+/* five steps: same teal -> coral run, spread over five bars */
+.zoom-progress.five b { background-size: 174px 100%; }
+.zoom-progress.five i:nth-child(5) b { background-position: -144px 0; }
+
 /* narrow column: notes sit at the bottom of the stage, no leader lines */
 @media (max-width: 700px) {
   .callout { left: 20px !important; right: 20px; width: auto; top: auto !important; bottom: 52px; }
   .leaders { display: none; }
   .zoom-progress { right: 20px; bottom: 22px; }
+  .p-close { left: 20px !important; right: 20px; width: auto !important; top: auto !important; bottom: 52px; }
+  .p-close-q { font-size: 26px; }
+  /* the old screen is busy, so on a phone each quote sits on its own card */
+  .story .callout, .story .p-close {
+    padding: 12px 14px; border-radius: 12px; background: var(--pg-card);
+    box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .35);
+  }
+  .story .callout .c-quote { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gym-track, .gymname-roll span, .iphone [data-part], .callout, .leaders path { transition: none; }
+  .gym-track, .gymname-roll span, .iphone [data-part], .callout, .leaders path, .p-close { transition: none; }
 }

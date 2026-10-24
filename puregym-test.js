@@ -8,17 +8,17 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var tpl = document.getElementById('pg-screen');
   var STATUS_ICONS =
-    '<svg width="72" height="13" viewBox="0 0 72 13" fill="#0F1A1B" aria-hidden="true">' +
+    '<svg width="72" height="13" viewBox="0 0 72 13" fill="currentColor" aria-hidden="true">' +
     '<rect x="0" y="8.5" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6.5" rx="1"/>' +
     '<rect x="10" y="3.5" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11.5" rx="1"/>' +
     '<path d="M31 3.2a9.6 9.6 0 0 1 6.6 2.6l1.3-1.3A11.5 11.5 0 0 0 31 1.3a11.5 11.5 0 0 0-7.9 3.2l1.3 1.3A9.6 9.6 0 0 1 31 3.2Zm0 3.7a5.9 5.9 0 0 1 4 1.6l1.3-1.3A7.8 7.8 0 0 0 31 5a7.8 7.8 0 0 0-5.3 2.2L27 8.5a5.9 5.9 0 0 1 4-1.6Zm0 3.6a2.2 2.2 0 0 1 1.4.5L31 12.4l-1.4-1.4a2.2 2.2 0 0 1 1.4-.5Z"/>' +
-    '<rect x="44.5" y="1" width="23" height="11.5" rx="3.6" fill="none" stroke="#0F1A1B" stroke-opacity=".4"/>' +
+    '<rect x="44.5" y="1" width="23" height="11.5" rx="3.6" fill="none" stroke="currentColor" stroke-opacity=".4"/>' +
     '<rect x="46.5" y="3" width="19" height="7.5" rx="2"/><rect x="69" y="4.5" width="1.6" height="4.5" rx=".8" fill-opacity=".45"/></svg>';
 
-  function buildPhone(host) {
+  function buildPhone(host, from) {
     var screen = document.createElement('div');
     screen.className = 'screen';
-    screen.appendChild(tpl.content.cloneNode(true));
+    screen.appendChild((from || tpl).content.cloneNode(true));
     host.appendChild(screen);
     host.insertAdjacentHTML('beforeend',
       '<div class="island" aria-hidden="true"></div>' +
@@ -195,4 +195,150 @@
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  /* ---------- 3. problem (visual 1): the old home screen ----------
+     Same camera idea as the zoom. Each piece members complained about lifts
+     out in coral, in its own shape, pinned to what they said. At the end the
+     camera pulls all the way out: every piece outlined, one line. */
+  (function () {
+    var sec = document.getElementById('problem-story');
+    if (!sec) return;
+    var st = sec.querySelector('.zoom-stage');
+    var cam = sec.querySelector('.camera');
+    var ph = sec.querySelector('.iphone');
+    buildPhone(ph, document.getElementById('pg-old'));
+    ph.style.left = '13px'; ph.style.top = '13px';
+    var notes = [].slice.call(sec.querySelectorAll('.callout'));
+    var bars = [].slice.call(sec.querySelectorAll('.zoom-progress b'));
+    var lines = sec.querySelector('.leaders');
+    var close = sec.querySelector('.p-close');
+    var bits = ['search', 'account', 'tabs', 'scan', 'promo'].map(function (k) {
+      return ph.querySelector('[data-part="' + k + '"]');
+    });
+    var holes = bits.map(function (el) {
+      var s = document.createElement('div');
+      s.className = 'slot';
+      s.style.left = el.offsetLeft + 'px'; s.style.top = el.offsetTop + 'px';
+      s.style.width = el.offsetWidth + 'px'; s.style.height = el.offsetHeight + 'px';
+      s.style.borderRadius = getComputedStyle(el).borderRadius;
+      el.parentNode.insertBefore(s, el);
+      return s;
+    });
+    var ls = notes.map(function () {
+      var p = document.createElementNS(NS, 'path');
+      var c = document.createElementNS(NS, 'circle'); c.setAttribute('r', 3.5);
+      lines.appendChild(p); lines.appendChild(c);
+      return { path: p, dot: c };
+    });
+
+    // fy = screen y in focus: header 78, account 124, tabs 182, scan 354, promos 570
+    var K = [
+      { p: 0.00, z: 1.00, fy: 426, ax: 0.50 },
+      { p: 0.05, z: 1.00, fy: 426, ax: 0.50 },
+      { p: 0.13, z: 1.55, fy: 118, ax: 0.30 },
+      { p: 0.38, z: 1.55, fy: 118, ax: 0.30 },
+      { p: 0.45, z: 1.55, fy: 190, ax: 0.30 },
+      { p: 0.55, z: 1.55, fy: 190, ax: 0.30 },
+      { p: 0.62, z: 1.55, fy: 354, ax: 0.30 },
+      { p: 0.71, z: 1.55, fy: 354, ax: 0.30 },
+      { p: 0.79, z: 1.08, fy: 572, ax: 0.30 },
+      { p: 0.86, z: 1.08, fy: 572, ax: 0.30 },
+      { p: 0.94, z: 1.00, fy: 426, ax: 0.30 },
+      { p: 1.00, z: 1.00, fy: 426, ax: 0.30 }
+    ];
+    var S5 = [
+      { from: 0.10, to: 0.27, step: 0 },
+      { from: 0.27, to: 0.42, step: 1 },
+      { from: 0.42, to: 0.59, step: 2 },
+      { from: 0.59, to: 0.75, step: 3 },
+      { from: 0.75, to: 0.90, step: 4 },
+      { from: 0.90, to: 1.01, step: 'all' }
+    ];
+    function at(p) {
+      for (var i = 0; i < K.length - 1; i++) {
+        var a = K[i], b = K[i + 1];
+        if (p <= b.p) {
+          var t = smooth(clamp01((p - a.p) / (b.p - a.p)));
+          return { z: a.z + (b.z - a.z) * t, fy: a.fy + (b.fy - a.fy) * t, ax: a.ax + (b.ax - a.ax) * t };
+        }
+      }
+      var l = K[K.length - 1]; return { z: l.z, fy: l.fy, ax: l.ax };
+    }
+    function prog() {
+      var r = sec.getBoundingClientRect();
+      var sr = st.getBoundingClientRect();
+      return clamp01((sr.top - r.top) / (r.height - st.offsetHeight));
+    }
+
+    var now = null, on = undefined;
+    function pick(step) {
+      if (step === on) return;
+      on = step;
+      bits.forEach(function (el, i) {
+        el.classList.toggle('lift', step === i);
+        el.classList.toggle('pg-mark', step === 'all');
+      });
+      holes.forEach(function (el, i) { el.classList.toggle('on', step === i); });
+      notes.forEach(function (el, i) { el.classList.toggle('on', step === i); });
+      close.classList.toggle('on', step === 'all');
+    }
+
+    function place(W, H, narrow) {
+      var sr = st.getBoundingClientRect();
+      var right = ph.getBoundingClientRect().right - sr.left + 13 * now.S;
+      notes.forEach(function (el, i) {
+        var L = ls[i];
+        if (narrow || !el.classList.contains('on')) { L.path.style.opacity = 0; L.dot.style.opacity = 0; return; }
+        var r = bits[i].getBoundingClientRect();
+        var cy = r.top - sr.top + r.height / 2;
+        var x1 = r.right - sr.left + 4;
+        var left = Math.min(Math.max(x1 + 64, right + 44), W - 260);
+        var top = Math.max(20, Math.min(cy - 9, H - 130));
+        el.style.left = left + 'px'; el.style.top = top + 'px';
+        var y2 = top + 9, x2 = left - 16, mid = x1 + (x2 - x1) * 0.5;
+        L.path.setAttribute('d', 'M' + x1 + ' ' + cy + ' H' + mid + ' V' + y2 + ' H' + x2);
+        L.path.style.opacity = 1;
+        L.dot.setAttribute('cx', x1); L.dot.setAttribute('cy', cy);
+        L.dot.style.opacity = 1;
+      });
+      if (!narrow) {
+        var cl = right + 48;
+        close.style.left = cl + 'px';
+        close.style.width = Math.max(180, W - cl - 32) + 'px';
+        close.style.top = Math.max(20, (H - close.offsetHeight) / 2) + 'px';
+      }
+    }
+
+    function tick() {
+      requestAnimationFrame(tick);
+      var vr = sec.getBoundingClientRect();
+      if (now && (vr.bottom < -200 || vr.top > window.innerHeight + 200)) return;
+      var W = st.clientWidth, H = st.clientHeight;
+      var narrow = W < 640;
+      var p = prog();
+      var t = at(p);
+      if (narrow) { t.ax = 0.5; t.z = 1 + (t.z - 1) * 0.6; }
+      var base = Math.min((H * (narrow ? 0.72 : 0.88)) / FH, (W * 0.9) / FW);
+      var target = { S: base * t.z, fy: t.fy, ax: t.ax };
+      if (!now || reduce) now = target;
+      else {
+        var k = 0.16;
+        now = { S: now.S + (target.S - now.S) * k, fy: now.fy + (target.fy - now.fy) * k, ax: now.ax + (target.ax - now.ax) * k };
+      }
+      var ay = narrow ? H * 0.40 : H / 2;
+      var tx = now.ax * W - (FW / 2) * now.S;
+      var ty = ay - (now.fy + 13) * now.S;
+      var out = clamp01((1.12 - now.S / base) / 0.12);
+      ty = ty + ((H - FH * now.S) / 2 - ty) * out;
+      if (narrow && on === 'all') ty = Math.min(ty, 20);
+      cam.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) scale(' + now.S.toFixed(4) + ')';
+
+      var step = null;
+      for (var i = 0; i < S5.length; i++) if (p >= S5[i].from && p < S5[i].to) step = S5[i].step;
+      pick(step);
+      bars.forEach(function (b, i) { b.style.width = (clamp01((p - S5[i].from) / (S5[i].to - S5[i].from)) * 100) + '%'; });
+      place(W, H, narrow);
+    }
+    requestAnimationFrame(tick);
+  })();
 })();

@@ -4944,11 +4944,11 @@ const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4, POP: 5, IMG_PLAIN: -1 };
 const CB_T = {
     // The blank card fades in (see-through, soft-edged and a touch small to
     // solid, sharp and full size, like naheeljawaid.com), no outline (Jen)
-    grow: 750, outline: 950, fillAt: 0, fill: 750,
-    fadeSoft: 48,                  // how soft its edge starts, in design px
+    grow: 320, outline: 950, fillAt: 0, fill: 320,
+    fadeSoft: 24,                  // how soft its edge starts, in design px
     // Per-card timing only (the card itself never spins; see cbRingStep)
     spinRate: 10,                  // sets how long the settle step takes
-    spinMin: 750,                  // nothing lands before the card has faded in
+    spinMin: 320,                  // the build starts as soon as the card has faded in
     spinCap: 1600,                 // and starts slowing by now even if the art is late
     stopMin: 400, stopMax: 750,    // how long the slow-down takes
     flyFrom: 0.5,                  // pieces start flying this far into the slow-down

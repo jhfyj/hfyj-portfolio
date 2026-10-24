@@ -5287,6 +5287,34 @@ function cbPatchFace(material, U) {
     material.needsUpdate = true;
 }
 
+// The blank card fading in: the card's own colour and paper, faded by
+// uCbCard.z, its edge soft by uCbCard.x design px at first (Jen). Small on
+// purpose, so it is ready almost at once.
+function cbPatchGhost(material, U) {
+    const prevCompile = material.onBeforeCompile;
+    const prevKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, r) => {
+        prevCompile.call(material, shader, r);
+        shader.uniforms.uCbBg = CB_COLORS.uCbBg;
+        shader.uniforms.uCbCard = U.uCbCard;
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <map_pars_fragment>',
+                '#include <map_pars_fragment>\nuniform vec3 uCbBg;\nuniform vec4 uCbCard;')
+            .replace('#include <color_fragment>', `#ifdef USE_MAP
+    {
+        vec2 p = vec2( vMapUv.x * 1059.0, ( 1.0 - vMapUv.y ) * 1449.0 );
+        vec2 q = abs( p - vec2( 529.5, 724.5 ) ) - vec2( 529.5, 724.5 ) + 50.0;
+        float d = length( max( q, 0.0 ) ) + min( max( q.x, q.y ), 0.0 ) - 50.0;
+        float edge = uCbCard.x > 0.5 ? smoothstep( 0.0, uCbCard.x, -d ) : 1.0;
+        diffuseColor = vec4( uCbBg, uCbCard.z * edge );
+    }
+#endif
+#include <color_fragment>`);
+    };
+    material.customProgramCacheKey = () => prevKey() + '|cb-ghost';
+    material.needsUpdate = true;
+}
+
 function cbClamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 function cbEaseInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
@@ -5351,7 +5379,7 @@ function cbWarm() {
     const aspect = 1059 / 1449;
     const ghostMat = new THREE.MeshBasicMaterial({ map: CB_WHITE, transparent: true, side: THREE.FrontSide, depthWrite: false });
     applyCardStock(ghostMat, { aspect });
-    cbPatchFace(ghostMat, cbMakeUniforms());
+    cbPatchGhost(ghostMat, cbMakeUniforms());
     const realMat = new THREE.MeshBasicMaterial({ map: CB_WHITE, side: THREE.FrontSide });
     applyCardStock(realMat, { aspect });
     cardSoftPatchMat(realMat, { value: 0 });
@@ -5373,6 +5401,8 @@ function cbWarm() {
     cbWarm.keep = warm;
     return cbWarmPromise;
 }
+// Started here, while the rest of the page sets up, rather than when the build starts
+if (CB_ENABLED) cbWarm();
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Where everything sits on each face, in design px Ã¢â€â‚¬Ã¢â€â‚¬
 // Read off the same numbers the painters above draw with, so the wireframe
@@ -5550,7 +5580,7 @@ function cbMakeGhost(st) {
         map: CB_WHITE, transparent: true, side: THREE.FrontSide, depthWrite: false,
     });
     applyCardStock(mat, { aspect });
-    cbPatchFace(mat, st.U);
+    cbPatchGhost(mat, st.U);
     const mesh = new THREE.Mesh(makeRoundedCardGeo(cardW, cardH, 0.06), mat);
     mesh.raycast = () => {};
     const g = new THREE.Group();
@@ -5711,6 +5741,20 @@ async function cbStart() {
         }
         st.started = true;
     });
+
+    // Upload every card's pictures and draw the blank cards once (fully see-
+    // through) now, then start the clock. Otherwise the first frames of the
+    // fade-in stall on that work and the fade is lost.
+    cbCards.forEach((st) => {
+        if (st.real) st.real.traverse((o) => [].concat(o.material || []).forEach((m) => {
+            ['map', 'alphaMap', 'bumpMap', 'normalMap'].forEach((key) => { if (m[key] && m[key].isTexture) renderer.initTexture(m[key]); });
+        }));
+        if (st.ghost) st.ghost.visible = true;
+    });
+    renderer.render(scene, camera);
+    const shift = performance.now() - cbStartTime;
+    cbStartTime += shift;
+    cbCards.forEach((st) => { if (st.started && !st.finished) st.t0 += shift; });
 }
 
 // The face is in. Cards with type over their photo (About Me, Playground)

@@ -553,6 +553,10 @@ const renderer = new THREE.WebGLRenderer({
 // Pixel ratio first Ã¢â‚¬â€ setSize sizes the backing store using whatever ratio is
 // set at the time, so setting it afterwards leaves the scene rendering at 1x.
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Checking every shader's log on its first draw waits for the GPU to finish
+// building it, which froze the load-in for 0.4-0.6 s at a time. Off unless
+// ?glcheck is in the address (for when a shader is being worked on).
+renderer.debug.checkShaderErrors = location.search.includes('glcheck');
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 // Custom card cursor + dot cursor
@@ -5751,6 +5755,25 @@ async function cbStart() {
         }));
         if (st.ghost) st.ghost.visible = true;
     });
+    const was = [];
+    cbCards.forEach((st) => {
+        if (!st.real) return;
+        st.real.traverse((o) => { was.push([o, o.visible]); o.visible = true; });
+    });
+    if (was.length) {
+        const flip = [];
+        cbCards.forEach((st) => st.real && st.real.traverse((o) => [].concat(o.material || []).forEach((m) => {
+            if (m.visible !== false && !m.transparent && !flip.includes(m)) flip.push(m);
+        })));
+        renderer.setScissorTest(true);
+        renderer.setScissor(0, 0, 1, 1);
+        renderer.render(scene, camera);
+        flip.forEach((m) => { m.transparent = true; m.needsUpdate = true; });
+        renderer.render(scene, camera);
+        flip.forEach((m) => { m.transparent = false; m.needsUpdate = true; });
+        renderer.setScissorTest(false);
+        was.forEach(([o, v]) => { o.visible = v; });
+    }
     renderer.render(scene, camera);
     const shift = performance.now() - cbStartTime;
     cbStartTime += shift;

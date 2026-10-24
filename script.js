@@ -1034,7 +1034,7 @@ function stashCardHandoff(index, url) {
     const rect = projectCardFaceRect(group);
     if (!(rect.w > 1 && rect.h > 1)) return;
 
-    const L = isFelt ? PLAYGROUND_FACE_LAYOUT : CARD_FACE_LAYOUT;
+    const L = isFelt ? PLAYGROUND_FACE_LAYOUT : (group.userData.faceLayout || CARD_FACE_LAYOUT);
     let image = null;
     if (!isFelt) {
         const map = group.children[0].material && group.children[0].material.map;
@@ -1063,6 +1063,9 @@ function stashCardHandoff(index, url) {
                 out.height = Math.round(900 * wellH / wellW);
                 const octx = out.getContext('2d');
                 octx.imageSmoothingQuality = 'high';
+                // Cover pictures can be see-through; JPEG would turn that black
+                octx.fillStyle = THEME_COLORS[currentTheme].cardBg;
+                octx.fillRect(0, 0, out.width, out.height);
                 tmplDrawImageCover(octx, src, 0, 0, out.width, out.height);
             } else {
                 const sx = L.photo.x * face.width, sy = L.photo.y * face.height;
@@ -3151,127 +3154,7 @@ function puregymDrawPill(ctx, x, y, w, h, label, s, theme) {
 }
 
 function loadCard1() {
-    const s = PUREGYM_SCALE;
-    const canvas = document.createElement('canvas');
-    canvas.width = PUREGYM_DESIGN.w * s;
-    canvas.height = PUREGYM_DESIGN.h * s;
-    const ctx = canvas.getContext('2d');
-
-    const mockup = new Image();
-    mockup.crossOrigin = 'anonymous';
-    mockup.src = 'https://jhfyj.github.io/New-Website-Code/Cards/puregym-mockups.webp';
-
-    Promise.all([
-        document.fonts.load(`700 ${96 * s}px "DM Sans"`),
-        document.fonts.load(`italic 400 ${36 * s}px "DM Sans"`),
-        document.fonts.load(`400 ${64 * s}px "DM Sans"`),
-        document.fonts.load(`600 ${40 * s}px "DM Sans"`),
-        new Promise((resolve) => { mockup.onload = resolve; }),
-    ]).then(() => {
-        const r = 36 * s;
-
-        function paint(theme) {
-            // Drawn at the current scale, which the window can change
-            const s = CARD_TEXTURE_SCALE, r = 36 * s;
-            fitFaceCanvas(canvas, PUREGYM_DESIGN);
-            const { cardBg, ink, inkBody } = THEME_COLORS[theme];
-
-            // Card stock, clipped to the card's rounded corners
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-            ctx.clip();
-            ctx.fillStyle = cardBg;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-
-            // Phone-mockup photo, clipped to the same rounded well + folded-corner
-            // notch the template cards use (tmplPhotoClipPath), so this card's photo
-            // box matches the rest of the deck instead of running square to the edges.
-            // Cover rather than stretch: the mockup is 1250x1004 (1.2450) against a
-            // 1016.663x817 well (1.2444), so the crop is sub-pixel and nothing of the
-            // phones is lost Ã¢â‚¬â€ but it keeps the aspect honest like every other card.
-            ctx.save();
-            tmplPhotoClipPath(ctx, 21 * s, 20 * s, s);
-            ctx.clip();
-            winCutHole(ctx);
-            winPaintPhoto(canvas, mockup, { x: 21, y: 20, w: 1016.663, h: 817 }, s);
-            ctx.restore();
-            tmplPhotoInnerShadow(ctx, 21 * s, 20 * s, s);
-
-            // "#003" Ã¢â‚¬â€ this card's position in the site's numbering (not Figma's placeholder number).
-            // Sits in the folded-corner notch on bare stock, so it follows the theme's ink
-            // like the template cards' tags do.
-            ctx.fillStyle = ink;
-            ctx.font = `italic 400 ${36 * s}px "DM Sans", sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText('#003', 100.5 * s, 24 * s);
-
-            // Title
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = ink;
-            ctx.font = `700 ${96 * s}px "DM Sans", sans-serif`;
-            ctx.fillText('Puregym Redesign', 54 * s, 960 * s, 951 * s);
-
-            // Description, on the same measure as every template card
-            ctx.fillStyle = inkBody;
-            ctx.font = `400 ${CARD_BODY.size * s}px "DM Sans", sans-serif`;
-            puregymWrapText(
-                ctx,
-                'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
-                54 * s, CARD_BODY.y * s, CARD_BODY.width * s, CARD_BODY.lineHeight * s
-            );
-
-            // Tag pills
-            puregymDrawPill(ctx, 218 * s, 1354 * s, 242 * s, 68 * s, '2025-26', s, theme);
-            puregymDrawPill(ctx, 472 * s, 1354 * s, 335 * s, 68 * s, 'CASE STUDY', s, theme);
-            puregymDrawPill(ctx, 819 * s, 1354 * s, 219 * s, 68 * s, 'MOBILE', s, theme);
-
-            // Slight paper-grain overlay Ã¢â‚¬â€ reuses the same procedural noise tile
-            // as grainTex (see makeGrainTexture above), so it's free: no image
-            // file, just a repeating pattern drawn from an in-memory canvas.
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
-            ctx.clip();
-            ctx.globalAlpha = 0.05;
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-        }
-
-        paint(currentTheme);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        cardFaceRepaints.push({
-            index: 1,
-            repaint: (theme) => {
-                const w0 = canvas.width;
-                paint(theme);
-                if (canvas.width !== w0) texture.dispose();   // new size, new storage
-                texture.needsUpdate = true; // three.js re-uploads a canvas only when told to
-            },
-        });
-
-        const aspect = PUREGYM_DESIGN.w / PUREGYM_DESIGN.h;
-        const cardH = 1.7, cardW = cardH * aspect;
-        const geometry = makeRoundedCardGeo(cardW, cardH, 0.06);
-        const frontMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.FrontSide });
-        const mesh  = new THREE.Mesh(geometry, frontMat);
-        const group = new THREE.Group();
-        group.userData.cardIndex = 1;
-        // What the face says, kept for the card Ã¢â€ â€™ page hand-off above
-        group.userData.cardTitle = 'Puregym Redesign';
-        // The bare picture, for the card Ã¢â€ â€™ page flight (see stashCardHandoff)
-        group.userData.handoffPhoto = mockup;
-        group.add(mesh);
-        _placeCard(1, group);
-    });
+    loadTemplateCard(1, COVER_SPECS[1]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Cards 2Ã¢â‚¬â€œ7 Ã¢â‚¬â€ same treatment as the Puregym card (see loadCard1 above): a
@@ -3563,11 +3446,361 @@ function buildTemplateCardTexture({ imageSrc, tag, title, accentLine, descriptio
     });
 }
 
+// ── Cover cards (Jen's simpler covers, Figma "Personal Website Planning") ──
+// White stock, the picture up top on its own gradient, then one centred
+// title and one short grey line. No #00X tag, no pills, no photo well: the
+// picture sits straight on the card and fades into it.
+//
+// The picture is still its own layer behind the face (CARD_WIN), so the tilt
+// still slides it: the face just has the whole top of the card cut away
+// above the title, feathered at the bottom so there is no edge to see.
+// Everything below is in design px on the 1059x1449 face, read off Figma.
+const COVER = {
+    cx: 529.5,
+    titleTop: 1070, titleSize: 64,
+    bodyTop: 1175, bodySize: 46, bodyW: 901,
+    accentSize: 42, accentGap: 5,
+    holeEnd: 1060, feather: 70,
+    // Figma's text colours on white; dark mode keeps the same contrast steps
+    light: { title: '#141414', body: '#9E9E9E' },
+    dark: { title: '#F2F2F2', body: '#A3A3A3' },
+};
+const coverTitleFont = (px) => `500 ${px}px "DM Sans", sans-serif`;
+const coverBodyFont = (px) => `400 ${px}px "Figtree", "DM Sans", sans-serif`;
+
+// Where every line of a cover's type sits, measured on ctx at k canvas px per
+// design px. The painter and the build-in both lay out from this, so the
+// wireframe lands exactly on the letters.
+function coverTextLayout(ctx, k, o) {
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    const metrics = (font) => {
+        ctx.font = font;
+        const m = ctx.measureText('Hg');
+        const px = parseFloat(font.match(/(\d+(?:\.\d+)?)px/)[1]);
+        const asc = (m.fontBoundingBoxAscent || px * 0.95) / k;
+        const desc = (m.fontBoundingBoxDescent || px * 0.25) / k;
+        return { asc, lh: asc + desc };
+    };
+    const wrap = (text, maxW) => {
+        const words = text.split(' ');
+        const out = [];
+        let line = '';
+        for (let n = 0; n < words.length; n++) {
+            const test = line ? line + ' ' + words[n] : words[n];
+            if (line && ctx.measureText(test).width / k > maxW) { out.push(line); line = words[n]; }
+            else line = test;
+        }
+        out.push(line);
+        return out;
+    };
+    const tf = coverTitleFont(COVER.titleSize * k);
+    const tm = metrics(tf);
+    ctx.font = tf;
+    const title = { text: o.title, font: tf, size: COVER.titleSize,
+        base: (o.titleTop || COVER.titleTop) + tm.asc, w: ctx.measureText(o.title).width / k };
+    const lines = [];
+    let top = o.bodyTop || COVER.bodyTop;
+    if (o.accentLine) {
+        const af = coverBodyFont(COVER.accentSize * k);
+        const am = metrics(af);
+        ctx.font = af;
+        wrap(o.accentLine, COVER.bodyW).forEach((text) => {
+            lines.push({ text, font: af, size: COVER.accentSize, base: top + am.asc, w: ctx.measureText(text).width / k, accent: true });
+            top += am.lh;
+        });
+        top += COVER.accentGap;
+    }
+    const bf = coverBodyFont(COVER.bodySize * k);
+    const bm = metrics(bf);
+    ctx.font = bf;
+    wrap(o.description, COVER.bodyW).forEach((text) => {
+        lines.push({ text, font: bf, size: COVER.bodySize, base: top + bm.asc, w: ctx.measureText(text).width / k });
+        top += bm.lh;
+    });
+    return { title, lines };
+}
+
+function coverHexA(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
+// The picture layer: card stock, Jen's soft gradient glows, then the picture
+// where Figma has it (even where it runs off the card: the margin the tilt
+// can reveal shows more of it, not a cut edge).
+function coverPaintPhoto(faceCanvas, o, img, s, theme) {
+    let Lw = faceCanvas.__win;
+    if (!Lw) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 2;
+        const tx = new THREE.CanvasTexture(c);
+        tx.colorSpace = THREE.SRGBColorSpace;
+        tx.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        Lw = faceCanvas.__win = { canvas: c, ctx: c.getContext('2d'), texture: tx, rect: new THREE.Vector4() };
+    }
+    const M = WIN_MARGIN_PX;
+    const ex = -M, ey = -M, ew = 1059 + 2 * M, eh = (o.holeEnd || COVER.holeEnd) + 2 * M;
+    const w = Math.max(2, Math.round(ew * s)), h = Math.max(2, Math.round(eh * s));
+    if (Lw.canvas.width !== w || Lw.canvas.height !== h) {
+        Lw.canvas.width = w;
+        Lw.canvas.height = h;
+        Lw.texture.dispose();
+    }
+    const c = Lw.ctx;
+    const { cardBg } = THEME_COLORS[theme];
+    c.save();
+    c.setTransform(s, 0, 0, s, -ex * s, -ey * s);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.fillStyle = cardBg;
+    c.fillRect(ex, ey, ew, eh);
+    (o.glows || []).forEach((g) => {
+        c.save();
+        c.globalAlpha = theme === 'dark' ? (g.dark ? 0.85 : 0.5) : 1;
+        const col = theme === 'dark' && g.dark ? g.dark : g.color;
+        c.translate(g.x, g.y);
+        c.scale(1, g.ry / g.rx);
+        const grad = c.createRadialGradient(0, 0, 0, 0, 0, g.rx);
+        grad.addColorStop(0, col);
+        // Figma fades each glow out towards a pale aqua; on the dark stock
+        // that tint reads as haze, so there it fades out in its own colour
+        grad.addColorStop(1, theme === 'dark' || g.dark ? coverHexA(col, 0) : 'rgba(183, 238, 239, 0)');
+        c.fillStyle = grad;
+        c.beginPath();
+        c.arc(0, 0, g.rx, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    });
+    const f = o.frame;
+    if (img && (img.naturalWidth || img.width)) {
+        c.save();
+        if (o.fade) {
+            // Bleed (Jen): no rounded frame round the picture. It runs off the
+            // card on every side but the bottom, so when the tilt slides the
+            // layer there is more of its own black/white past the edge, never
+            // a cut edge with card stock behind it.
+            c.beginPath();
+            c.rect(ex, ey, ew, f.y + f.h - ey);
+            c.clip();
+        } else if (f.r) {
+            c.beginPath();
+            c.roundRect(f.x, f.y, f.w, f.h, f.r);
+            c.clip();
+        }
+        // A picture shot on pure white sinks into the warmer stock in light
+        // mode instead of sitting on it as a brighter slab
+        if (o.onWhite && theme === 'light') c.globalCompositeOperation = 'multiply';
+        if (o.fade) coverDrawBleed(c, img, f, ex, ey, ew, f.y + f.h - ey);
+        else tmplDrawImageCover(c, img, f.x, f.y, f.w, f.h);
+        c.restore();
+    }
+    if (o.fade) {
+        // Fades the picture into the stock top and bottom (Figma's white
+        // gradient, in whatever the card colour is)
+        c.save();
+        const g = c.createLinearGradient(0, f.y, 0, f.y + f.h);
+        g.addColorStop(0, coverHexA(cardBg, 0));   // no top fade (Jen): the top edge stays crisp
+        g.addColorStop(0.875, coverHexA(cardBg, 0));
+        g.addColorStop(1, cardBg);
+        c.fillStyle = g;
+        c.fillRect(ex, f.y - 1, ew, f.h + 2);   // the whole width, since the picture now bleeds
+        c.restore();
+    }
+    c.restore();
+    Lw.texture.needsUpdate = true;
+    Lw.rect.set(ex / 1059, 1 - (ey + eh) / 1449, ew / 1059, eh / 1449);
+}
+
+// The picture at its framed size (cover-fit, same crop as before) but not
+// trimmed: whatever the fit cut off at the sides shows past the frame, and
+// past the photo's own edge its outermost pixels are stretched out, so the
+// black or white it was shot on simply carries on.
+function coverDrawBleed(c, img, f, L, T, W, H) {
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const sc = Math.max(f.w / iw, f.h / ih);
+    const dw = iw * sc, dh = ih * sc;
+    const dx = f.x + (f.w - dw) / 2, dy = f.y + (f.h - dh) / 2;
+    const R = L + W, B = T + H, e = 2, o = 1;   // e source px stretched, o px overlap so no seam
+    const lw = dx - L, rw = R - (dx + dw), th = dy - T, bh = B - (dy + dh);
+    if (lw > 0) c.drawImage(img, 0, 0, e, ih, L, dy, lw + o, dh);
+    if (rw > 0) c.drawImage(img, iw - e, 0, e, ih, dx + dw - o, dy, rw + o, dh);
+    if (th > 0) c.drawImage(img, 0, 0, iw, e, dx, T, dw, th + o);
+    if (bh > 0) c.drawImage(img, 0, ih - e, iw, e, dx, dy + dh - o, dw, bh + o);
+    if (lw > 0 && th > 0) c.drawImage(img, 0, 0, e, e, L, T, lw + o, th + o);
+    if (rw > 0 && th > 0) c.drawImage(img, iw - e, 0, e, e, dx + dw - o, T, rw + o, th + o);
+    if (lw > 0 && bh > 0) c.drawImage(img, 0, ih - e, e, e, L, dy + dh - o, lw + o, bh + o);
+    if (rw > 0 && bh > 0) c.drawImage(img, iw - e, ih - e, e, e, dx + dw - o, dy + dh - o, rw + o, bh + o);
+    c.drawImage(img, dx, dy, dw, dh);
+}
+
+function buildCoverCardTexture(o) {
+    const s0 = TEMPLATE_CARD_SCALE;
+    const canvas = document.createElement('canvas');
+    canvas.width = TEMPLATE_CARD.w * s0;
+    canvas.height = TEMPLATE_CARD.h * s0;
+    const ctx = canvas.getContext('2d');
+    const photo = new Image();
+    photo.crossOrigin = 'anonymous';
+    photo.src = o.imageSrc;
+    return Promise.all([
+        document.fonts.load(coverTitleFont(64)).catch(() => {}),
+        document.fonts.load(coverBodyFont(46)).catch(() => {}),
+        new Promise((resolve) => { photo.onload = resolve; photo.onerror = resolve; }),
+    ]).then(() => {
+        function paint(theme) {
+            const s = CARD_TEXTURE_SCALE, r = 36 * s;
+            fitFaceCanvas(canvas, TEMPLATE_CARD);
+            const { cardBg, accent } = THEME_COLORS[theme];
+            const ink = COVER[theme] || COVER.light;
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.fillStyle = cardBg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // The whole top of the card looks through to the picture layer,
+            // feathered out just above the title
+            const end = (o.holeEnd || COVER.holeEnd) * s, fe = COVER.feather * s;
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-out';
+            const hole = ctx.createLinearGradient(0, 0, 0, end);
+            hole.addColorStop(0, '#000');
+            hole.addColorStop((end - fe) / end, '#000');
+            hole.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = hole;
+            ctx.fillRect(0, 0, canvas.width, end);
+            ctx.restore();
+            coverPaintPhoto(canvas, o, photo, s, theme);
+
+            const lay = coverTextLayout(ctx, s, o);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.font = lay.title.font;
+            ctx.fillStyle = ink.title;
+            ctx.fillText(lay.title.text, COVER.cx * s, lay.title.base * s);
+            lay.lines.forEach((ln) => {
+                ctx.font = ln.font;
+                ctx.fillStyle = ln.accent ? accent : ink.body;
+                ctx.fillText(ln.text, COVER.cx * s, ln.base * s);
+            });
+
+            if (o.comingSoon) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+                ctx.clip();
+                ctx.globalAlpha = 1 - COMING_SOON_INK;
+                ctx.fillStyle = cardBg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, canvas.width, canvas.height, r);
+            ctx.clip();
+            ctx.globalAlpha = 0.05;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.fillStyle = ctx.createPattern(grainTex.image, 'repeat');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+        }
+        paint(currentTheme);
+        return { canvas, paint, photo };
+    });
+}
+
+// Where the picture and the title are on a cover, for the card -> page flight
+function coverFaceLayout(o) {
+    const f = o.frame;
+    const x0 = Math.max(0, f.x), y0 = Math.max(0, f.y);
+    const x1 = Math.min(1059, f.x + f.w), y1 = Math.min(1449, f.y + f.h);
+    const lay = coverTextLayout(cbMeasure, 1, o);
+    return {
+        photo: { x: x0 / 1059, y: y0 / 1449, w: (x1 - x0) / 1059, h: (y1 - y0) / 1449 },
+        title: { x: (COVER.cx - lay.title.w / 2) / 1059, baseline: lay.title.base / 1449, size: COVER.titleSize / 1449 },
+    };
+}
+
+// The build-in's wireframe for a cover: one picture block, the title, and
+// the line(s) under it in a box, all centred like the art.
+function cbCoverLayout(o) {
+    const wr = o.wire || o.frame;
+    const els = [{ kind: CB.IMG_PLAIN, role: 'img', x: wr.x, y: wr.y, w: wr.w, h: wr.h }];
+    const lay = coverTextLayout(cbMeasure, cbScale, o);
+    const rect = (ln) => ({ x: COVER.cx - ln.w / 2, y: ln.base - ln.size * 0.76, w: ln.w, h: ln.size * 0.98, chars: ln.text.length });
+    els.push(Object.assign({ kind: CB.BAR, role: 'title' }, rect(lay.title)));
+    const lines = lay.lines.map((ln) => Object.assign({ kind: CB.LINE, role: 'line' }, rect(ln)));
+    els.push(cbBoxAround(lines), ...lines);
+    return { els, cut: null };
+}
+
+// The seven covers. Copy is Jen's PureGym template: one plain sentence.
+const COVER_SPECS = {
+    1: {
+        cover: true, title: 'Puregym Redesign',
+        description: 'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
+        imageSrc: './Cards/covers/puregym-cover.webp',
+        frame: { x: -56.2, y: 94, w: 1118, h: 899 },
+        glows: [
+            { x: 440, y: 500, rx: 400, ry: 400, color: '#A9DDF7', dark: '#5FA8E8' },   // blue, behind the left phone
+            { x: 640, y: 600, rx: 360, ry: 360, color: '#FBC4D4', dark: '#E87BA8' },   // pink, behind the right phone
+        ],
+        wire: { x: 21, y: 20, w: 1017, h: 1000 },
+    },
+    2: {
+        cover: true, title: 'tech@nyu',
+        description: 'Rebrand and website redesign for Tech@NYU, one of NYU\u2019s oldest tech clubs.',
+        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/tech-mockups.webp',
+        frame: { x: 18, y: 12, w: 1023, h: 962, r: 16 }, fade: true,
+    },
+    3: {
+        cover: true, title: 'Clarus AI',
+        description: 'Interactive installation exploring what it means to work for your energy when using AI.',
+        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/clarus-mockups.webp',
+        frame: { x: 18, y: 12, w: 1023, h: 962, r: 16 }, fade: true,
+    },
+    4: {
+        cover: true, title: 'POVI',
+        description: 'Speculative mobile design for athletes, imagining a technology that doesn\u2019t exist yet.',
+        imageSrc: './Cards/covers/povi-cover.webp',
+        frame: { x: -79, y: 31, w: 1217, h: 913 },
+        glows: [
+            { x: 530.5, y: 508.5, rx: 508.5, ry: 508.5, color: '#F5B846' },
+            { x: 530, y: 539, rx: 279, ry: 279, color: '#FF8629' },
+        ],
+        wire: { x: 21, y: 20, w: 1017, h: 1000 },
+    },
+    5: {
+        cover: true, title: 'The Dial',
+        accentLine: 'Open Doors x Framer Challenge First place',
+        description: 'Interaction design focused on the micro-details of expressing a moment.',
+        imageSrc: './Cards/covers/the-dial-cover.webp',
+        frame: { x: 20, y: 23, w: 1019, h: 888, r: 16 }, fade: true,
+        titleTop: 1067, bodyTop: 1174,
+    },
+    6: {
+        cover: true, title: 'BMW Designworks',
+        description: 'Product Design Internship across B2B, consumer, and more at BMW Designworks',
+        imageSrc: './Cards/covers/bmw-cover.webp',
+        frame: { x: 88, y: 167, w: 883, h: 770, r: 16 }, onWhite: true,
+    },
+    7: {
+        cover: true, title: 'Nenos Inc.',
+        description: 'Led 7 designers as Design Manager to design the Places feature, from ideation to handoff.',
+        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp',
+        frame: { x: 88, y: 167, w: 883, h: 770, r: 16 }, onWhite: true,
+    },
+};
+
 function loadTemplateCard(index, opts) {
     if (COMING_SOON_INDICES.has(index)) opts = Object.assign({ comingSoon: true }, opts);
     // The copy, so the build-in can lay out this card's wireframe right away
     cbCards[index].spec = { type: 'template', opts };
-    buildTemplateCardTexture(opts).then(({ canvas, paint, photo }) => {
+    (opts.cover ? buildCoverCardTexture(opts) : buildTemplateCardTexture(opts)).then(({ canvas, paint, photo }) => {
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -3592,6 +3825,7 @@ function loadTemplateCard(index, opts) {
         group.userData.cardTitle = opts.title || '';
         // The bare picture, for the card Ã¢â€ â€™ page flight (see stashCardHandoff)
         group.userData.handoffPhoto = photo || null;
+        if (opts.cover) group.userData.faceLayout = coverFaceLayout(opts);
         group.add(mesh);
         _placeCard(index, group);
     });
@@ -3599,69 +3833,32 @@ function loadTemplateCard(index, opts) {
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 2 Ã¢â‚¬â€ tech@nyu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard2() {
-    loadTemplateCard(2, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/tech-mockups.webp',
-        tag: '#001',
-        title: 'tech@nyu',
-        description: "Rebranding and website design for tech@nyu, NYUÃ¢â‚¬â„¢s oldest tech-focused club.",
-        pills: ['2025', 'BRANDING', 'UIUX'],
-    });
+    loadTemplateCard(2, COVER_SPECS[2]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 3 Ã¢â‚¬â€ Clarus AI Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard3() {
-    loadTemplateCard(3, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/clarus-mockups.webp',
-        tag: '#002',
-        title: 'CLARUS.AI',
-        description: 'Interactive installation focused on the question: what happens when using LLMs required more than just type and enter?',
-        pills: ['2025', 'INSTALLATION', 'UIUX'],
-    });
+    loadTemplateCard(3, COVER_SPECS[3]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 4 Ã¢â‚¬â€ POVI Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard4() {
-    loadTemplateCard(4, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/povi-mockups.webp',
-        tag: '#004',
-        title: 'POVI',
-        description: "Speculative design focused on the question: How can we design for a technology that doesnÃ¢â‚¬â„¢t exist yet?",
-        pills: ['2026', 'COMPETITION', 'MOBILE'],
-    });
+    loadTemplateCard(4, COVER_SPECS[4]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 5 Ã¢â‚¬â€ The Dial Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard5() {
-    loadTemplateCard(5, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/the-dial-mockups.webp',
-        tag: '#005',
-        title: 'The Dial',
-        accentLine: 'Open Doors x Framer 1st place winner',
-        description: 'Interaction focused on the micro-details and what it means to express a moment',
-        pills: ['2026', 'COMPETITION', 'INTERACTION'],
-    });
+    loadTemplateCard(5, COVER_SPECS[5]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 6 Ã¢â‚¬â€ BMW Designworks Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard6() {
-    loadTemplateCard(6, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp',
-        tag: '#006',
-        title: 'BMW Designworks',
-        description: 'Product Design Internship across B2B, consumer, and more at BMW Designworks.',
-        pills: ['2026', 'INTERNSHIP', 'UI/UX'],
-    });
+    loadTemplateCard(6, COVER_SPECS[6]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 7 Ã¢â‚¬â€ Nenos Inc. Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function loadCard7() {
-    loadTemplateCard(7, {
-        imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp',
-        tag: '#007',
-        title: 'Nenos Inc.',
-        description: 'Design Manager working with 7 designers to design the Places feature in a B2C product, from ideation to handoff.',
-        pills: ['2026', 'INTERNSHIP', 'LEADERSHIP'],
-    });
+    loadTemplateCard(7, COVER_SPECS[7]);
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Card 8 Ã¢â‚¬â€ Playground Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -3673,6 +3870,36 @@ function loadCard7() {
 // this there is no way to tell a driver which card is at the front, or how
 // evenly the nine of them are spread around it.
 // Localhost only: nothing about the internals is exposed on the live site.
+// Localhost only, ?coversheet: every project cover laid flat side by side,
+// picture layer and face together, to check the covers without turning the
+// ring. Click the sheet to redraw it (after a theme switch, say).
+if ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') && /[?&]coversheet\b/.test(location.search)) {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;display:flex;flex-wrap:wrap;gap:16px;padding:16px;align-content:flex-start;background:' + (currentTheme === 'dark' ? '#121212' : '#FCFCFE');
+    const draw = () => {
+        sheet.innerHTML = '';
+        sheet.style.background = currentTheme === 'dark' ? '#121212' : '#FCFCFE';
+        for (let i = 1; i <= 7; i++) {
+            const g = cards[i];
+            const face = g && g.children[0].material.map && g.children[0].material.map.image;
+            if (!face) continue;
+            const out = document.createElement('canvas');
+            out.width = face.width;
+            out.height = face.height;
+            const c = out.getContext('2d');
+            const L = face.__win;
+            if (L) {
+                const W = face.width, H = face.height, r = L.rect;
+                c.drawImage(L.canvas, r.x * W, (1 - r.y - r.w) * H, r.z * W, r.w * H);
+            }
+            c.drawImage(face, 0, 0);
+            out.style.cssText = 'height:calc(50vh - 26px);border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.12)';
+            sheet.appendChild(out);
+        }
+    };
+    sheet.addEventListener('click', draw);
+    setTimeout(() => { document.body.appendChild(sheet); draw(); }, 9000);
+}
 if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
     window.__probe = {
         cardCount: () => cardCount,
@@ -4478,7 +4705,7 @@ const CB_SPEED = (introSkipped ? 0.55 : 1) * CB_SLOW;
 const CB_MAX = 16;
 const CB_U = 1.7 / 1449;          // design px Ã¢â€ â€™ card-local units
 const CB_Z0 = 0.42;               // how far off the face a piece starts
-const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4, POP: 5 };
+const CB = { IMG: 0, BAR: 1, LINE: 2, BOX: 3, PILL: 4, POP: 5, IMG_PLAIN: -1 };
 // Every duration and offset in the build, in ms, before CB_SPEED.
 // The whole build fits inside 4 s when the art arrives in time.
 const CB_T = {
@@ -4551,9 +4778,10 @@ vec2 cbLocal( vec2 p, vec4 R, vec4 T ) {
 // #00X tag sits in, and on About Me / Playground the shelf the pills sit on.
 float cbShape( float kind, vec2 q, vec2 size, vec2 origin ) {
     vec2 h = size * 0.5;
-    float r = kind < 0.5 ? 24.0 : ( kind < 1.5 ? min( h.y, 10.0 ) : ( kind < 3.5 ? 14.0 : ( kind < 4.5 ? h.y : 7.0 ) ) );
+    float r = kind < -0.5 ? 16.0 : ( kind < 0.5 ? 24.0 : ( kind < 1.5 ? min( h.y, 10.0 ) : ( kind < 3.5 ? 14.0 : ( kind < 4.5 ? h.y : 7.0 ) ) ) );
     float d = cbBox( q - h, h, r );
-    if ( kind < 0.5 ) {
+    // A cover's picture (kind -1) is a plain rounded block, no folded corner
+    if ( kind > -0.5 && kind < 0.5 ) {
         float ny = q.x < 118.0 ? 58.5 : ( q.x < 210.0 ? 58.5 * ( 1.0 - ( q.x - 118.0 ) / 92.0 ) : -1e4 );
         d = max( d, ( ny - q.y ) * ( q.x < 118.0 ? 1.0 : 0.84 ) );
         if ( uCbCut.z > uCbCut.x ) {
@@ -5032,10 +5260,12 @@ function cbCardLayout({ tag, title, accentLine, description, pills, fit, pillBox
 function cbLayout(spec) {
     if (spec.type === 'template') {
         const o = spec.opts;
+        if (o.cover) return cbCoverLayout(o);
         return cbCardLayout({ tag: o.tag, title: o.title, accentLine: o.accentLine,
             description: o.description, pills: o.pills, fit: true });
     }
     if (spec.type === 'puregym') {
+        if (COVER_SPECS[1]) return cbCoverLayout(COVER_SPECS[1]);
         return cbCardLayout({
             tag: '#003', title: 'Puregym Redesign',
             description: 'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
@@ -5177,7 +5407,7 @@ async function cbStart() {
         Promise.all([
             '700 96px "DM Sans"', '400 56px "DM Sans"', '600 40px "DM Sans"',
             'italic 400 36px "DM Sans"', 'italic 400 36px "Inter"', '700 80px "DM Sans"',
-            '400 144px "DM Sans"', '400 46px "Mynerve"', '600 103px "Caveat"', '400 39px "DM Sans"', '400 38px "DM Sans"', `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`,
+            '400 144px "DM Sans"', '400 46px "Mynerve"', '500 64px "DM Sans"', '400 46px "Figtree"', '400 42px "Figtree"', '600 103px "Caveat"', '400 39px "DM Sans"', '400 38px "DM Sans"', `600 ${ABOUTME_PILL_FONT_PX}px "DM Sans"`,
         ].map((f) => document.fonts.load(f).catch(() => {}))),
         new Promise((resolve) => setTimeout(resolve, 900)),
     ]);

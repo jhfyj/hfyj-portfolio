@@ -197,9 +197,10 @@
   requestAnimationFrame(frame);
 
   /* ---------- 3. problem (visual 1): the old home screen ----------
-     Same camera idea as the zoom. Each piece members complained about lifts
-     out in coral, in its own shape, pinned to what they said. At the end the
-     camera pulls all the way out: every piece outlined, one line. */
+     The real screenshot, untouched. No scroll motion: once the panel is on
+     screen, each piece members complained about floats up out of it in its
+     own shape, with what they said, one after another. Then all five are
+     outlined together and it lands on one line. Loops while on screen. */
   (function () {
     var sec = document.getElementById('problem-story');
     if (!sec) return;
@@ -208,6 +209,8 @@
     var ph = sec.querySelector('.iphone');
     buildPhone(ph, document.getElementById('pg-old'));
     ph.style.left = '13px'; ph.style.top = '13px';
+    var shot = ph.querySelector('.old');
+    var src = ph.querySelector('.old-shot').getAttribute('src');
     var notes = [].slice.call(sec.querySelectorAll('.callout'));
     var bars = [].slice.call(sec.querySelectorAll('.zoom-progress b'));
     var lines = sec.querySelector('.leaders');
@@ -215,12 +218,20 @@
     var bits = ['search', 'account', 'tabs', 'scan', 'promo'].map(function (k) {
       return ph.querySelector('[data-part="' + k + '"]');
     });
+    // each piece shows exactly the part of the screenshot it sits on
     var holes = bits.map(function (el) {
+      var b = el.getAttribute('data-box').split(',');
+      var r = /%$/.test(b[4]) ? b[4] : b[4] + 'px';
+      el.style.left = b[0] + 'px'; el.style.top = b[1] + 'px';
+      el.style.width = b[2] + 'px'; el.style.height = b[3] + 'px';
+      el.style.borderRadius = r;
+      el.style.backgroundImage = 'url("' + src + '")';
+      el.style.backgroundPosition = (-b[0]) + 'px ' + (-b[1]) + 'px';
       var s = document.createElement('div');
       s.className = 'slot';
-      s.style.left = el.offsetLeft + 'px'; s.style.top = el.offsetTop + 'px';
-      s.style.width = el.offsetWidth + 'px'; s.style.height = el.offsetHeight + 'px';
-      s.style.borderRadius = getComputedStyle(el).borderRadius;
+      s.style.left = b[0] + 'px'; s.style.top = b[1] + 'px';
+      s.style.width = b[2] + 'px'; s.style.height = b[3] + 'px';
+      s.style.borderRadius = r;
       el.parentNode.insertBefore(s, el);
       return s;
     });
@@ -231,49 +242,20 @@
       return { path: p, dot: c };
     });
 
-    // fy = screen y in focus: header 78, account 124, tabs 182, scan 354, promos 570
-    var K = [
-      { p: 0.00, z: 1.00, fy: 426, ax: 0.50 },
-      { p: 0.05, z: 1.00, fy: 426, ax: 0.50 },
-      { p: 0.13, z: 1.55, fy: 118, ax: 0.30 },
-      { p: 0.38, z: 1.55, fy: 118, ax: 0.30 },
-      { p: 0.45, z: 1.55, fy: 190, ax: 0.30 },
-      { p: 0.55, z: 1.55, fy: 190, ax: 0.30 },
-      { p: 0.62, z: 1.55, fy: 354, ax: 0.30 },
-      { p: 0.71, z: 1.55, fy: 354, ax: 0.30 },
-      { p: 0.79, z: 1.08, fy: 572, ax: 0.30 },
-      { p: 0.86, z: 1.08, fy: 572, ax: 0.30 },
-      { p: 0.94, z: 1.00, fy: 426, ax: 0.30 },
-      { p: 1.00, z: 1.00, fy: 426, ax: 0.30 }
-    ];
-    var S5 = [
-      { from: 0.10, to: 0.27, step: 0 },
-      { from: 0.27, to: 0.42, step: 1 },
-      { from: 0.42, to: 0.59, step: 2 },
-      { from: 0.59, to: 0.75, step: 3 },
-      { from: 0.75, to: 0.90, step: 4 },
-      { from: 0.90, to: 1.01, step: 'all' }
-    ];
-    function at(p) {
-      for (var i = 0; i < K.length - 1; i++) {
-        var a = K[i], b = K[i + 1];
-        if (p <= b.p) {
-          var t = smooth(clamp01((p - a.p) / (b.p - a.p)));
-          return { z: a.z + (b.z - a.z) * t, fy: a.fy + (b.fy - a.fy) * t, ax: a.ax + (b.ax - a.ax) * t };
-        }
-      }
-      var l = K[K.length - 1]; return { z: l.z, fy: l.fy, ax: l.ax };
-    }
-    function prog() {
-      var r = sec.getBoundingClientRect();
-      var sr = st.getBoundingClientRect();
-      return clamp01((sr.top - r.top) / (r.height - st.offsetHeight));
+    var S = 1;
+    function fit() {
+      var W = st.clientWidth, H = st.clientHeight, narrow = W < 640;
+      S = Math.min((H * (narrow ? 0.64 : 0.9)) / FH, (W * 0.9) / FW);
+      var tx = narrow ? (W - FW * S) / 2 : Math.max(28, W * 0.3 - (FW * S) / 2);
+      var ty = narrow ? 22 : (H - FH * S) / 2;
+      cam.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + S.toFixed(4) + ')';
     }
 
-    var now = null, on = undefined;
+    var on = undefined;
     function pick(step) {
       if (step === on) return;
       on = step;
+      shot.classList.toggle('dim', typeof step === 'number');
       bits.forEach(function (el, i) {
         el.classList.toggle('lift', step === i);
         el.classList.toggle('pg-mark', step === 'all');
@@ -283,9 +265,10 @@
       close.classList.toggle('on', step === 'all');
     }
 
-    function place(W, H, narrow) {
+    function place() {
+      var W = st.clientWidth, H = st.clientHeight, narrow = W < 640;
       var sr = st.getBoundingClientRect();
-      var right = ph.getBoundingClientRect().right - sr.left + 13 * now.S;
+      var right = ph.getBoundingClientRect().right - sr.left + 13 * S;
       notes.forEach(function (el, i) {
         var L = ls[i];
         if (narrow || !el.classList.contains('on')) { L.path.style.opacity = 0; L.dot.style.opacity = 0; return; }
@@ -309,36 +292,45 @@
       }
     }
 
-    function tick() {
-      requestAnimationFrame(tick);
-      var vr = sec.getBoundingClientRect();
-      if (now && (vr.bottom < -200 || vr.top > window.innerHeight + 200)) return;
-      var W = st.clientWidth, H = st.clientHeight;
-      var narrow = W < 640;
-      var p = prog();
-      var t = at(p);
-      if (narrow) { t.ax = 0.5; t.z = 1 + (t.z - 1) * 0.6; }
-      var base = Math.min((H * (narrow ? 0.72 : 0.88)) / FH, (W * 0.9) / FW);
-      var target = { S: base * t.z, fy: t.fy, ax: t.ax };
-      if (!now || reduce) now = target;
-      else {
-        var k = 0.16;
-        now = { S: now.S + (target.S - now.S) * k, fy: now.fy + (target.fy - now.fy) * k, ax: now.ax + (target.ax - now.ax) * k };
-      }
-      var ay = narrow ? H * 0.40 : H / 2;
-      var tx = now.ax * W - (FW / 2) * now.S;
-      var ty = ay - (now.fy + 13) * now.S;
-      var out = clamp01((1.12 - now.S / base) / 0.12);
-      ty = ty + ((H - FH * now.S) / 2 - ty) * out;
-      if (narrow && on === 'all') ty = Math.min(ty, 20);
-      cam.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) scale(' + now.S.toFixed(4) + ')';
-
-      var step = null;
-      for (var i = 0; i < S5.length; i++) if (p >= S5[i].from && p < S5[i].to) step = S5[i].step;
-      pick(step);
-      bars.forEach(function (b, i) { b.style.width = (clamp01((p - S5[i].from) / (S5[i].to - S5[i].from)) * 100) + '%'; });
-      place(W, H, narrow);
+    // the timeline: five pieces, then the ending, then start over
+    var STEP = 3400, END = 5200, REST = 1000;
+    var idx = -1, timer = null, live = false;
+    function fill(step, ms) {
+      bars.forEach(function (b, i) {
+        var done = step === 'all' || (typeof step === 'number' && i < step);
+        b.style.transition = 'none';
+        b.style.width = done ? '100%' : '0%';
+        if (step === i) {
+          void b.offsetWidth;
+          b.style.transition = reduce ? 'none' : 'width ' + ms + 'ms linear';
+          b.style.width = '100%';
+        }
+      });
     }
-    requestAnimationFrame(tick);
+    function show(step, ms) { pick(step); fill(step, ms); }
+    function next() {
+      clearTimeout(timer);
+      if (!live) return;
+      idx++;
+      if (idx < bits.length) { show(idx, STEP); timer = setTimeout(next, STEP); }
+      else if (idx === bits.length) { show('all'); timer = setTimeout(next, END); }
+      else { idx = -1; show(null); timer = setTimeout(next, REST); }
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) {
+        var v = en[0].isIntersecting && en[0].intersectionRatio >= 0.45;
+        if (v === live) return;
+        live = v;
+        clearTimeout(timer);
+        if (v) { idx = -1; show(null); timer = setTimeout(next, 500); }
+      }, { threshold: [0, 0.5] }).observe(st);
+    } else { live = true; next(); }
+
+    fit();
+    window.addEventListener('resize', fit);
+    (function frame() {
+      requestAnimationFrame(frame);
+      if (live) place();
+    })();
   })();
 })();

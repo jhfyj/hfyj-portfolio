@@ -119,40 +119,19 @@
     </div>
 </template>
 
-<!-- Visual 1: the OLD PureGym home screen, rebuilt in HTML from the interview
-     screenshot (no raster of the UI, so it stays crisp). The payment card photo
-     is the gym photo from the Figma file, as a stand-in. -->
+<!-- Visual 1: the OLD PureGym home screen. This is the real screenshot of
+     the app, used as is (not rebuilt), since it isn't Jen's design. Each
+     piece members complained about is a cut of the same image, so it can
+     float up out of the screenshot without changing anything about it.
+     Positions are in phone points (393 x 852). -->
 <template id="pg-old">
     <div class="old">
-        <div class="old-head">
-            <span class="old-burger"><i></i><i></i><i></i></span>
-            <span class="old-gym" data-part="search">East Village PureGym</span>
-        </div>
-        <div class="old-logo">
-            <svg class="old-help" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><circle cx="14" cy="14" r="12"/><circle cx="14" cy="14" r="5"/></svg>
-            <span class="old-mark"><b></b>PUREGYM</span>
-            <span class="old-acct" data-part="account"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="13.5" stroke="#fff" stroke-width="2"/><circle cx="16" cy="12.5" r="4.5" fill="#fff"/><path d="M8.8 24.4c1.7-3.6 4.3-5.4 7.2-5.4s5.5 1.8 7.2 5.4" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg></span>
-        </div>
-        <div class="old-tabs" data-part="tabs">
-            <span class="on">Home</span>
-            <span><svg width="14" height="16" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="1" width="9" height="14" rx="1.8"/><path d="M5.5 12h3"/></svg>Scan in</span>
-            <span>Find a PT</span>
-        </div>
-        <p class="old-name">Jennifer</p>
-        <p class="old-visits"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#2EC4C9" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9 9 3l6.5 6M4.5 7.5V15h9V7.5"/></svg>Your <b>40</b> visits</p>
-        <p class="old-last">*last 1 year</p>
-        <div class="old-scan" data-part="scan"><svg width="14" height="16" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="1" width="9" height="14" rx="1.8"/><path d="M5.5 12h3"/></svg>Scan in here</div>
-        <div class="old-promos" data-part="promo">
-            <div class="old-pay"><img src="assets/puregym/v2/ui/gym-photo.png" alt=""><b>$0.00</b><span>My payment balance</span></div>
-            <div class="old-busy"><svg width="16" height="16" viewBox="0 0 16 16" fill="#fff" aria-hidden="true"><rect x="1" y="9" width="3" height="6" rx=".6"/><rect x="6.5" y="5" width="3" height="10" rx=".6"/><rect x="12" y="2" width="3" height="13" rx=".6"/></svg>See how busy your gym is</div>
-            <div class="old-pt"><i>BOOK NOW</i>Find your feel good personal trainer</div>
-            <div class="old-benefits">
-                <p>Membership plan benefits</p>
-                <p class="old-mp"><svg width="18" height="13" viewBox="0 0 18 13" fill="#fff" aria-hidden="true"><path d="M0 13V0l6 7V13zM18 13V0l-6 7V13zM7 13V8.2L9 10.5l2-2.3V13z"/></svg>MYPROTEIN</p>
-                <span>Find out more...</span>
-            </div>
-        </div>
-        <p class="old-strip">10% OFF EVERYTHING - To redeem...</p>
+        <img class="old-shot" src="assets/puregym/old-home.png" alt="The old PureGym app home screen" width="393" height="852">
+        <div class="old-piece" data-part="search"  data-box="112,62,169,28,6"></div>
+        <div class="old-piece" data-part="account" data-box="313,105,34,34,50%"></div>
+        <div class="old-piece" data-part="tabs"    data-box="4,165,385,42,4"></div>
+        <div class="old-piece" data-part="scan"    data-box="35,335,324,42,4"></div>
+        <div class="old-piece" data-part="promo"   data-box="28,390,337,361,5"></div>
     </div>
 </template>
 
@@ -181,7 +160,7 @@
     <section class="case-section" id="problem">
         <p class="eyebrow">Problem</p>
         <p class="statement">Members used the app because they had to, not because they wanted to.</p>
-        <p class="body-copy">I asked members at the gym how they use the old app. Scroll to see what they pointed at on the home screen.</p>
+        <p class="body-copy">I asked members at the gym how they use the old app. Here is what they pointed at on the home screen.</p>
 
         <div class="zoom story" id="problem-story">
             <div class="pg-stage zoom-stage">

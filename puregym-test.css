@@ -14,9 +14,10 @@
   --pg-coral: #FB7572;
   --pg-ink: #013739;
   --pg-stage: #F3F5F5;
+  --pg-leader: #B4BBBD;
   --pg-ease: cubic-bezier(.22, 1, .36, 1);
 }
-:root[data-theme="dark"] { --pg-stage: #1C1E1F; }
+:root[data-theme="dark"] { --pg-stage: #1C1E1F; --pg-leader: #5A5F62; }
 
 /* ---------- stage panels (column width, rounded like the case media) ---------- */
 .pg-stage {
@@ -199,8 +200,8 @@
 .camera { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
 
 .leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
-.leaders path { fill: none; stroke: var(--pg-teal); stroke-width: 1.5; transition: stroke-dashoffset .6s var(--pg-ease), opacity .3s ease; }
-.leaders circle { fill: var(--pg-teal); transition: opacity .3s ease; }
+.leaders path { fill: none; stroke: var(--pg-leader); stroke-width: 1.5; transition: stroke-dashoffset .6s var(--pg-ease), opacity .3s ease; }
+.leaders circle { fill: var(--pg-leader); transition: opacity .3s ease; }
 
 .callouts { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 .callout {

@@ -4946,6 +4946,7 @@ const CB_T = {
     // solid, sharp and full size, like naheeljawaid.com), no outline (Jen)
     grow: 320, outline: 950, fillAt: 0, fill: 320,
     fadeSoft: 24,                  // how soft its edge starts, in design px
+    rise: 0.08, riseDur: 420,      // and slides up into place as it does (card units, ms)
     // Per-card timing only (the card itself never spins; see cbRingStep)
     spinRate: 10,                  // sets how long the settle step takes
     spinMin: 320,                  // the build starts as soon as the card has faded in
@@ -6000,6 +6001,7 @@ function cbStep(st, now) {
     const e = easeOutCubic(cbClamp(t / (CB_T.grow * k)));
     const thump = st.hit ? Math.exp(-(now - st.hit) / 120) : 0;
     const sc = getCardScale() * (0.95 + 0.05 * e) * (1 - 0.018 * thump);
+    st.riseY = CB_T.rise * (1 - easeOutCubic(cbClamp(t / (CB_T.riseDur * k))));
     const ang = THREE.MathUtils.degToRad((st.i * 360) / cardCount);
     const tilt = -0.06 * thump;
     const fu = cbClamp((t - CB_T.fillAt * k) / (CB_T.fill * k));
@@ -6010,7 +6012,7 @@ function cbStep(st, now) {
         const r = getCarouselRadius();
         const g = st.ghost;
         g.visible = true;
-        g.position.set(Math.sin(ang) * r, 0, Math.cos(ang) * r);
+        g.position.set(Math.sin(ang) * r, -st.riseY, Math.cos(ang) * r);
         g.rotation.set(tilt, ang + spin, 0);
         g.scale.setScalar(sc);
         st.ghostShadow.material.opacity = fill * THEME_COLORS[currentTheme].shadow;
@@ -7022,7 +7024,7 @@ function stackUpdate() {
         const st = cbCards[i];
         const card = cards[i];
         if (card) {
-            card.position.set(lx, P.y, lz);
+            card.position.set(lx, P.y - (st && cbOwns(i) ? st.riseY || 0 : 0), lz);
             if (!cbOwns(i)) {
                 card.rotation.set(0, -theta + (P.ry || 0), P.rz);
                 card.scale.setScalar(P.s);
@@ -7036,7 +7038,7 @@ function stackUpdate() {
             }
         }
         if (st && st.ghost && st.ghost.visible) {
-            st.ghost.position.set(lx, P.y, lz);
+            st.ghost.position.set(lx, P.y - (st.riseY || 0), lz);
             st.ghost.rotation.y = -theta + (st.ghost.rotation.y - i * apc);
             st.ghost.scale.multiplyScalar(P.s / getCardScale());
         }
@@ -7128,7 +7130,8 @@ const renderloop = (now = 0) => {
             cardIntroY[i] = CARD_DROP_START_Y * (1 - t);
             if (t >= 1) { cardIntroY[i] = 0; cardDropStartTime[i] = -Infinity; cardDropOffset[i] = Infinity; sfx.land(); }
         }
-        card.position.y = cardHoverY[i] + cardIntroY[i];
+        const cbr = cbCards[i] && cbOwns(i) ? cbCards[i].riseY || 0 : 0;   // load-in slide up
+        card.position.y = cardHoverY[i] + cardIntroY[i] - cbr;
 
         // Shadow: stay on the ground. Hover lifts the card, so the shadow
         // shrinks and fades; it does not rise with the card.

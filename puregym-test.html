@@ -140,11 +140,19 @@
     </div>
 </template>
 
-<!-- Version A from testing (Figma: the check-in page scrolled down): Bring a
+<!-- Version A from testing (Figma: the check-in page scrolled down, with the pinned top bar): Bring a
      friend stacked under everything else, so you scroll past your own pass to
      reach it. Version B is the normal screen with the Guest pass toggle on. -->
 <template id="pg-vera">
     <div class="app vera">
+        <!-- the top bar stays pinned, as in the real app: the page scrolls under it -->
+        <div class="app-top">
+            <button class="app-gymname" type="button" tabindex="-1">
+                <span class="gymname-roll"><span class="n1">East Village</span></span>
+                <img src="assets/puregym/v2/ui/chevron-head.svg" width="22" height="22" alt="">
+            </button>
+            <img class="app-bell" src="assets/puregym/v2/ui/bell.svg" width="22" height="22" alt="">
+        </div>
         <div class="va-col">
             <div class="wallet va-wallet"><img src="assets/puregym/v2/ui/wallet.svg" width="28" height="28" alt=""><span>Add to wallet</span></div>
             <div class="tiles">
@@ -463,15 +471,15 @@
     </div>
 
     <div class="next">
-        <p class="next-label">You might also enjoy…</p>
+        <p class="next-label">You might also enjoyâ€¦</p>
         <div class="next-cards">
             <div class="next-slot nc1">
                 <a class="next-card" data-card="the-dial" href="the-dial.html" data-cursor="open project"
-                   aria-label="The Dial — Summer 2026"></a>
+                   aria-label="The Dial â€” Summer 2026"></a>
             </div>
             <div class="next-slot nc2">
                 <a class="next-card" data-card="techatnyu" href="techatnyu.html" data-cursor="open project"
-                   aria-label="tech@nyu — Summer 2025"></a>
+                   aria-label="tech@nyu â€” Summer 2025"></a>
             </div>
         </div>
     </div>

@@ -2356,7 +2356,7 @@ const ABOUT_DOODLE = {
     squiggle: 'M2,9 Q10,1 18,9 T34,9 T50,9 T66,9 T82,9 T98,9',
 };
 const ABOUT_STATEMENT = [
-    ['I'], ['treat'], ['my'], [{ text: 'designs', boxed: true }], ['like'], ['playing'],
+    [{ text: 'Designing', boxed: true }], ['as'], ['if'], ['playing'],
     ['with'], [{ text: 'cards', art: true }, ','], ['with'], ['intentionality,'],
     ['playfulness,'], ['and'], ['the'], ['desire'], ['to'], ['challenge.'],
 ];

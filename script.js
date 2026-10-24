@@ -989,6 +989,10 @@ const PLAYGROUND_INDEX = 8;
 // The inner felt well: below the #0000 fold and above the pill shelf,
 // so the live cloth does not cover the stock chrome. The flight starts
 // from this same box.
+// Jen: the Playground cover has no #0000 tag and no pills, so its grass is a
+// plain rounded well, the same 21px inset and 24px corners as before, with no
+// folded corner at the top left and no pill shelf at the bottom right.
+const PLAYGROUND_WELL = 'M45 20H1014C1027.25 20 1038 30.7452 1038 44V1400C1038 1413.25 1027.25 1424 1014 1424H45C31.7452 1424 21 1413.25 21 1400V44C21 30.7452 31.7452 20 45 20Z';
 const PLAYGROUND_FACE_LAYOUT = {
     // The grass opening on the cover still Ã¢â‚¬â€ where the live table grows
     // from when the card opens.
@@ -3526,6 +3530,106 @@ function coverHexA(hex, a) {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
+// Riso / film grain on a few covers only (Jen: "occasionally", after her
+// Notion NYC poster reference). Heavy, slightly clumpy grain that sits on the
+// picture and its glow but never on the plain card around them, so there is
+// no rectangle of grain where the picture layer ends. It lives on the picture
+// layer, so it moves with the picture when the card tilts. Turn a cover on
+// with  riso: { amount, wash }  in COVER_SPECS (amount 0-1, wash = warm tint).
+let coverRisoTile = null;
+function coverRisoGrain() {
+    if (coverRisoTile) return coverRisoTile;
+    const n = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = n;
+    const x = c.getContext('2d');
+    const d = x.createImageData(n, n);
+    for (let i = 0; i < d.data.length; i += 4) {
+        // Sum of three randoms: bell-shaped, so most specks are mid and a few
+        // are properly dark or light, like real grain
+        const g = (Math.random() + Math.random() + Math.random()) / 3 - 0.5;
+        let v = 128 + g * 260;
+        if (Math.random() < 0.004) v -= 90;            // the odd dark fleck
+        v = Math.max(0, Math.min(255, v));
+        d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+        d.data[i + 3] = 255;
+    }
+    x.putImageData(d, 0, 0);
+    // A hair of blur so it clumps like print, not single digital pixels
+    const out = document.createElement('canvas');
+    out.width = out.height = n;
+    const o = out.getContext('2d');
+    o.filter = 'blur(0.45px)';
+    o.drawImage(c, 0, 0);
+    o.filter = 'none';
+    o.globalAlpha = 0.5;
+    o.drawImage(c, 0, 0);   // keep some bite
+    coverRisoTile = out;
+    return out;
+}
+function coverRiso(c, o, img, s, theme, ex, ey, ew) {
+    const R = o.riso;
+    const W = c.canvas.width, H = c.canvas.height;
+    const T = document.createElement('canvas');
+    T.width = W; T.height = H;
+    const t = T.getContext('2d');
+    t.setTransform(s, 0, 0, s, -ex * s, -ey * s);
+    const f = o.frame;
+    // Where the grain may go: the picture and its glow, softly
+    if (o.fade) {
+        const g = t.createLinearGradient(0, f.y, 0, f.y + f.h);
+        g.addColorStop(0, '#fff');
+        g.addColorStop(0.8, '#fff');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        t.fillStyle = g;
+        t.fillRect(ex, ey, ew, f.y + f.h - ey);
+    } else {
+        (o.glows || []).forEach((gl) => {
+            t.save();
+            t.translate(gl.x, gl.y);
+            t.scale(1, gl.ry / gl.rx);
+            const g = t.createRadialGradient(0, 0, 0, 0, 0, gl.rx * 1.05);
+            g.addColorStop(0, '#fff');
+            g.addColorStop(0.55, 'rgba(255,255,255,0.8)');
+            g.addColorStop(1, 'rgba(255,255,255,0)');
+            t.fillStyle = g;
+            t.beginPath();
+            t.arc(0, 0, gl.rx * 1.05, 0, Math.PI * 2);
+            t.fill();
+            t.restore();
+        });
+        if (img && (img.naturalWidth || img.width)) tmplDrawImageCover(t, img, f.x, f.y, f.w, f.h);
+    }
+    // Fill that shape with grain, in screen pixels so it stays crisp
+    t.setTransform(1, 0, 0, 1, 0, 0);
+    t.globalCompositeOperation = 'source-in';
+    const pat = t.createPattern(coverRisoGrain(), 'repeat');
+    const k = Math.max(1, s * 1.9);
+    pat.setTransform(new DOMMatrix([k, 0, 0, k, 0, 0]));
+    t.fillStyle = pat;
+    t.fillRect(0, 0, W, H);
+
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    if (R.wash) {
+        // Faded, warm print: a soft peach lift over the same area
+        const M = document.createElement('canvas');
+        M.width = W; M.height = H;
+        const m = M.getContext('2d');
+        m.drawImage(T, 0, 0);
+        m.globalCompositeOperation = 'source-in';
+        m.fillStyle = theme === 'dark' ? '#6b4a36' : '#f2c9a8';
+        m.fillRect(0, 0, W, H);
+        c.globalCompositeOperation = 'soft-light';
+        c.globalAlpha = R.wash;
+        c.drawImage(M, 0, 0);
+    }
+    c.globalCompositeOperation = 'soft-light';
+    c.globalAlpha = (R.amount != null ? R.amount : 0.5) * (theme === 'dark' ? 0.8 : 1);
+    c.drawImage(T, 0, 0);
+    c.restore();
+}
+
 // The picture layer: card stock, Jen's soft gradient glows, then the picture
 // where Figma has it (even where it runs off the card: the margin the tilt
 // can reveal shows more of it, not a cut edge).
@@ -3595,6 +3699,7 @@ function coverPaintPhoto(faceCanvas, o, img, s, theme) {
         else tmplDrawImageCover(c, img, f.x, f.y, f.w, f.h);
         c.restore();
     }
+    if (o.riso) coverRiso(c, o, img, s, theme, ex, ey, ew);
     if (o.fade) {
         // Fades the picture into the stock top and bottom (Figma's white
         // gradient, in whatever the card colour is)
@@ -3643,7 +3748,16 @@ function buildCoverCardTexture(o) {
     const photo = new Image();
     photo.crossOrigin = 'anonymous';
     photo.src = o.imageSrc;
+    // Dark mode swaps in a copy with the white it was shot on taken out
+    // (tools-key-white.py), so the mockup sits on the dark stock, no white box
+    let photoDark = null;
+    if (o.imageSrcDark) {
+        photoDark = new Image();
+        photoDark.crossOrigin = 'anonymous';
+        photoDark.src = o.imageSrcDark;
+    }
     return Promise.all([
+        photoDark && new Promise((resolve) => { photoDark.onload = resolve; photoDark.onerror = () => { photoDark = null; resolve(); }; }),
         document.fonts.load(coverTitleFont(64)).catch(() => {}),
         document.fonts.load(coverBodyFont(46)).catch(() => {}),
         new Promise((resolve) => { photo.onload = resolve; photo.onerror = resolve; }),
@@ -3673,7 +3787,7 @@ function buildCoverCardTexture(o) {
             ctx.fillStyle = hole;
             ctx.fillRect(0, 0, canvas.width, end);
             ctx.restore();
-            coverPaintPhoto(canvas, o, photo, s, theme);
+            coverPaintPhoto(canvas, o, theme === 'dark' && photoDark ? photoDark : photo, s, theme);
 
             const lay = coverTextLayout(ctx, s, o);
             ctx.textAlign = 'center';
@@ -3686,6 +3800,7 @@ function buildCoverCardTexture(o) {
                 ctx.fillStyle = ln.accent ? accent : ink.body;
                 ctx.fillText(ln.text, COVER.cx * s, ln.base * s);
             });
+            if (o.smudge) coverSmudge(ctx, s, lay, o.smudge, cardBg, ink, accent);
 
             if (o.comingSoon) {
                 ctx.save();
@@ -3710,6 +3825,114 @@ function buildCoverCardTexture(o) {
         }
         paint(currentTheme);
         return { canvas, paint, photo };
+    });
+}
+
+// Smudge (Jen, Figma blur circles): a few chosen letters go soft, like a
+// thumb dragged through wet ink. The blur is progressive (Jen): it builds
+// up over a few letters, from sharp to its softest at the end of the word,
+// rather than one patch that is blurred all at once. Only on the cards that
+// ask for it, so it reads as a touch of craft, not a rendering fault.
+//   smudge: [{ word: 'Redesign', from: 7, to: 8, dir: 'right' }]
+// from/to pick the letters that end up softest. dir: which way the blur
+// grows ('right' = trailing off at the end of a word, 'left' = the start).
+// Optional per spot: blur (x font size, default SMUDGE_BLUR), ramp (x the
+// distance it takes to build up).
+// The blur is a canvas shadow, not ctx.filter, which iPhone Safari ignores.
+const SMUDGE_BLUR = 0.06;
+const SMUDGE_STEPS = 6;
+function coverSmudge(ctx, s, lay, spots, bg, ink, accent) {
+    const rows = [Object.assign({ color: ink.title }, lay.title)]
+        .concat(lay.lines.map((ln) => Object.assign({ color: ln.accent ? accent : ink.body }, ln)));
+    spots.forEach((sp) => {
+        const row = rows.find((r) => (' ' + r.text + ' ').includes(' ' + sp.word + ' '))
+            || rows.find((r) => r.text.includes(sp.word));
+        if (!row) return;
+        const w0 = row.text.indexOf(sp.word);
+        const at = w0 + (sp.from || 0);
+        const end = w0 + (sp.to != null ? sp.to : sp.word.length);
+        ctx.font = row.font;
+        const left = COVER.cx * s - ctx.measureText(row.text).width / 2;
+        const x0 = left + ctx.measureText(row.text.slice(0, at)).width;
+        const x1 = left + ctx.measureText(row.text.slice(0, end)).width;
+        const fs = row.size * s;
+        const right = (sp.dir || 'right') === 'right';
+        const maxBlur = fs * (sp.blur || SMUDGE_BLUR);
+        const pad = Math.ceil(maxBlur * 3);
+        const span = Math.max(x1 - x0, fs * 0.4);
+        const ramp = span * 1.6 * (sp.ramp || 1);
+        // Where the blur starts building and where it is at its softest
+        const rampFrom = right ? x0 - ramp + span * 0.2 : x1 + ramp - span * 0.2;
+        const rampTo = right ? x0 + span * 0.55 : x1 - span * 0.55;
+        const L = right ? rampFrom : x0 - pad * 1.5;
+        const R = right ? x1 + pad * 1.5 : rampFrom;
+        const top = row.base * s - fs * 0.92 - pad * 0.5, bot = row.base * s + fs * 0.3 + pad * 0.5;
+        const ox = Math.floor(L), oy = Math.floor(top);
+        const W = Math.ceil(R - L), H = Math.ceil(bot - top);
+        if (W < 2 || H < 2) return;
+
+        // A sharp copy of just this neighbourhood of the line
+        const tc0 = document.createElement('canvas');
+        tc0.width = W; tc0.height = H;
+        const tc = tc0.getContext('2d');
+        tc.font = row.font;
+        tc.textAlign = 'center';
+        tc.textBaseline = 'alphabetic';
+        if ('letterSpacing' in tc) tc.letterSpacing = '0px';
+        // every line, not just this one, so where the patch overlaps the
+        // line above or below it carries those letters too (never erases them)
+        rows.forEach((r) => {
+            tc.font = r.font;
+            tc.fillStyle = r.color;
+            tc.fillText(r.text, COVER.cx * s - ox, r.base * s - oy);
+        });
+
+        // Stacked passes, each a little blurrier and each starting a little
+        // further along, so the softness builds up letter by letter
+        const p = document.createElement('canvas');
+        p.width = W; p.height = H;
+        const pc = p.getContext('2d');
+        const gs = rampFrom - ox, ge = rampTo - ox;
+        for (let i = 1; i <= SMUDGE_STEPS; i++) {
+            pc.globalCompositeOperation = 'source-over';
+            pc.clearRect(0, 0, W, H);
+            pc.fillStyle = bg;
+            pc.fillRect(0, 0, W, H);
+            // the copy is drawn one patch-width off to the side and only its
+            // shadow lands back in the patch
+            pc.shadowColor = row.color;
+            pc.shadowBlur = maxBlur * 2 * i / SMUDGE_STEPS;
+            pc.shadowOffsetX = W;
+            pc.drawImage(tc0, -W, 0);
+            pc.shadowColor = 'transparent';
+            pc.shadowBlur = 0;
+            pc.shadowOffsetX = 0;
+
+            pc.globalCompositeOperation = 'destination-in';
+            // this pass fades in over its own stretch of the ramp, then holds
+            const g = pc.createLinearGradient(gs, 0, ge, 0);
+            g.addColorStop(0, 'rgba(0,0,0,0)');
+            g.addColorStop((i - 1) / SMUDGE_STEPS, 'rgba(0,0,0,0)');
+            g.addColorStop(i / SMUDGE_STEPS, 'rgba(0,0,0,1)');
+            g.addColorStop(1, 'rgba(0,0,0,1)');
+            pc.fillStyle = g;
+            pc.fillRect(0, 0, W, H);
+            // soft top and bottom, and a soft far edge past the letters
+            const v = pc.createLinearGradient(0, 0, 0, H);
+            v.addColorStop(0, 'rgba(0,0,0,0)');
+            v.addColorStop(Math.min(0.45, pad / H), 'rgba(0,0,0,1)');
+            v.addColorStop(Math.max(0.55, 1 - pad / H), 'rgba(0,0,0,1)');
+            v.addColorStop(1, 'rgba(0,0,0,0)');
+            pc.fillStyle = v;
+            pc.fillRect(0, 0, W, H);
+            const farA = right ? W : 0, farB = right ? W - pad : pad;
+            const h = pc.createLinearGradient(farA, 0, farB, 0);
+            h.addColorStop(0, 'rgba(0,0,0,0)');
+            h.addColorStop(1, 'rgba(0,0,0,1)');
+            pc.fillStyle = h;
+            pc.fillRect(0, 0, W, H);
+            ctx.drawImage(p, ox, oy);
+        }
     });
 }
 
@@ -3744,6 +3967,8 @@ const COVER_SPECS = {
         cover: true, title: 'Puregym Redesign',
         description: 'Mobile redesign case study for Puregym focused on minimizing friction during check-in.',
         imageSrc: './Cards/covers/puregym-cover.webp',
+        // Jen's two Figma blur circles: the last letter of Redesign, the start of focused
+        smudge: [{ word: 'Redesign', from: 7, to: 8, dir: 'right' }, { word: 'focused', from: 0, to: 2, dir: 'left' }],
         frame: { x: -56.2, y: 94, w: 1118, h: 899 },
         glows: [
             { x: 440, y: 500, rx: 400, ry: 400, color: '#A9DDF7', dark: '#5FA8E8' },   // blue, behind the left phone
@@ -3762,6 +3987,7 @@ const COVER_SPECS = {
         description: 'Interactive installation exploring what it means to work for your energy when using AI.',
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/clarus-mockups.webp',
         frame: { x: 18, y: 12, w: 1023, h: 962, r: 16 }, fade: true,
+        riso: { amount: 0.35, wash: 0.15 },   // film grain (Jen's poster reference)
     },
     4: {
         cover: true, title: 'POVI',
@@ -3772,12 +3998,14 @@ const COVER_SPECS = {
             { x: 530.5, y: 508.5, rx: 508.5, ry: 508.5, color: '#F5B846' },
             { x: 530, y: 539, rx: 279, ry: 279, color: '#FF8629' },
         ],
+        riso: { amount: 0.4 },   // grain on the orange glow, like the poster
         wire: { x: 21, y: 20, w: 1017, h: 1000 },
     },
     5: {
         cover: true, title: 'The Dial',
         accentLine: 'Open Doors x Framer Challenge First place',
         description: 'Interaction design focused on the micro-details of expressing a moment.',
+        smudge: [{ word: 'moment.', from: 4, to: 7, dir: 'right' }],   // the moment trails off
         imageSrc: './Cards/covers/the-dial-cover.webp',
         frame: { x: 20, y: 23, w: 1019, h: 888, r: 16 }, fade: true,
         titleTop: 1067, bodyTop: 1174,
@@ -3785,13 +4013,16 @@ const COVER_SPECS = {
     6: {
         cover: true, title: 'BMW Designworks',
         description: 'Product Design Internship across B2B, consumer, and more at BMW Designworks',
+        smudge: [{ word: 'Designworks', from: 9, to: 11, dir: 'right' }],
         imageSrc: './Cards/covers/bmw-cover.webp',
+        imageSrcDark: './Cards/covers/bmw-cover-dark.webp',
         frame: { x: 88, y: 167, w: 883, h: 770, r: 16 }, onWhite: true,
     },
     7: {
         cover: true, title: 'Nenos Inc.',
         description: 'Led 7 designers as Design Manager to design the Places feature, from ideation to handoff.',
         imageSrc: 'https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp',
+        imageSrcDark: './Cards/covers/nenos-cover-dark.webp',
         frame: { x: 88, y: 167, w: 883, h: 770, r: 16 }, onWhite: true,
     },
 };
@@ -4246,7 +4477,7 @@ function loadCard8() {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const maskPath = new Path2D();
-            maskPath.addPath(new Path2D(ABOUTME_PHOTO_MASK), new DOMMatrix([s, 0, 0, s, 0, 0]));
+            maskPath.addPath(new Path2D(PLAYGROUND_WELL), new DOMMatrix([s, 0, 0, s, 0, 0]));
 
             // Measure the two pills first so the shelf can sit on them Ã¢â‚¬â€ the
             // same 94px hug About Me uses from NYU to the notch Ã¢â‚¬â€ instead of
@@ -4267,11 +4498,8 @@ function loadCard8() {
                 new Path2D(ABOUTME_BOTTOM_CUT),
                 playgroundCutMatrix(s, rowX / s),
             );
-            const grassPath = new Path2D();
-            grassPath.addPath(maskPath);
-            grassPath.addPath(cutPath);
             ctx.save();
-            ctx.clip(grassPath, 'evenodd');
+            ctx.clip(maskPath);
             ctx.fillStyle = ctx.createPattern(tile, 'repeat');
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -4316,13 +4544,7 @@ function loadCard8() {
             ctx.lineWidth = s;
             ctx.stroke(maskPath);
 
-            ctx.fillStyle = cardBg;
-            ctx.fill(cutPath);
             ctx.restore();
-
-            ctx.fillStyle = ink;
-            ctx.font = `italic 400 ${36 * s}px "Inter", "DM Sans", sans-serif`;
-            drawBoxedText('#0000', 48 * s, 24 * s, 118 * s, 44 * s, 'center');
 
             function drawPill(label, x, w) {
                 const lw = ABOUTME_PILL_STROKE * s, inset = lw / 2;
@@ -4338,11 +4560,8 @@ function loadCard8() {
                 drawBoxedText(label, x / pillK, pillY / pillK, w / pillK, pillH / pillK, 'center');
                 ctx.restore();
             }
-            let pillX = rowX;
-            PLAYGROUND_PILLS.forEach((label, i) => {
-                drawPill(label, pillX, pillWidths[i]);
-                pillX += pillWidths[i] + pillGap;
-            });
+            // Pills left off the cover (Jen); drawPill is kept so they can return.
+            void drawPill;
         }
 
         paint(currentTheme);
@@ -5309,19 +5528,14 @@ function cbLayout(spec) {
     const tagLine = Object.assign({ kind: CB.LINE, role: 'line' },
         cbTextRect(tagline, '400 46px "Mynerve", cursive', 529.5, 743, 'center', 46, 0, '0.01em'));
     const els = [
-        { kind: CB.IMG, role: 'img', x: 21, y: 20, w: 1017, h: 1404 },
-        cbTag('#0000', tagFont, 48, 118),
+        { kind: CB.IMG_PLAIN, role: 'img', x: 21, y: 20, w: 1017, h: 1404 },
         Object.assign({ kind: CB.BAR, role: 'title' },
             cbTextRect('Playground', titleFont, 529.5, 681, 'center', 144, 0, '-0.02em')),
         cbBoxAround([tagLine]),
         tagLine,
     ];
-    let x = rowX;
-    widths.forEach((w) => {
-        els.push({ kind: CB.PILL, role: 'pill', x, y: ABOUTME_PILL_Y, w, h: ABOUTME_PILL_H });
-        x += w + 12;
-    });
-    return { els, cut: [ABOUTME_CUT_ORIGIN_X - 853 * k, 1331, ABOUTME_CUT_ORIGIN_X - 696 * k, 1424] };
+    void cutLeft;
+    return { els, cut: null };
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Stand-ins and flying pieces Ã¢â€â‚¬Ã¢â€â‚¬

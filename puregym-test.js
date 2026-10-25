@@ -327,9 +327,48 @@
       });
     }
     function show(step, ms) { pick(step); fill(step, ms); }
+
+    // click a step name to jump straight to it. The loop stops on that step
+    // (like the iterations row) until the panel leaves the screen and comes back.
+    var held = false;
+    var tabs = bars.map(function (b) { return b.parentNode; });
+    var row = tabs.length ? tabs[0].parentNode : null;
+    if (row) {
+      row.removeAttribute('aria-hidden');
+      row.setAttribute('role', 'tablist');
+      row.classList.add('clickable');
+    }
+    function hold(i) {
+      clearTimeout(timer);
+      held = true; idx = i;
+      pick(i);
+      bars.forEach(function (b, j) {
+        b.parentNode.classList.toggle('on', j === i);
+        b.style.transition = reduce ? 'none' : 'width .35s ease';
+        b.style.width = j === i ? '100%' : '0%';
+      });
+      tabs.forEach(function (t, j) { t.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+    }
+    tabs.forEach(function (t, i) {
+      t.setAttribute('role', 'tab');
+      t.setAttribute('aria-selected', 'false');
+      t.tabIndex = 0;
+      t.addEventListener('click', function () { hold(i); });
+      t.addEventListener('keydown', function (e) {
+        var k = e.key, go = null;
+        if (k === 'Enter' || k === ' ') go = i;
+        else if (k === 'ArrowRight') go = (i + 1) % tabs.length;
+        else if (k === 'ArrowLeft') go = (i - 1 + tabs.length) % tabs.length;
+        if (go === null) return;
+        e.preventDefault();
+        hold(go);
+        tabs[go].focus();
+      });
+    });
+
     function next() {
       clearTimeout(timer);
-      if (!live) return;
+      if (!live || held) return;
       idx++;
       if (idx < bits.length) { show(idx, STEP); timer = setTimeout(next, STEP); }
       else if (idx === bits.length) { show('all'); timer = setTimeout(next, END); }
@@ -341,7 +380,11 @@
         if (v === live) return;
         live = v;
         clearTimeout(timer);
-        if (v) { idx = -1; show(null); timer = setTimeout(next, 500); }
+        if (!v) {
+          held = false;
+          tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); });
+        }
+        if (v && !held) { idx = -1; show(null); timer = setTimeout(next, 500); }
       }, { threshold: [0, 0.5] }).observe(st);
     } else { live = true; next(); }
 
@@ -349,7 +392,7 @@
     window.addEventListener('resize', fit);
     (function frame() {
       requestAnimationFrame(frame);
-      if (live) place();
+      if (live || held) place();
     })();
   })();
 
@@ -621,11 +664,13 @@
     function show(k) {
       steps.forEach(function (s, j) { s.classList.toggle('on', j === k); s.classList.toggle('seen', j < k); });
     }
+    // V1, V2, V3 go by quickly, then it lands on Final and stays there
+    // (no loop back to V1). It plays again from V1 the next time it comes on screen.
+    var QUICK = 1100;
     function next() {
-      i = (i + 1) % (steps.length + 1);
-      if (i === steps.length) { show(-1); t = setTimeout(next, 900); return; }
+      i++;
       show(i);
-      t = setTimeout(next, i === steps.length - 1 ? 3600 : 2400);
+      if (i < steps.length - 1) t = setTimeout(next, QUICK);
     }
     // click (or Enter/Space) on any version: stop the loop and keep that one lit
     var manual = false;

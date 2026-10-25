@@ -66,6 +66,10 @@
 .iphone .screen {
   position: absolute; inset: 0; border-radius: 50px; overflow: hidden;
   background: #FAF8F7;
+  /* overflow + radius alone can let moving layers (the pages pushing in the
+     Progress demo) spill past the rounded corners in some browsers; a
+     clip-path to the same shape always holds */
+  clip-path: inset(0 round 50px); isolation: isolate;
 }
 .iphone .island {
   position: absolute; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px;
@@ -210,8 +214,8 @@
   transition: opacity .45s ease, transform .55s var(--pg-ease);
 }
 .callout.on { opacity: 1; transform: none; }
-.callout .num { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--pg-teal); }
-.callout .c-title { margin: 6px 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; color: var(--head); }
+.callout .num { font-size: 12px; font-weight: 400; letter-spacing: .04em; color: var(--pg-teal); }
+.callout .c-title { margin: 6px 0; font-size: 19px; font-weight: 400; letter-spacing: -.015em; color: var(--head); }
 .callout .c-body { margin: 0; font-size: 14px; line-height: 1.45; color: var(--body); }
 
 /* where you are: the steps named in a quiet row (like the feature tabs on
@@ -226,6 +230,10 @@
 .zoom-progress b { position: absolute; left: 0; bottom: 0; z-index: 1; height: 1.5px; width: 0; border-radius: 1px; background: var(--head); }
 .zoom-progress i.on em { color: var(--head); }
 .zoom-progress i:not(.on) b { background: rgba(var(--ink-rgb), .28); }
+/* visual 1: the step names are clickable (bigger hit area, quiet hover) */
+.zoom-progress.clickable i { cursor: pointer; padding-top: 8px; margin-top: -8px; outline: none; }
+.zoom-progress.clickable i:hover:not(.on) em { color: var(--body); }
+.zoom-progress.clickable i:focus-visible em { color: var(--head); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- visual 1: the old home screen, the real screenshot ---------- */
 .old-phone .screen { background: #06393B; }
@@ -260,7 +268,7 @@
 .story .zoom-stage { position: relative; top: auto; --zh: clamp(540px, 78vh, 660px); }
 .story .callout { width: 240px; }
 .story .callout .num { color: var(--pg-coral); }
-.callout .c-quote { margin: 8px 0 0; font-size: 19px; line-height: 1.35; font-weight: 500; letter-spacing: -.012em; color: var(--head); }
+.callout .c-quote { margin: 8px 0 0; font-size: 19px; line-height: 1.35; font-weight: 400; letter-spacing: -.012em; color: var(--head); }
 
 /* the ending: every piece outlined, one line */
 .p-close {
@@ -269,7 +277,7 @@
   transition: opacity .55s ease, transform .7s var(--pg-ease);
 }
 .p-close.on { opacity: 1; transform: none; }
-.p-close-q { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.12; font-weight: 600; letter-spacing: -.025em; color: var(--head); }
+.p-close-q { margin: 0; font-size: clamp(28px, 3.2vw, 40px); line-height: 1.12; font-weight: 500; letter-spacing: -.025em; color: var(--head); }
 .p-close-note { margin: 14px 0 0; font-size: 12px; color: var(--caption); }
 
 
@@ -288,6 +296,22 @@
     box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .35);
   }
   .story .callout .c-quote { font-size: 16px; }
+  /* span the panel like the closing card (the desktop 240px width would pin it left) */
+  .story .callout { width: auto; }
+  /* solution zoom: the phone runs under the notes, so a soft blur fades up
+     from the bottom of the panel, above the phone and behind the text */
+  #zoom .zoom-stage::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 250px;
+    z-index: 2; pointer-events: none;
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 42%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 42%);
+    background: linear-gradient(to bottom,
+      color-mix(in srgb, var(--pg-stage) 0%, transparent) 0%,
+      color-mix(in srgb, var(--pg-stage) 78%, transparent) 40%,
+      color-mix(in srgb, var(--pg-stage) 94%, transparent) 70%,
+      var(--pg-stage) 100%);
+  }
 }
 
 /* ================================================================
@@ -378,7 +402,7 @@
 
 /* caption row, amberlle-style: title, a small tag, then grey copy */
 .demo-cap { margin-top: 18px; }
-.demo-title { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 600; letter-spacing: -.015em; color: var(--head); }
+.demo-title { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 400; letter-spacing: -.015em; color: var(--head); }
 .demo-body { margin: 8px 0 0; max-width: 660px; font-size: 16px; line-height: 1.55; color: var(--body); }
 .tag {
   display: inline-block; margin-left: 6px; padding: 2px 8px; vertical-align: 2px;
@@ -514,6 +538,13 @@
   font-family: 'Lexend', sans-serif;
 }
 .prog.on { transform: none; }
+/* a real tab push: as Progress slides in from the left, the check-in page is
+   pushed out to the right at the same speed (their edges stay touching), and
+   on the way back check-in pushes Progress out. The tab bar stays put. */
+.demo[data-demo="progress"] .app-top,
+.demo[data-demo="progress"] .app-col { transition: transform .6s var(--pg-ease); }
+.demo[data-demo="progress"] .on-progress > .app-top,
+.demo[data-demo="progress"] .on-progress > .app-col { transform: translateX(393px); }
 .prog-top { position: absolute; top: 0; left: 0; right: 0; height: 120px; background: #FEFEFD; box-shadow: 0 2px 4px rgba(103, 135, 136, .1); }
 .prog-top p { position: absolute; top: 88px; left: 0; right: 0; text-align: center; font: 500 14px/1 'Lexend', sans-serif; color: #345F61; }
 .prog-top img { position: absolute; left: 331px; top: 84px; }
@@ -546,24 +577,27 @@
 
 .rail-step { margin: 0; opacity: .38; transform: translateY(6px); transition: opacity .5s ease, transform .6s var(--pg-ease); }
 .rail-step.on, .rail-step.seen { opacity: 1; transform: none; }
-.rail-step.seen:not(.on) { opacity: .7; }
+.rail-step.seen:not(.on) { opacity: .35; }
 .rail-shot {
   height: 330px; border-radius: 12px; background: var(--pg-stage);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
   box-shadow: 0 0 0 0 rgba(0, 193, 198, 0); transition: box-shadow .5s ease;
 }
-.rail-step.on .rail-shot { box-shadow: 0 0 0 2px var(--pg-leader); }
+/* selected: a thin, light hairline; the opacity gap does the real work */
+.rail { --rail-on: #D3D8D9; }
+:root[data-theme="dark"] .rail { --rail-on: #44484B; }
+.rail-step.on .rail-shot { box-shadow: 0 0 0 1px var(--rail-on); }
 /* every version is clickable: picking one stops the loop and keeps it lit */
 .rail-step { cursor: pointer; outline: none; }
 .rail-step:hover { opacity: 1; }
-.rail-step:hover:not(.on) .rail-shot { box-shadow: 0 0 0 1px var(--pg-leader); }
+.rail-step:hover:not(.on) .rail-shot { box-shadow: 0 0 0 1px var(--rail-on); }
 .rail-step:focus-visible .rail-shot { box-shadow: 0 0 0 2px var(--pg-leader); }
-.rail.manual .rail-step:not(.on) { opacity: .7; transform: none; }
+.rail.manual .rail-step:not(.on) { opacity: .35; transform: none; }
 .rail.manual .rail-step:not(.on):hover { opacity: 1; }
 .rail-shot > img { display: block; width: auto; height: 300px; max-width: 92%; object-fit: contain; border-radius: 10px; }
 .rail-mini { position: relative; width: 146px; height: 306px; }
 .rail-mini .iphone { position: absolute; left: 0; top: 0; }
-.rail-step figcaption { margin-top: 12px; font-size: 15px; line-height: 1.4; color: var(--head); font-weight: 500; letter-spacing: -.01em; }
+.rail-step figcaption { margin-top: 12px; font-size: 15px; line-height: 1.4; color: var(--head); font-weight: 400; letter-spacing: -.01em; }
 .rail-v { display: block; margin-bottom: 4px; font-family: "Play", sans-serif; font-size: 13px; color: var(--accent); text-transform: uppercase; }
 
 /* ---------- testing ---------- */
@@ -574,13 +608,15 @@
    level with the A/B phones beside it */
 #times-card .times { margin-block: auto; }
 #times-card figcaption { margin-top: 0; }
-.test-q { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 600; letter-spacing: -.01em; color: var(--head); }
+.test-q { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 400; letter-spacing: -.01em; color: var(--head); }
 .test-a { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--body); }
 
 .times { background: #fff; border-radius: 18px; padding: 16px 18px 12px; box-shadow: 0 10px 26px -16px rgba(1, 55, 57, .35); font-family: 'Lexend', sans-serif; }
 .times-head { display: flex; justify-content: space-between; align-items: center; font: 400 15px/1 'Lexend', sans-serif; color: #345F61; }
 .times-day { padding: 5px 10px; border-radius: 12px; background: #F4F9F9; font-size: 12px; color: #345F61; }
-.times-plot { position: relative; height: 128px; margin-top: 26px; --w: 0%; }
+/* the plot keeps the app's own chart proportions (302 x 92 in the Figma card)
+   instead of a fixed height, so a narrower card never stretches the bars tall */
+.times-plot { position: relative; aspect-ratio: 302 / 92; margin-top: 26px; --w: 0%; }
 .times-layer { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 5px; }
 .times-layer.after { clip-path: inset(0 calc(100% - var(--w)) 0 0); }
 .times-layer i { flex: 1; border-radius: 6px 6px 3px 3px; position: relative; }
@@ -604,7 +640,7 @@
 
 .ab { display: flex; gap: 22px; justify-content: center; }
 .ab-opt { flex: 1; max-width: 168px; text-align: center; transition: opacity .5s ease, transform .6s var(--pg-ease); }
-.ab-label { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 600; color: var(--head); }
+.ab-label { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 400; color: var(--head); }
 .ab-phone { position: relative; width: 100%; }
 .ab-phone .iphone { position: absolute; left: 0; top: 0; }
 .ab-phone .iphone::before { transition: box-shadow .5s ease; }
@@ -652,7 +688,7 @@
 .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
 .metric { padding: 22px; border-radius: 12px; background: var(--pg-stage); }
 .m-viz { height: 64px; display: flex; align-items: center; gap: 10px; }
-.m-name { margin: 14px 0 0; font-size: 17px; line-height: 1.35; font-weight: 600; letter-spacing: -.01em; color: var(--head); }
+.m-name { margin: 14px 0 0; font-size: 17px; line-height: 1.35; font-weight: 400; letter-spacing: -.01em; color: var(--head); }
 .m-why { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--body); }
 /* time to the code: tap the app icon, it opens straight onto the QR, the
    timer beside it stops (loop 3.2s, timer driven from JS in step) */
@@ -721,7 +757,7 @@
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   padding: 16px 24px; border-bottom: 1px solid var(--rule);
 }
-.todo-title { font-size: 15px; font-weight: 600; color: var(--head); }
+.todo-title { font-size: 15px; font-weight: 400; color: var(--head); }
 .todo-count { font-size: 13px; color: var(--caption); font-variant-numeric: tabular-nums; }
 .todo ul { list-style: none; margin: 0; padding: 6px 24px 10px; }
 .todo li {
@@ -731,14 +767,14 @@
 }
 .todo li + li { border-top: 1px solid var(--rule); }
 .todo li.in { opacity: 1; transform: none; }
-.todo li b { font-size: 15px; font-weight: 600; color: var(--head); }
+.todo li b { font-size: 15px; font-weight: 400; color: var(--head); }
 .todo li em { font-style: normal; font-size: 14px; line-height: 1.5; color: var(--body); }
 @media (max-width: 600px) { .todo li { grid-template-columns: 1fr; } }
 /* ---------- reflection ---------- */
 .lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 8px; }
 /* outside the frames: the portfolio label style (Play, site blue), as in the meta row */
 .lesson-n { font-family: "Play", sans-serif; font-size: 16px; color: var(--accent); }
-.lesson-t { margin: 8px 0 0; font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; color: var(--head); }
+.lesson-t { margin: 8px 0 0; font-size: 20px; line-height: 1.3; font-weight: 400; letter-spacing: -.015em; color: var(--head); }
 .lesson-b { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: var(--body); }
 
 

@@ -181,15 +181,27 @@
             start = { x: e.clientX, y: e.clientY,
                       dx: parseFloat(item.style.getPropertyValue('--dx')) || 0,
                       dy: parseFloat(item.style.getPropertyValue('--dy')) || 0, moved: false };
+            // Boundaries: the card has to stay on the table, i.e. inside the visible
+            // part of the stage (minus a small margin). A card that starts past an
+            // edge (PureGym tucked under the nav) can be pulled back in but never
+            // pushed further out.
+            var r = item.getBoundingClientRect(), s = stage.getBoundingClientRect(), PAD = 12;
+            var L = Math.max(s.left, 0) + PAD, R = Math.min(s.right, document.documentElement.clientWidth) - PAD;
+            var T = s.top + PAD, B = s.bottom - PAD;
+            start.minX = Math.min(0, L - r.left); start.maxX = Math.max(0, R - r.right);
+            start.minY = Math.min(0, T - r.top);  start.maxY = Math.max(0, B - r.bottom);
             item.setPointerCapture(e.pointerId);
             item.style.zIndex = ++zTop;
         });
+        function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
         item.addEventListener('pointermove', function (e) {
             if (!start) return;
             var mx = e.clientX - start.x, my = e.clientY - start.y;
             if (!start.moved && Math.hypot(mx, my) < 5) return;
             start.moved = true;
             item.classList.add('is-dragging');
+            mx = clamp(mx, start.minX, start.maxX);
+            my = clamp(my, start.minY, start.maxY);
             item.style.setProperty('--dx', (start.dx + mx) + 'px');
             item.style.setProperty('--dy', (start.dy + my) + 'px');
         });
@@ -820,7 +832,8 @@
         ctx = cv.getContext('2d');
         clearBtn = el('button', 'gt-clear', face);
         clearBtn.type = 'button';
-        clearBtn.textContent = 'Clear';
+        clearBtn.textContent = 'clear';
+        clearBtn.setAttribute('aria-label', 'Clear drawing');
         clearBtn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
         clearBtn.addEventListener('click', function () {
             if (!strokes.length) return;

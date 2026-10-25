@@ -101,7 +101,12 @@ html[data-theme="dark"] .gt-item {
 /* ---------- cards ---------- */
 .gt-card { cursor: grab; perspective: 1200px; }
 .gt-card.is-dragging { cursor: grabbing; }
-.gt-card:hover .gt-lift, .gt-deck:hover .gt-lift { transform: translateY(calc(-8 * var(--u))); }
+/* --tilt: the small lean while a card is pressed or dragged (set from JS) */
+.gt-card .gt-lift { transform: rotate(var(--tilt, 0deg)); }
+.gt-card:hover .gt-lift, .gt-deck:hover .gt-lift { transform: translateY(calc(-8 * var(--u))) rotate(var(--tilt, 0deg)); }
+/* while held, the lean follows the hand closely; on release it springs back flat */
+.gt-card.is-dragging .gt-lift { transition: transform 90ms linear; }
+.gt-card.is-settling .gt-lift { transition: transform 460ms cubic-bezier(0.3, 1.5, 0.5, 1); }
 .gt-inner {
   position: absolute;
   inset: 0;

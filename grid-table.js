@@ -192,28 +192,62 @@
             start.minY = Math.min(0, T - r.top);  start.maxY = Math.max(0, B - r.bottom);
             item.setPointerCapture(e.pointerId);
             item.style.zIndex = ++zTop;
+            // Pressing tips the card a little toward the side you pressed, like
+            // putting a finger on one end of a real card
+            var c = item.getBoundingClientRect();
+            start.press = (e.clientX < c.left + c.width / 2 ? -1 : 1) * 2.5;
+            start.lx = e.clientX; start.lt = performance.now(); start.vx = 0;
+            item.classList.remove('is-settling');
+            tiltTo(start.press);
+            if (!reducedTilt) tiltLoop();
         });
         function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+        // While dragging, the card swings with the drag like it has a bit of
+        // weight: moving right leans it clockwise, left counter-clockwise, and it
+        // eases back to the pressed tilt when the mouse slows down
+        var tilt = 0, raf = 0;
+        var reducedTilt = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function tiltTo(deg) { tilt = deg; item.style.setProperty('--tilt', deg.toFixed(2) + 'deg'); }
+        function tiltLoop() {
+            cancelAnimationFrame(raf);
+            (function f() {
+                if (!start) return;
+                start.vx *= 0.86;
+                var target = start.press + clamp(start.vx * 22, -8, 8);
+                tiltTo(tilt + (target - tilt) * 0.22);
+                raf = requestAnimationFrame(f);
+            })();
+        }
         item.addEventListener('pointermove', function (e) {
             if (!start) return;
             var mx = e.clientX - start.x, my = e.clientY - start.y;
             if (!start.moved && Math.hypot(mx, my) < 5) return;
             start.moved = true;
             item.classList.add('is-dragging');
+            var now = performance.now(), dt = Math.max(8, now - start.lt);
+            start.vx = start.vx * 0.5 + ((e.clientX - start.lx) / dt) * 0.5;
+            start.lx = e.clientX; start.lt = now;
             mx = clamp(mx, start.minX, start.maxX);
             my = clamp(my, start.minY, start.maxY);
             item.style.setProperty('--dx', (start.dx + mx) + 'px');
             item.style.setProperty('--dy', (start.dy + my) + 'px');
         });
+        // Let go: the card settles flat again with a small overshoot
+        function settle() {
+            cancelAnimationFrame(raf);
+            item.classList.add('is-settling');
+            tiltTo(0);
+        }
         function end() {
             if (!start) return;
             var moved = start.moved;
             start = null;
             item.classList.remove('is-dragging');
+            settle();
             if (!moved) onClick();
         }
         item.addEventListener('pointerup', end);
-        item.addEventListener('pointercancel', function () { start = null; item.classList.remove('is-dragging'); });
+        item.addEventListener('pointercancel', function () { start = null; item.classList.remove('is-dragging'); settle(); });
     }
 
     /* ---------- the card box: a poker tuck box, open end facing the table,

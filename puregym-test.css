@@ -726,29 +726,29 @@
    panel, a soft teal card dropping in behind, and a front pocket the same
    colour as the back that overlaps the lower half, lifted by a soft shadow */
 .m-pass {
-  position: relative; width: 84px; height: 56px; border-radius: 12px; overflow: hidden;
+  position: relative; width: 92px; height: 60px; border-radius: 12px; overflow: hidden;
   background: var(--w-back);
   box-shadow: 0 1px 2px rgba(1, 55, 57, .06), 0 10px 22px -12px rgba(1, 55, 57, .28);
 }
 .m-pass::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30px; z-index: 2;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; z-index: 2;
   background: var(--w-front); border-radius: 10px 10px 12px 12px;
-  box-shadow: 0 -5px 12px -5px var(--w-lift);
+  box-shadow: 0 -1px 0 var(--w-edge), 0 -6px 14px -4px var(--w-lift);
 }
-.m-pass i { position: absolute; left: 10px; right: 10px; top: 8px; height: 34px; border-radius: 7px; background: var(--w-card); transform: translateY(-50px); }
-:root { --w-back: #FFFFFF; --w-front: #FFFFFF; --w-card: #9FE3E5; --w-lift: rgba(1, 55, 57, .2); }
-:root[data-theme="dark"] { --w-back: #2C3032; --w-front: #33383A; --w-card: #3B9EA1; --w-lift: rgba(0, 0, 0, .55); }
+.m-pass i { position: absolute; left: 11px; right: 11px; top: 8px; height: 38px; border-radius: 7px; background: var(--w-card); transform: translateY(-50px); }
+:root { --w-back: #FFFFFF; --w-front: #FFFFFF; --w-card: #9FE3E5; --w-lift: rgba(1, 55, 57, .22); --w-edge: rgba(1, 55, 57, .05); }
+:root[data-theme="dark"] { --w-back: #2C3032; --w-front: #33383A; --w-card: #3B9EA1; --w-lift: rgba(0, 0, 0, .55); --w-edge: rgba(255, 255, 255, .04); }
 :root[data-theme="dark"] .m-pass { box-shadow: none; }
 .metrics.in .m-pass i { animation: pg-pass 2.6s var(--pg-ease) infinite; }
 @keyframes pg-pass { 0%, 10% { transform: translateY(-50px); } 45%, 85% { transform: none; } 100% { transform: translateY(-50px); } }
 /* ---------- what I'd do next: a plain to-do list you can tick off ---------- */
-:root { --todo-box: #C3C9CB; --todo-line: #E6E9EA; }
-:root[data-theme="dark"] { --todo-box: #5A5F62; --todo-line: #2E3133; }
+:root { --todo-box: #C3C9CB; --todo-line: #E6E9EA; --todo-rim: #EDEFEF; }
+:root[data-theme="dark"] { --todo-box: #5A5F62; --todo-line: #2E3133; --todo-rim: #1F2224; }
 .next-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 48px; align-items: start; }
 .next-text .statement { margin-bottom: 0; }
-.todo { margin-top: 8px; padding: 18px 24px; border-radius: 18px; background: var(--pg-card); border: 1.5px solid var(--todo-line); }
-:root[data-theme="dark"] .todo { background: var(--pg-stage); }
-.todo ul { list-style: none; margin: 0; padding: 0; }
+.todo { margin-top: 8px; padding: 10px; border-radius: 26px; background: var(--todo-rim); }
+:root[data-theme="dark"] .todo ul { background: #2A2E30; }
+.todo ul { list-style: none; margin: 0; padding: 20px 24px; border-radius: 17px; background: var(--pg-card); }
 .todo li { position: relative; opacity: 0; transition: opacity .4s ease; }
 .todo li.in { opacity: 1; }
 .todo-row {
@@ -781,7 +781,8 @@
 .todo li.done .todo-box { background: var(--head); border-color: var(--head); }
 .todo li.done .todo-box::after { transform: rotate(45deg) scale(1); }
 .todo li.done .todo-text b, .todo li.done .todo-text em { color: var(--caption); }
-.todo li.done .todo-text .st { background-size: 100% 1px; transition-delay: .12s; }
+/* only the title line gets struck through; the grey line under it just fades */
+.todo li.done .todo-text b .st { background-size: 100% 1px; transition-delay: .12s; }
 @media (max-width: 860px) { .next-row { grid-template-columns: 1fr; gap: 28px; } .todo { max-width: 420px; } }
 /* ---------- reflection ---------- */
 .lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 8px; }

@@ -1,7 +1,7 @@
 // PureGym case study, motion test.
 // Phones are real HTML (from Figma), cloned from <template id="pg-screen">.
 // 1) Hero: the gym card swipes between saved gyms on a loop.
-// 2) Zoom: a sticky stage inside the column. Scrolling moves a "camera" over the
+// 2) Zoom: plays on its own like a video. A "camera" moves over the
 //    phone; each part lifts out in its own shape and a leader draws to its note.
 
 (function () {
@@ -134,12 +134,23 @@
     }
     var l = KF[KF.length - 1]; return { z: l.z, fy: l.fy, ax: l.ax };
   }
+  // plays on its own like a video: once the panel is on screen the camera
+  // runs through the four parts, holds on the whole screen, then starts over.
+  // Leaving the screen pauses it; coming back starts it from the top.
+  var PLAY = 15000, HOLD = 3000, t0 = null, live = false;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (en) {
+      var v = en[0].isIntersecting && en[0].intersectionRatio >= 0.45;
+      if (v === live) return;
+      live = v;
+      t0 = v ? performance.now() : null;
+    }, { threshold: [0, 0.45, 1] }).observe(stage);
+  } else { live = true; t0 = performance.now(); }
   function progress() {
-    var r = section.getBoundingClientRect();
-    var sr = stage.getBoundingClientRect();
-    var stickTop = sr.top - r.top; // how far the stage has travelled
-    var travel = r.height - stage.offsetHeight;
-    return clamp01(stickTop / travel);
+    if (reduce) return 1;
+    if (!live || t0 === null) return 0;
+    var e = (performance.now() - t0) % (PLAY + HOLD);
+    return Math.min(1, e / PLAY);
   }
 
   var cur = null, active = null;

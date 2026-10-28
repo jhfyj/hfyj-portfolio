@@ -252,19 +252,16 @@
 .old-phone .old-piece { transition: transform .8s var(--pg-ease), box-shadow .8s var(--pg-ease); }
 /* it floats up, outlined in coral in its own shape; a thin dark gap first so
    the coral still reads on the red Scan button */
-.old-phone .old-piece.lift {
-  z-index: 5;
-  transform: translateY(-18px) scale(1.05);
-  box-shadow: 0 0 0 2px #06393B, 0 0 0 4px var(--pg-coral), 0 26px 40px -14px rgba(0, 0, 0, .7);
-}
-.old-phone .old-piece[data-part="tabs"].lift,
-.old-phone .old-piece[data-part="promo"].lift { transform: translateY(-18px) scale(1.025); }
-.old-phone .old-piece.pg-mark { box-shadow: 0 0 0 1.5px #06393B, 0 0 0 3px var(--pg-coral); }
+.old-phone .old-piece.lift { z-index: 5; }
+.old-phone .old-piece.pg-mark { box-shadow: none; }
 /* the hole it leaves behind */
-.old-phone .slot { z-index: 1; border-color: rgba(251, 117, 114, .6); background: rgba(2, 20, 21, .6); }
+.old-phone .slot { display: none; }
 
 /* no scroll motion here: a normal panel that plays once it is on screen */
 .story { height: auto; }
+/* solution: plays on its own like a video once it is on screen, no scroll-jacking */
+.zoom.video { height: auto; }
+.zoom.video .zoom-stage { position: relative; top: auto; }
 .story .zoom-stage { position: relative; top: auto; --zh: clamp(540px, 78vh, 660px); }
 .story .callout { width: 240px; }
 .story .callout .num { color: var(--pg-coral); }

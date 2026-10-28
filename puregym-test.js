@@ -849,24 +849,58 @@
     });
   })();
 
-  /* ---------- 8. next: tester notes tick in, one at a time ---------- */
+  /* ---------- 8. next: a to-do list you can tick off ----------
+     The rows fade in, then "Create prototype" ticks itself off, the strike
+     draws through it and it slides down to the bottom (the others move up).
+     The rest stay open; a visitor can tick any of them, and a ticked row
+     goes to the bottom too. Unticking puts it back above the done ones. */
   (function () {
     var box = document.getElementById('todo');
     if (!box) return;
-    var items = [].slice.call(box.querySelectorAll('li'));
-    var ts = [];
-    function reset() {
-      ts.forEach(clearTimeout); ts = [];
-      items.forEach(function (li) { li.classList.remove('in'); });
-    }
-    // the rows slide in one at a time under the header, like a list loading
-    whenSeen(box, 0.4, function (v) {
-      reset();
-      if (!v) return;
-      var gap = reduce ? 0 : 140;
-      items.forEach(function (li, k) {
-        ts.push(setTimeout(function () { li.classList.add('in'); }, 150 + k * gap));
+    var ul = box.querySelector('ul');
+    var items = [].slice.call(ul.children);
+    var played = false;
+
+    // move a row and let every row glide from where it was (FLIP)
+    function moveTo(li, before) {
+      var rows = [].slice.call(ul.children);
+      var first = rows.map(function (r) { return r.getBoundingClientRect().top; });
+      ul.insertBefore(li, before || null);
+      if (reduce) return;
+      rows.forEach(function (r, k) {
+        var dy = first[k] - r.getBoundingClientRect().top;
+        if (!dy) return;
+        r.style.transition = 'none';
+        r.style.transform = 'translateY(' + dy + 'px)';
+        void r.offsetWidth;
+        r.style.transition = 'transform .55s cubic-bezier(.22, 1, .36, 1), opacity .4s ease';
+        r.style.transform = '';
       });
+    }
+    function set(li, on) {
+      li.classList.toggle('done', on);
+      li.querySelector('.todo-row').setAttribute('aria-checked', on ? 'true' : 'false');
+      clearTimeout(li._t);
+      li._t = setTimeout(function () {
+        if (on) moveTo(li, null);
+        else moveTo(li, ul.querySelector('li.done'));
+      }, reduce ? 0 : 600);
+    }
+    items.forEach(function (li) {
+      li.querySelector('.todo-row').addEventListener('click', function () {
+        set(li, !li.classList.contains('done'));
+      });
+    });
+
+    whenSeen(box, 0.4, function (v) {
+      if (!v || played) return;
+      played = true;
+      var gap = reduce ? 0 : 110;
+      items.forEach(function (li, k) {
+        setTimeout(function () { li.classList.add('in'); }, 120 + k * gap);
+      });
+      var auto = ul.querySelector('li[data-auto]');
+      if (auto) setTimeout(function () { if (!auto.classList.contains('done')) set(auto, true); }, reduce ? 0 : 120 + items.length * gap + 650);
     });
   })();
   /* ---------- 6b. final design: screen recordings in the page's iPhone ---------- */

@@ -478,19 +478,18 @@
                 <p class="eyebrow">What I&rsquo;d do next</p>
                 <p class="statement">Testers asked for more than I built.</p>
             </div>
-            <!-- a clipboard to-do list: what testers asked for, still unchecked -->
+            <!-- a plain to-do list. "Create prototype" checks itself off when the
+                 list comes on screen and drops to the bottom; the rest stay open,
+                 and visitors can tick them off too -->
             <div class="todo" id="todo">
-                <span class="todo-clip" aria-hidden="true"></span>
-                <div class="todo-paper">
-                    <p class="todo-title">To-do List</p>
-                    <ul>
-                        <li><i class="todo-box" aria-hidden="true"></i><span><b>Bigger tap targets</b><em>Two testers struggled to press some buttons and to scroll.</em></span></li>
-                        <li><i class="todo-box" aria-hidden="true"></i><span><b>Dark mode</b><em>Asked for by one tester.</em></span></li>
-                        <li><i class="todo-box" aria-hidden="true"></i><span><b>Holiday hours</b><em>Opening times that change, shown before the trip.</em></span></li>
-                        <li><i class="todo-box" aria-hidden="true"></i><span><b>Open in Google or Apple Maps</b><em>Straight from the gym card.</em></span></li>
-                        <li><i class="todo-box" aria-hidden="true"></i><span><b>Last three visits</b><em>A quick history, without opening Progress.</em></span></li>
-                    </ul>
-                </div>
+              <ul>
+                <li data-auto><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Create prototype</span></b><em><span class="st">Built it and tested it with seven members.</span></em></span></button></li>
+                <li><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Bigger tap targets</span></b><em><span class="st">Two testers struggled to press some buttons and to scroll.</span></em></span></button></li>
+                <li><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Dark mode</span></b><em><span class="st">Asked for by one tester.</span></em></span></button></li>
+                <li><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Holiday hours</span></b><em><span class="st">Opening times that change, shown before the trip.</span></em></span></button></li>
+                <li><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Open in Google or Apple Maps</span></b><em><span class="st">Straight from the gym card.</span></em></span></button></li>
+                <li><button type="button" class="todo-row" role="checkbox" aria-checked="false"><i class="todo-box" aria-hidden="true"></i><span class="todo-text"><b><span class="st">Last three visits</span></b><em><span class="st">A quick history, without opening Progress.</span></em></span></button></li>
+              </ul>
             </div>
         </div>
     </section>

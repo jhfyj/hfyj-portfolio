@@ -722,47 +722,66 @@
 @keyframes pg-tap { 0%, 22% { transform: none; } 28% { transform: scale(.86); } 36%, 100% { transform: none; } }
 @keyframes pg-link-off { 0%, 30% { opacity: 1; } 38%, 88% { opacity: 0; } 96%, 100% { opacity: 1; } }
 @keyframes pg-check { 0%, 30% { opacity: 0; transform: scale(.6); } 42%, 86% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; transform: scale(.6); } }
-/* Add to Wallet: a light pass sliding into a soft teal wallet; the front
-   pocket is lighter than the back, with an edge, so it reads as two layers */
-.m-pass { position: relative; width: 74px; height: 50px; border-radius: 10px; background: #8FD9DB; overflow: hidden; box-shadow: 0 8px 18px -10px rgba(1, 55, 57, .45); }
+/* Add to Wallet: a wallet seen from the front, like Jen's sketch. A back
+   panel, a soft teal card dropping in behind, and a front pocket the same
+   colour as the back that overlaps the lower half, lifted by a soft shadow */
+.m-pass {
+  position: relative; width: 84px; height: 56px; border-radius: 12px; overflow: hidden;
+  background: var(--w-back);
+  box-shadow: 0 1px 2px rgba(1, 55, 57, .06), 0 10px 22px -12px rgba(1, 55, 57, .28);
+}
 .m-pass::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 24px; z-index: 2;
-  background: #FFFFFF; border-radius: 8px 8px 10px 10px;
-  box-shadow: 0 -1px 0 rgba(0, 150, 155, .18), 0 -6px 10px -6px rgba(1, 55, 57, .25);
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30px; z-index: 2;
+  background: var(--w-front); border-radius: 10px 10px 12px 12px;
+  box-shadow: 0 -5px 12px -5px var(--w-lift);
 }
-.m-pass i { position: absolute; left: 9px; right: 9px; top: 7px; height: 30px; border-radius: 5px; background: var(--pg-teal-2); transform: translateY(-48px); }
-.m-pass i::after { content: ''; position: absolute; left: 6px; top: 6px; width: 12px; height: 12px; border-radius: 2px; background: rgba(255, 255, 255, .8); }
-:root[data-theme="dark"] .m-pass { background: #20484A; box-shadow: none; }
-:root[data-theme="dark"] .m-pass::before { background: #2E5F61; }
+.m-pass i { position: absolute; left: 10px; right: 10px; top: 8px; height: 34px; border-radius: 7px; background: var(--w-card); transform: translateY(-50px); }
+:root { --w-back: #FFFFFF; --w-front: #FFFFFF; --w-card: #9FE3E5; --w-lift: rgba(1, 55, 57, .2); }
+:root[data-theme="dark"] { --w-back: #2C3032; --w-front: #33383A; --w-card: #3B9EA1; --w-lift: rgba(0, 0, 0, .55); }
+:root[data-theme="dark"] .m-pass { box-shadow: none; }
 .metrics.in .m-pass i { animation: pg-pass 2.6s var(--pg-ease) infinite; }
-@keyframes pg-pass { 0%, 10% { transform: translateY(-48px); } 45%, 85% { transform: none; } 100% { transform: translateY(-48px); } }
-/* ---------- what I'd do next: a clipboard to-do list beside the headline ---------- */
-:root { --todo-clip: #DCE0E1; --todo-box: #BFC5C7; }
-:root[data-theme="dark"] { --todo-clip: #33383A; --todo-box: #5A5F62; }
-.next-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 48px; align-items: start; }
+@keyframes pg-pass { 0%, 10% { transform: translateY(-50px); } 45%, 85% { transform: none; } 100% { transform: translateY(-50px); } }
+/* ---------- what I'd do next: a plain to-do list you can tick off ---------- */
+:root { --todo-box: #C3C9CB; --todo-line: #E6E9EA; }
+:root[data-theme="dark"] { --todo-box: #5A5F62; --todo-line: #2E3133; }
+.next-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 48px; align-items: start; }
 .next-text .statement { margin-bottom: 0; }
-.todo { position: relative; margin-top: 8px; padding: 14px; border-radius: 22px; background: var(--pg-stage); }
-/* the clip at the top of the board */
-.todo-clip {
-  position: absolute; left: 50%; top: -9px; width: 96px; height: 24px; transform: translateX(-50%);
-  border-radius: 5px; background: var(--todo-clip);
-}
-.todo-paper { border-radius: 12px; background: var(--pg-card); padding: 30px 26px 22px; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
-.todo-title {
-  margin: 0 0 18px; text-align: center;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; font-weight: 400; letter-spacing: .02em; color: var(--head);
-}
+.todo { margin-top: 8px; padding: 18px 24px; border-radius: 18px; background: var(--pg-card); border: 1.5px solid var(--todo-line); }
+:root[data-theme="dark"] .todo { background: var(--pg-stage); }
 .todo ul { list-style: none; margin: 0; padding: 0; }
-.todo li {
-  display: grid; grid-template-columns: 16px 1fr; gap: 14px; align-items: start;
-  padding: 11px 0;
-  opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .5s var(--pg-ease);
+.todo li { position: relative; opacity: 0; transition: opacity .4s ease; }
+.todo li.in { opacity: 1; }
+.todo-row {
+  display: grid; grid-template-columns: 16px 1fr; gap: 14px; align-items: start; width: 100%;
+  padding: 12px 0; margin: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
 }
-.todo li.in { opacity: 1; transform: none; }
-.todo-box { display: block; width: 14px; height: 14px; margin-top: 3px; border-radius: 4px; border: 1.5px solid var(--todo-box); }
-.todo li span { display: flex; flex-direction: column; gap: 3px; }
-.todo li b { font-size: 15px; font-weight: 400; color: var(--head); }
-.todo li em { font-style: normal; font-size: 13.5px; line-height: 1.45; color: var(--body); }
+.todo-row:focus-visible { outline: 2px solid var(--todo-box); outline-offset: 4px; border-radius: 6px; }
+.todo-box {
+  position: relative; display: block; width: 14px; height: 14px; margin-top: 3px; box-sizing: border-box;
+  border-radius: 4px; border: 1.5px solid var(--todo-box);
+  transition: background-color .25s ease, border-color .25s ease;
+}
+.todo-row:hover .todo-box { border-color: var(--body); }
+/* the tick draws in */
+.todo-box::after {
+  content: ''; position: absolute; left: 3.5px; top: .5px; width: 3.5px; height: 7px;
+  border: solid var(--pg-card); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) scale(0); transform-origin: 50% 60%;
+  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1);
+}
+:root[data-theme="dark"] .todo-box::after { border-color: var(--pg-stage); }
+.todo-text { display: flex; flex-direction: column; gap: 3px; }
+.todo-text b { font-size: 15px; font-weight: 400; color: var(--head); transition: color .35s ease; }
+.todo-text em { font-style: normal; font-size: 13.5px; line-height: 1.45; color: var(--body); transition: color .35s ease; }
+/* the strike: a line drawn left to right through each line of text */
+.todo-text .st {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  transition: background-size .4s ease;
+}
+.todo li.done .todo-box { background: var(--head); border-color: var(--head); }
+.todo li.done .todo-box::after { transform: rotate(45deg) scale(1); }
+.todo li.done .todo-text b, .todo li.done .todo-text em { color: var(--caption); }
+.todo li.done .todo-text .st { background-size: 100% 1px; transition-delay: .12s; }
 @media (max-width: 860px) { .next-row { grid-template-columns: 1fr; gap: 28px; } .todo { max-width: 420px; } }
 /* ---------- reflection ---------- */
 .lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 8px; }

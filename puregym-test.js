@@ -99,61 +99,43 @@
     return { path: p, dot: c };
   });
 
-  // camera keyframes: p = scroll progress, z = zoom (x fit), fy = screen y in focus, ax = phone centre (0-1 of stage width)
-  var KF = [
-    { p: 0.00, z: 1.00, fy: 426, ax: 0.50 },
-    { p: 0.08, z: 1.00, fy: 426, ax: 0.50 },
-    { p: 0.18, z: 1.55, fy: 195, ax: 0.30 },
-    { p: 0.34, z: 1.55, fy: 195, ax: 0.30 },
-    { p: 0.42, z: 1.55, fy: 311, ax: 0.30 },
-    { p: 0.56, z: 1.55, fy: 311, ax: 0.30 },
-    { p: 0.64, z: 1.30, fy: 480, ax: 0.30 },
-    { p: 0.74, z: 1.30, fy: 480, ax: 0.30 },
-    { p: 0.81, z: 1.55, fy: 669, ax: 0.30 },
-    { p: 0.87, z: 1.55, fy: 669, ax: 0.30 },
-    { p: 0.95, z: 1.00, fy: 426, ax: 0.32 },
-    { p: 1.00, z: 1.00, fy: 426, ax: 0.32 }
+  // The solution plays on its own like a short video: whole phone, then the
+  // camera glides to each part (gym, guest pass, code, wallet), then back out
+  // to the whole screen with every note, and loops. Camera moves are tweens
+  // between finished camera positions (scale + x + y together), so the zoom
+  // in and out is one smooth ease, no jump. Click a step name to jump to it;
+  // the loop stops there until the panel leaves the screen and comes back.
+  // z = zoom (x fit), fy = screen y in focus, ax = phone centre (0-1 of stage width)
+  var STOPS = [
+    { z: 1.00, fy: 426, ax: 0.50, step: null,  hold: 450 },
+    { z: 1.55, fy: 195, ax: 0.30, step: 0,     hold: 1700 },
+    { z: 1.55, fy: 311, ax: 0.30, step: 1,     hold: 1700 },
+    { z: 1.30, fy: 480, ax: 0.30, step: 2,     hold: 1700 },
+    { z: 1.55, fy: 669, ax: 0.30, step: 3,     hold: 1700 },
+    { z: 1.00, fy: 426, ax: 0.32, step: 'all', hold: 2800 }
   ];
-  var STEPS = [
-    { from: 0.15, to: 0.39, step: 0 },
-    { from: 0.39, to: 0.60, step: 1 },
-    { from: 0.60, to: 0.78, step: 2 },
-    { from: 0.78, to: 0.92, step: 3 },
-    { from: 0.92, to: 1.01, step: 'all' }
-  ];
+  var MOVE = 750, JUMP = 600;
 
-  function smooth(t) { return t * t * (3 - 2 * t); }
   function clamp01(v) { return Math.max(0, Math.min(1, v)); }
-  function sample(p) {
-    for (var i = 0; i < KF.length - 1; i++) {
-      var a = KF[i], b = KF[i + 1];
-      if (p <= b.p) {
-        var t = smooth(clamp01((p - a.p) / (b.p - a.p)));
-        return { z: a.z + (b.z - a.z) * t, fy: a.fy + (b.fy - a.fy) * t, ax: a.ax + (b.ax - a.ax) * t };
-      }
-    }
-    var l = KF[KF.length - 1]; return { z: l.z, fy: l.fy, ax: l.ax };
+  function ease(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+  var W = 0, H = 0, narrow = false, base = 1;
+  function measure() {
+    W = stage.clientWidth; H = stage.clientHeight; narrow = W < 640;
+    base = Math.min((H * (narrow ? 0.72 : 0.88)) / FH, (W * 0.9) / FW);
   }
-  // plays on its own like a video: once the panel is on screen the camera
-  // runs through the four parts, holds on the whole screen, then starts over.
-  // Leaving the screen pauses it; coming back starts it from the top.
-  var PLAY = 15000, HOLD = 3000, t0 = null, live = false;
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (en) {
-      var v = en[0].isIntersecting && en[0].intersectionRatio >= 0.45;
-      if (v === live) return;
-      live = v;
-      t0 = v ? performance.now() : null;
-    }, { threshold: [0, 0.45, 1] }).observe(stage);
-  } else { live = true; t0 = performance.now(); }
-  function progress() {
-    if (reduce) return 1;
-    if (!live || t0 === null) return 0;
-    var e = (performance.now() - t0) % (PLAY + HOLD);
-    return Math.min(1, e / PLAY);
+  // where the camera sits for one stop
+  function camOf(st) {
+    var z = narrow ? 1 + (st.z - 1) * 0.6 : st.z;
+    var ax = narrow ? 0.5 : st.ax;
+    var S = base * z;
+    var tx = ax * W - (FW / 2) * S;
+    var ty = st.z === 1 ? (H - FH * S) / 2 : (narrow ? H * 0.40 : H / 2) - (st.fy + 13) * S;
+    return { S: S, tx: tx, ty: ty };
   }
 
   var cur = null, active = null;
+  var idx = 0, from = null, t0 = 0, dur = 0, live = false, held = false;
 
   function setActive(step) {
     if (step === active) return;
@@ -161,6 +143,66 @@
     parts.forEach(function (el, i) { el.classList.toggle('lift', step === i); });
     slots.forEach(function (el, i) { el.classList.toggle('on', step === i); });
     callouts.forEach(function (el, i) { el.classList.toggle('on', step === i || step === 'all'); });
+  }
+
+  function go(i, ms) {
+    measure();
+    from = cur || camOf(STOPS[i]);
+    idx = i; t0 = performance.now(); dur = ms;
+    setActive(STOPS[i].step);
+  }
+  function restart() {
+    measure();
+    idx = 0; cur = camOf(STOPS[0]); from = cur; t0 = performance.now(); dur = 0;
+    setActive(null);
+  }
+
+  // the step names under the panel are clickable (same as the problem panel)
+  var tabs = fills.map(function (b) { return b.parentNode; });
+  var row = tabs.length ? tabs[0].parentNode : null;
+  if (row) { row.removeAttribute('aria-hidden'); row.setAttribute('role', 'tablist'); row.classList.add('clickable'); }
+  function hold(i) {
+    held = true;
+    go(i + 1, JUMP);
+    tabs.forEach(function (t, j) { t.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+  }
+  tabs.forEach(function (t, i) {
+    t.setAttribute('role', 'tab');
+    t.setAttribute('aria-selected', 'false');
+    t.tabIndex = 0;
+    t.addEventListener('click', function () { hold(i); });
+    t.addEventListener('keydown', function (e) {
+      var k = e.key, n = null;
+      if (k === 'Enter' || k === ' ') n = i;
+      else if (k === 'ArrowRight') n = (i + 1) % tabs.length;
+      else if (k === 'ArrowLeft') n = (i - 1 + tabs.length) % tabs.length;
+      if (n === null) return;
+      e.preventDefault(); hold(n); tabs[n].focus();
+    });
+  });
+
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (en) {
+      var v = en[0].isIntersecting && en[0].intersectionRatio >= 0.45;
+      if (v === live) return;
+      live = v;
+      if (!v) { held = false; tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); }); }
+      restart();
+    }, { threshold: [0, 0.45, 1] }).observe(stage);
+  } else { live = true; }
+
+  function bars(now) {
+    var st = STOPS[idx].step;
+    var k = clamp01((now - t0 - dur) / STOPS[idx].hold);
+    fills.forEach(function (b, j) {
+      var w;
+      if (held) w = st === j ? 1 : 0;
+      else if (st === 'all') w = 1;
+      else if (typeof st === 'number') w = j < st ? 1 : j === st ? k : 0;
+      else w = 0;
+      b.style.width = (w * 100) + '%';
+      b.parentNode.classList.toggle('on', st === j);
+    });
   }
 
   function layoutCallouts(W, H, narrow) {
@@ -194,32 +236,19 @@
     });
   }
 
-  function frame() {
-    var W = stage.clientWidth, H = stage.clientHeight;
-    var narrow = W < 640;
-    var p = progress();
-    var t = sample(p);
-    if (narrow) { t.ax = 0.5; t.z = 1 + (t.z - 1) * 0.6; }
-    var base = Math.min((H * (narrow ? 0.72 : 0.88)) / FH, (W * 0.9) / FW);
-    var target = { S: base * t.z, fy: t.fy, ax: t.ax };
-    if (!cur || reduce) cur = target;
+  function frame(now) {
+    measure();
+    if (!cur) restart();
+    if (reduce) { idx = STOPS.length - 1; held = true; setActive('all'); cur = camOf(STOPS[idx]); }
     else {
-      var k = 0.16;
-      cur = { S: cur.S + (target.S - cur.S) * k, fy: cur.fy + (target.fy - cur.fy) * k, ax: cur.ax + (target.ax - cur.ax) * k };
+      var target = camOf(STOPS[idx]);
+      var k = dur ? ease(clamp01((now - t0) / dur)) : 1;
+      cur = { S: from.S + (target.S - from.S) * k, tx: from.tx + (target.tx - from.tx) * k, ty: from.ty + (target.ty - from.ty) * k };
+      // hold done: glide on to the next stop (back to the start after the last)
+      if (live && !held && now - t0 >= dur + STOPS[idx].hold) go((idx + 1) % STOPS.length, MOVE);
     }
-    var ay = narrow ? H * 0.40 : H / 2;
-    var tx = cur.ax * W - (FW / 2) * cur.S;
-    var ty = ay - (cur.fy + 13) * cur.S;
-    // zoomed all the way out: centre the whole phone instead of the focus point
-    var out = clamp01((1.12 - cur.S / base) / 0.12);
-    var tyOut = (H - FH * cur.S) / 2;
-    ty = ty + (tyOut - ty) * out;
-    camera.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px) scale(' + cur.S.toFixed(4) + ')';
-
-    var step = null;
-    for (var i = 0; i < STEPS.length; i++) if (p >= STEPS[i].from && p < STEPS[i].to) step = STEPS[i].step;
-    setActive(step);
-    fills.forEach(function (b, i) { b.style.width = (clamp01((p - STEPS[i].from) / (STEPS[i].to - STEPS[i].from)) * 100) + '%'; b.parentNode.classList.toggle('on', step === i); });
+    camera.style.transform = 'translate(' + cur.tx.toFixed(2) + 'px,' + cur.ty.toFixed(2) + 'px) scale(' + cur.S.toFixed(4) + ')';
+    bars(now);
     layoutCallouts(W, H, narrow);
     requestAnimationFrame(frame);
   }

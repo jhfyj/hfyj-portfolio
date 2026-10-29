@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clarus AI &mdash; HFYJ</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // same pre-paint theme block as every other page (see site.js)
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="site.css" vite-ignore>
+    <link rel="stylesheet" href="case.css" vite-ignore>
+    <link rel="stylesheet" href="clarusai-test.css" vite-ignore>
+</head>
+<body>
+
+<!-- the soft pastel field behind the whole page: the Clarus UI's own gradient,
+     blurred way down, so the glass panels have something to frost -->
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html#cards">Home</a>
+        <span class="sep">/</span>
+        <span class="here">Clarus AI</span>
+    </div>
+    <div class="topbar-right">
+        <span>Installation</span>
+        <span class="sep-lg">/</span>
+        <span>UIUX</span>
+        <span class="sep-lg">/</span>
+        <span>Physical Computing</span>
+    </div>
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <span class="theme-wheel">
+            <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </span>
+    </button>
+</nav>
+
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<aside id="toc" aria-label="Sections">
+    <a href="#top"><span class="suit">&spades;</span> OVERVIEW</a>
+    <a href="#context"><span class="suit">&clubs;</span> CONTEXT</a>
+    <a href="#solution"><span class="suit">&hearts;</span> CONCEPT</a>
+    <a href="#process"><span class="suit">&diams;</span> PROCESS</a>
+    <a href="#show"><span class="suit">&spades;</span> WINTER SHOW</a>
+    <a href="#next"><span class="suit">&clubs;</span> NEXT</a>
+    <a href="#reflection"><span class="suit">&hearts;</span> REFLECTION</a>
+</aside>
+
+<main class="case" id="top">
+
+    <!-- 1. HERO: the installation walkthrough -->
+    <div class="embed hero-embed">
+        <iframe src="https://www.youtube.com/embed/ehU53VefTDU?iv_load_policy=3&amp;rel=0&amp;modestbranding=1&amp;playsinline=1&amp;autoplay=1&amp;mute=1&amp;loop=1&amp;playlist=ehU53VefTDU"
+                title="Clarus AI installation walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen loading="lazy"></iframe>
+    </div>
+
+    <header class="case-head">
+        <h1>An AI you have to power yourself.</h1>
+        <p class="lede">A concept installation about the energy behind every prompt.</p>
+        <dl class="meta">
+            <div><dt>Timeline</dt><dd><span>September &ndash;</span><br><span>December 2025</span></dd></div>
+            <div><dt>Team</dt><dd>Jennifer, Jiyoon</dd></div>
+            <div><dt>Tools</dt><dd>Arduino, Fabrication, AutoCAD, 3D Printing, Figma</dd></div>
+            <div><dt>Shown at</dt><dd>IMA/ITP Winter Show</dd></div>
+        </dl>
+    </header>
+
+    <!-- 2. CONTEXT: three numbers in glass, counting up as they arrive -->
+    <section class="case-section" id="context">
+        <p class="eyebrow">Context</p>
+        <p class="statement">Typing a prompt feels free. It isn&rsquo;t.</p>
+        <p class="body-copy">Using AI feels as simple as typing and pressing enter. As the technology grows, so does the energy it takes to run it, and none of that shows up on screen.</p>
+
+        <div class="stat-row">
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="0.24" data-dec="2">0.00</span><span class="st-unit">Wh</span></p>
+                <p class="st-label">of energy per prompt, on average</p>
+            </div>
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="0.26" data-dec="2">0.00</span><span class="st-unit">mL</span></p>
+                <p class="st-label">of water per prompt, on average</p>
+            </div>
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="2.5" data-dec="1">0.0</span><span class="st-unit">billion</span></p>
+                <p class="st-label">prompts OpenAI receives a day</p>
+            </div>
+        </div>
+        <p class="source">Sources: <a href="https://www.technologyreview.com/2025/08/21/1122288/google-gemini-ai-energy/" target="_blank" rel="noopener">MIT Technology Review</a>, <a href="https://www.extremetech.com/computing/chatgpt-receives-25-billion-prompts-per-day-openai-ceo-says" target="_blank" rel="noopener">ExtremeTech</a></p>
+    </section>
+
+    <!-- 3. CHALLENGE: the question, typed out -->
+    <section class="case-section challenge" id="challenge">
+        <p class="eyebrow">Challenge</p>
+        <p class="ask" data-text="What happens when using an LLM takes more than type and enter?"><span class="ask-typed"></span><span class="ask-caret"></span></p>
+    </section>
+
+    <!-- 4. CONCEPT: the loop in three real frames, no rebuilt UI -->
+    <section class="case-section" id="solution">
+        <p class="eyebrow">Concept</p>
+        <p class="statement">Every answer has to be earned.</p>
+        <p class="body-copy">Visitors type a question, then power the answer with their own hands. Three mechanisms turn their movement into energy, the acrylic tower lights up as it fills, and the answer arrives with what it cost.</p>
+
+        <div class="flow" id="flow">
+            <figure class="flow-step reveal">
+                <div class="fs-img"><img src="assets/clarusai/img-10.png" alt="The Clarus AI interface on a laptop: What's on your mind today?" width="1024" height="768" loading="lazy"></div>
+                <figcaption><span class="fs-n">01</span><span class="fs-t">Ask</span><span class="fs-b">A chat as clean as the AI tools people already use.</span></figcaption>
+            </figure>
+            <figure class="flow-step reveal">
+                <div class="fs-img"><img src="assets/clarusai/img-15.jpg" alt="A visitor powering an answer at the show" width="1024" height="576" loading="lazy"></div>
+                <figcaption><span class="fs-n">02</span><span class="fs-t">Power it</span><span class="fs-b">Turning, pushing and churning fill the tower with light.</span></figcaption>
+            </figure>
+            <figure class="flow-step reveal">
+                <div class="fs-img"><img src="assets/clarusai/img-11.png" alt="The interface showing a generated response" width="1024" height="768" loading="lazy"></div>
+                <figcaption><span class="fs-n">03</span><span class="fs-t">Get the answer</span><span class="fs-b">The response arrives with a pop-up showing the energy it took.</span></figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- 5. PROCESS: one section you go through. The four stages on the left,
+         and every image from the active stage on the right at once. It moves
+         on by itself while it's on screen until someone picks a stage. -->
+    <section class="case-section" id="process">
+        <p class="eyebrow">Process</p>
+        <p class="statement">From paper to frosted acrylic in four passes.</p>
+
+        <!-- 01 SKETCHING: its own block. The four pages lie on the table as if
+             torn out of the sketchbook, with the pencil from the grid view and
+             a paper clip. Pages are graded from green to white paper. -->
+        <div class="sk-block">
+            <p class="lesson-t">Sketching</p>
+            <p class="body-copy sk-copy">We narrowed broad ideas about sustainability down to one: visitors generate the energy themselves, with three mechanical movements like churning and pushing.</p>
+            <div class="sk-table" id="sk-table">
+            <div class="sketchbook" id="sketchbook">
+                <img class="sk-page sk-p1" src="assets/clarusai/sketch-page-1.png" alt="Sketch page: relationships, light and memory as first ideas" width="598" height="800" loading="lazy" draggable="false">
+                <img class="sk-page sk-p2" src="assets/clarusai/sketch-page-2.png" alt="Sketch page: the class brainstorm list and the box mechanism" width="516" height="800" loading="lazy" draggable="false">
+                <img class="sk-page sk-p3" src="assets/clarusai/sketch-page-3.png" alt="Sketch page: a wind-turbine dome and the triangle frame" width="600" height="800" loading="lazy" draggable="false">
+                <img class="sk-page sk-p4" src="assets/clarusai/sketch-page-4.png" alt="Sketch page: the triangle base and the stacked tower" width="578" height="478" loading="lazy" draggable="false">
+                <span class="sk-pencil" aria-hidden="true"><svg viewBox="0 0 18 272" preserveAspectRatio="none"><defs><linearGradient id="skPm" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#9C9EA3"/><stop offset=".3" stop-color="#F4F5F7"/><stop offset=".55" stop-color="#C4C6CB"/><stop offset="1" stop-color="#7D8086"/></linearGradient><linearGradient id="skPc" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".10"/><stop offset=".28" stop-color="#fff" stop-opacity=".38"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs><rect x="3" y="0" width="12" height="11" rx="3" fill="url(#skPm)"/><rect x="1.5" y="10" width="15" height="3" fill="url(#skPm)"/><rect x="1.5" y="13" width="15" height="30" class="sk-pbody"/><rect x="1.5" y="13" width="15" height="30" fill="#000" opacity=".38"/><rect x="1.5" y="43" width="15" height="187" class="sk-pbody"/><text x="0" y="0" transform="translate(11.6 196) rotate(-90)" fill="#9E7826" font-family="DM Sans, system-ui, sans-serif" font-size="5.6" letter-spacing=".9">PRIME TIMBER 2.0</text><text x="0" y="0" transform="translate(11.2 70) rotate(-90)" fill="#9E7826" font-family="DM Sans, system-ui, sans-serif" font-size="3.2" letter-spacing=".4">HFYJ</text><rect x="1.5" y="13" width="15" height="217" fill="url(#skPc)"/><path d="M1.5 230 H16.5 L11 260 H7 Z" fill="url(#skPm)"/><rect x="7" y="258" width="4" height="4" fill="url(#skPm)"/><path d="M7.9 262 H10.1 L9.6 272 H8.4 Z" fill="#3B3B3D"/></svg></span>
+                <span class="sk-clip" aria-hidden="true"><svg viewBox="0 0 15 42"><defs><linearGradient id="skClip" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8E949B"/><stop offset=".45" stop-color="#E8EAED"/><stop offset="1" stop-color="#98A0A8"/></linearGradient></defs><path d="M5.5 13 V30 A2.25 2.25 0 0 0 10 30 V6.5 A4 4 0 0 0 2 6.5 V34 A5.5 5.5 0 0 0 13 34 V11" fill="none" stroke="url(#skClip)" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            </div>
+            </div>
+        </div>
+
+        <div class="proc" id="proc">
+            <div class="proc-list" role="tablist" aria-label="Process stages">
+                <button class="proc-step" type="button" role="tab" data-step="1">
+                    <span class="ps-t">Prototyping</span>
+                    <span class="ps-b">A 3D model for size and balance, then cardboard. After a few failed attempts we had an exact template for laser cutting the frosted acrylic and wood.</span>
+                    <span class="ps-bar"><i></i></span>
+                </button>
+                <button class="proc-step" type="button" role="tab" data-step="2">
+                    <span class="ps-t">3D modeling</span>
+                    <span class="ps-b">I learned Fusion360 from scratch. Springs and rubber bands give the hand-powered, linear-to-rotational mechanism its resistance.</span>
+                    <span class="ps-bar"><i></i></span>
+                </button>
+                <button class="proc-step" type="button" role="tab" data-step="3">
+                    <span class="ps-t">Building and wiring</span>
+                    <span class="ps-b">Arduino, rotary motors and serial communication connect the turning to the screen.</span>
+                    <span class="ps-bar"><i></i></span>
+                </button>
+            </div>
+
+            <div class="proc-media">
+                <!-- 02: the prototype collage (data-step = position in this list) -->
+                <div class="pm-set pm-proto" data-step="0">
+                    <figure><img src="assets/clarusai/proto-1-model.png" alt="The 3D model on screen, checking size and balance" width="203" height="270" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/proto-2-cardboard.png" alt="The cardboard mock-up of the triangle base" width="200" height="315" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/proto-3-template.png" alt="The laser-cutting template" width="264" height="192" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/proto-4-assembly.png" alt="The assembled frosted acrylic and wood prototype" width="378" height="283" loading="lazy"></figure>
+                </div>
+                <!-- 03: the renders as a grid -->
+                <div class="pm-set pm-renders" data-step="1">
+                    <figure class="r-big"><img src="assets/clarusai/img-05.png" alt="Fusion360 render of the crank mechanism" width="1024" height="683" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/img-03.png" alt="Fusion360 render of the hand-shaped housing" width="971" height="661" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/img-04.png" alt="Cutaway render of the internal gearing" width="755" height="796" loading="lazy"></figure>
+                </div>
+                <!-- 04: the build photos as a grid -->
+                <div class="pm-set pm-build" data-step="2">
+                    <figure class="b-wide"><img src="assets/clarusai/img-06.jpg" alt="The workbench mid-build" width="1024" height="768" loading="lazy"></figure>
+                    <figure class="b-tall"><img src="assets/clarusai/img-07.jpg" alt="Laying out the laser-cut acrylic panels" width="768" height="1024" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/img-08.jpg" alt="The printed housing with the motor inside" width="768" height="1024" loading="lazy"></figure>
+                    <figure><img src="assets/clarusai/img-09.jpg" alt="Arduino wiring" width="768" height="1024" loading="lazy"></figure>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. WINTER SHOW: big, but inside the column -->
+    <section class="case-section" id="show">
+        <p class="eyebrow">Winter Show</p>
+        <p class="statement">Shown at the IMA/ITP Winter Show.</p>
+        <p class="body-copy">The response was overwhelmingly positive. People liked earning their energy in a fun way, which made a serious topic easier to approach, and many left suggestions for where to take it next.</p>
+        <div class="gallery">
+            <figure class="g-hero reveal"><img src="assets/clarusai/img-16.jpg" alt="The acrylic tower lit up at the show, with the laptop beside it" width="1024" height="683" loading="lazy"></figure>
+            <figure class="reveal"><img src="assets/clarusai/img-14.jpg" alt="A visitor lit green by the tower" width="1024" height="576" loading="lazy"></figure>
+            <figure class="reveal"><img src="assets/clarusai/img-12.jpg" alt="The installation glowing in the dark" width="1024" height="683" loading="lazy"></figure>
+            <figure class="reveal"><img src="assets/clarusai/img-13.jpg" alt="The installation under the gallery lights" width="1024" height="683" loading="lazy"></figure>
+            <figure class="reveal"><img src="assets/about/fan-4-clarus.jpg" alt="Jennifer and Jiyoon with the finished installation" width="2048" height="1536" loading="lazy"></figure>
+        </div>
+    </section>
+
+    <!-- 7. NEXT: the reflection's idea, made into a small working demo -->
+    <section class="case-section" id="next">
+        <p class="eyebrow">What I&rsquo;d do next</p>
+        <p class="statement">Put the energy in units people already feel.</p>
+        <p class="body-copy">This was one of the biggest pieces of feedback from the show. People kept asking what 0.24 Wh actually means, because a number on its own doesn&rsquo;t say much. They wanted to see it compared to something real, so next I&rsquo;d set it next to things people already know.</p>
+        <div class="cmp" id="convert">
+            <div class="cmp-card">
+                <div class="cmp-side cmp-fixed">
+                    <img class="cmp-emoji" src="assets/clarusai/emoji/bolt.png" alt="" width="64" height="64">
+                    <p class="cmp-num"><span class="cmp-big">0.24</span><span class="cmp-unit">Wh</span></p>
+                    <p class="cmp-desc">for one answer</p>
+                </div>
+                <div class="cmp-side cmp-cycle" role="group" aria-roledescription="carousel" aria-label="The same energy, compared">
+                    <div class="cmp-dots" role="tablist" aria-label="Comparisons">
+                        <button class="cmp-dot on" type="button" role="tab" aria-selected="true" aria-label="Light bulb" data-u="0"></button>
+                        <button class="cmp-dot" type="button" role="tab" aria-selected="false" aria-label="Phone battery" data-u="1"></button>
+                        <button class="cmp-dot" type="button" role="tab" aria-selected="false" aria-label="Microwave" data-u="2"></button>
+                    </div>
+                    <div class="cmp-swap" aria-live="polite">
+                        <img class="cmp-emoji" src="assets/clarusai/emoji/bulb.png" alt="" width="64" height="64">
+                        <p class="cmp-num"><span class="cmp-big">86</span><span class="cmp-unit">seconds</span></p>
+                        <p class="cmp-desc">of a 10 W LED bulb</p>
+                    </div>
+                </div>
+            </div>
+            <p class="cmp-note">Rough equivalents from the 0.24 Wh median: a 10 W LED bulb, a 13 Wh phone battery, a 1,000 W microwave.</p>
+        </div>
+    </section>
+
+    <!-- 8. REFLECTION -->
+    <section class="case-section" id="reflection">
+        <p class="eyebrow">Reflection</p>
+        <div class="lessons">
+            <div class="lesson">
+                <p class="lesson-t">Fail in cardboard first.</p>
+                <p class="lesson-b">Lo-fi prototypes caught every sizing mistake before it was cut in acrylic. On a project this big, testing cheap is what made the real build work.</p>
+            </div>
+            <div class="lesson">
+                <p class="lesson-t">A good partner raises the work.</p>
+                <p class="lesson-b">Thank you to Jiyoon, for showing me how much better a project gets when two people push it together.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy&hellip;</p>
+        <div class="next-cards">
+            <div class="next-slot nc1">
+                <a class="next-card" data-card="the-dial" href="the-dial.html" data-cursor="open project" aria-label="The Dial"></a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" data-card="povi" href="povi.html" data-cursor="open project" aria-label="POVI"></a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+<script src="clarusai-test.js"></script>
+</body>
+</html>

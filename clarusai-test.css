@@ -1,0 +1,447 @@
+/* Clarus AI redesign (test page). Same bones as the PureGym redesign
+   (claim title, typed challenge, concept flow, process, show, next, lessons),
+   but cleaner and built on translucent glass, after naheeljawaid.com:
+   a soft pastel field behind everything, frosted panels with a hairline
+   light edge, media that blurs in instead of sliding.
+   Shared chrome and type: site.css + case.css. No weights above 500. */
+
+:root {
+  --col: 835px;
+  --cl-ease: cubic-bezier(.22, 1, .36, 1);
+  /* the Clarus UI gradient: pink, mint, butter, sky */
+  --cl-pink: 255, 196, 226;
+  --cl-mint: 178, 242, 206;
+  --cl-butter: 250, 246, 170;
+  --cl-sky: 178, 214, 255;
+  /* the tower's light, from the show photos */
+  --cl-green: 74, 232, 140;
+  --cl-blue: 88, 168, 255;
+  --cl-orange: 255, 160, 72;
+  --cl-send: #5AA9F4;
+
+  /* glass */
+  --g-fill: #F4F4F5;
+  --g-edge: transparent;
+  --g-line: rgba(20, 24, 40, .06);
+  --g-shadow: none;
+  --g-solid: rgba(255, 255, 255, .82);
+  --aura-o: .3;
+  --bar: rgba(255, 255, 255, .55);
+}
+:root[data-theme="dark"] {
+  --g-fill: #1D1E21;
+  --g-edge: transparent;
+  --g-line: rgba(255, 255, 255, .06);
+  --g-shadow: none;
+  --g-solid: rgba(30, 30, 34, .72);
+  --aura-o: .1;
+  --bar: rgba(18, 18, 18, .55);
+}
+
+/* the page sits on the site's plain background (white / dark), like every
+   other case study. No pastel field, no frosted top bar. */
+
+/* ---------- glass ---------- */
+.glass {
+  position: relative;
+  background: var(--g-fill);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid var(--g-edge);
+  box-shadow: var(--g-shadow);
+  border-radius: 18px;
+}
+
+/* Glass is for panels only (top bar, the converter, the closing card).
+   (plus the three context tiles). Images sit straight on the page: no frames,
+   no frosted wells, and nothing ever runs past the column. */
+
+
+/* ---------- hero + header ---------- */
+.hero-embed { --ratio: 0.976; }
+.case-head .meta { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 20px; }
+.case-head .meta dd { line-height: 1.4; font-size: 16px; }
+.case-head .meta dd span { white-space: nowrap; }
+.case-head h1 { letter-spacing: -.02em; }
+
+
+/* ---------- context: three stat cards, in the Thanks-for-reading card style ----------
+   Same look as the "What I'd do next" comparison card: near-white card, hairline
+   --rule border, 12px corners (dark: rgb(26,26,28)). Big regular-weight number
+   in --ink with a small grey unit beside it, then a one-line grey description.
+   Numbers sit on one line across the three cards. */
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 32px; }
+.stat-tile {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 34px 32px 32px; border-radius: 12px;
+  background: rgb(252, 252, 252); border: 1px solid var(--rule);
+  font-family: "DM Sans", sans-serif;
+}
+:root[data-theme="dark"] .stat-tile { background: rgb(26, 26, 28); border-color: var(--rule); }
+.st-num { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0; }
+.st-num .count {
+  font-size: clamp(40px, 4.4vw, 58px); line-height: 1; font-weight: 400; letter-spacing: -.03em;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.st-unit { font-size: 17px; font-weight: 400; color: var(--caption); }
+/* a two-line slot so the cards stay the same height whatever the description length */
+.st-label {
+  margin: 14px 0 0; min-height: 2.9em;
+  font-size: 15px; line-height: 1.45; font-weight: 400;
+  color: var(--caption); text-wrap: pretty;
+}
+@media (max-width: 1100px) { .stat-tile { padding: 28px 24px 26px; } .st-label { font-size: 14px; } }
+@media (max-width: 760px) {
+  .stat-row { grid-template-columns: 1fr; gap: 10px; }
+  .stat-tile { padding: 24px 22px; }
+  .st-label { min-height: 0; margin-top: 10px; }
+}
+#context .source { margin-top: 14px; }
+
+/* ---------- challenge (same as PureGym) ---------- */
+.ask {
+  margin: 0; max-width: 720px;
+  font-size: clamp(26px, 3.3vw, 36px); line-height: 1.25; font-weight: 500; letter-spacing: -.018em;
+  color: var(--head); min-height: 2.5em;
+}
+.ask-caret {
+  display: inline-block; width: 2px; height: .95em; margin-left: 3px; vertical-align: -.1em;
+  background: var(--accent); animation: cl-blink 1s steps(1) infinite;
+}
+.ask.done .ask-caret { animation: cl-blink 1s steps(1) 3, cl-fade .3s 3s forwards; }
+@keyframes cl-blink { 50% { opacity: 0; } }
+@keyframes cl-fade { to { opacity: 0; } }
+
+/* ---------- concept: ask -> power it -> answer, three real frames ---------- */
+.flow { display: grid; grid-template-columns: 1fr; gap: 56px; margin-top: 40px; }
+.flow-step { margin: 0; }
+.fs-img { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000; }
+.fs-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* concept captions: no hanging indent. A small grey step number sits on its own
+   line above the title, and everything lines up with the image's left edge.
+   The title and body match the Reflection lessons (20px / 16px). */
+.flow-step figcaption { display: flex; flex-direction: column; align-items: flex-start; margin-top: 20px; }
+.fs-n { font-family: "DM Sans", sans-serif; font-size: 20px; line-height: 1.3; font-weight: 400; letter-spacing: -.015em; color: var(--caption); font-variant-numeric: tabular-nums; }  /* same size as the title (Jen); stays grey so the title still leads */
+.fs-t { margin-top: 8px; font-size: 20px; line-height: 1.3; font-weight: 400; letter-spacing: -.015em; color: var(--head); }
+.fs-b { margin-top: 6px; font-size: 16px; line-height: 1.55; color: var(--body); max-width: 600px; }
+@media (max-width: 760px) {
+  .flow-step figcaption { margin-top: 14px; }
+  .fs-t, .fs-n { font-size: 18px; }
+  .fs-b { font-size: 15px; }
+}
+/* steps stack full width, each reveals on its own scroll */
+
+
+/* ---------- process: the stages on the left, the active stage's images on the right ---------- */
+.proc { display: grid; grid-template-columns: 31% 1fr; gap: 28px; margin-top: 32px; align-items: start; }
+.proc-list { display: flex; flex-direction: column; }
+.proc-step {
+  appearance: none; border: 0; background: none; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: 1fr; padding: 14px 0 0;
+  font-family: "DM Sans", sans-serif;
+}
+.ps-n { font-family: "Play", sans-serif; font-size: 13px; color: var(--faint); padding-top: 3px; transition: color .3s ease; }
+.ps-t { font-size: 17px; line-height: 1.35; color: var(--faint); transition: color .3s ease; }
+.proc-step:hover .ps-t { color: var(--body); }
+.ps-b {
+  grid-column: 1; font-size: 14px; line-height: 1.55; color: var(--body);
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height .5s var(--cl-ease), opacity .4s ease, margin .5s var(--cl-ease);
+}
+/* a thin line under each stage: fills while that stage is showing */
+.ps-bar { grid-column: 1 / -1; display: block; height: 1px; margin-top: 14px; background: rgba(120, 124, 140, .22); overflow: hidden; }
+.ps-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.proc-step.on .ps-n { color: var(--accent); }
+.proc-step.on .ps-t { color: var(--head); }
+.proc-step.on .ps-b { max-height: 140px; opacity: 1; margin-top: 8px; }
+.proc-step.done .ps-bar i { width: 100%; opacity: .35; }
+.proc-step:focus-visible { outline: 2px solid var(--faint); outline-offset: 2px; border-radius: 4px; }
+
+/* the media: one set per stage, stacked in the same spot, cross-fading */
+.proc-media { position: relative; height: 470px; }
+.pm-set {
+  position: absolute; inset: 0; display: grid; gap: 10px;
+  opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity .5s ease, transform .7s var(--cl-ease), visibility 0s .5s;
+}
+.pm-set.on { opacity: 1; visibility: visible; transform: none; transition: opacity .5s ease .08s, transform .7s var(--cl-ease) .08s, visibility 0s; }
+.pm-set figure { margin: 0; min-height: 0; border-radius: 10px; overflow: hidden; }
+.pm-set img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* 01 sketches: an even 2x2 */
+.pm-sketch { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+/* 02 the collage sits whole */
+.pm-proto { place-items: center; }
+.pm-proto figure { border-radius: 0; width: 100%; height: 100%; }
+.pm-proto img { object-fit: contain; }
+/* 03 renders: the crank big, the other two stacked beside it, on white */
+.pm-renders { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; }
+.pm-renders figure { background: #fff; display: flex; align-items: center; justify-content: center; padding: 14px; }
+.pm-renders img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+.pm-renders .r-big { grid-row: span 2; padding: 0; }
+.pm-renders .r-big img { width: 118%; max-width: none; max-height: none; }
+/* 04 build: the bench wide on top, the close-ups underneath and down the side */
+.pm-build { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1.15fr 1fr; }
+.pm-build .b-wide { grid-column: span 2; }
+.pm-build .b-tall { grid-row: span 2; }
+
+/* ---------- winter show: big, but never past the column ---------- */
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 32px; }
+.gallery figure { margin: 0; border-radius: 12px; overflow: hidden; aspect-ratio: 3 / 2; }
+.gallery .g-hero { grid-column: 1 / -1; }
+.gallery img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* blur-in when an image scrolls into view (Naheel's media fade) */
+.reveal { opacity: 0; filter: blur(14px); transform: translateY(14px) scale(.985); transition: opacity .8s ease, filter .8s ease, transform 1s var(--cl-ease); }
+.reveal.in { opacity: 1; filter: none; transform: none; }
+
+/* ---------- next: watt-hours vs. an everyday thing ----------
+   Jen's mock: one Thanks-for-reading card split down the middle. Left stays
+   on 0.24 Wh; the right cycles through equivalents (dots to pick, or click
+   the side to move on). Emoji on top, big number + small unit, a line of
+   description, and the rough-equivalent source note under the card. */
+.cmp { margin-top: 32px; }
+.cmp-card {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--rule); border-radius: 12px; background: rgb(252, 252, 252);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .cmp-card { background: rgb(26, 26, 28); }
+.cmp-side { position: relative; padding: 44px 48px 46px; min-width: 0; }
+.cmp-cycle { border-left: 1px solid var(--rule); cursor: pointer; }
+.cmp-emoji { display: block; width: 32px; height: 32px; margin-bottom: 24px; object-fit: contain; }  /* Apple emoji art (64px PNG at 32px, sharp on retina) */
+.cmp-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0; }
+.cmp-big { font-size: clamp(40px, 6vw, 64px); line-height: 1; font-weight: 400; letter-spacing: -.03em; color: var(--ink); }
+.cmp-unit { font-size: 18px; font-weight: 400; color: var(--caption); }
+.cmp-desc { margin: 14px 0 0; font-size: 16px; line-height: 1.45; color: var(--caption); }
+.cmp-swap { transition: opacity .3s ease, filter .3s ease, transform .5s var(--cl-ease); }
+.cmp-swap.swap { opacity: 0; filter: blur(8px); transform: translateY(6px); }
+.cmp-dots { position: absolute; top: 56px; right: 48px; display: flex; gap: 6px; }
+.cmp-dot {
+  appearance: none; border: 0; padding: 0; cursor: pointer;
+  width: 6px; height: 6px; border-radius: 3px; background: rgba(120, 124, 140, .3);
+  transition: width .35s var(--cl-ease), background .25s ease;
+}
+.cmp-dot:hover { background: rgba(120, 124, 140, .55); }
+.cmp-dot.on { width: 18px; background: var(--ink); }
+.cmp-dot:focus-visible { outline: 2px solid var(--caption); outline-offset: 3px; }
+.cmp-note { margin: 12px 2px 0; font-size: 12px; line-height: 1.5; color: var(--caption); }
+@media (max-width: 760px) {
+  .cmp-side { padding: 22px 18px 24px; }
+  .cmp-emoji { width: 26px; height: 26px; margin-bottom: 14px; }
+  .cmp-big { font-size: 38px; }
+  .cmp-unit { font-size: 14px; }
+  .cmp-desc { font-size: 14px; margin-top: 10px; }
+  .cmp-dots { top: 26px; right: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .cmp-swap, .cmp-dot { transition: none; } }
+/* ---------- reflection (same as PureGym) ---------- */
+.lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 8px; }
+.lesson-n { font-family: "Play", sans-serif; font-size: 16px; color: var(--accent); }
+.lesson-t { margin: 8px 0 0; font-size: 20px; line-height: 1.3; font-weight: 400; letter-spacing: -.015em; color: var(--head); }
+.lesson-b { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: var(--body); }
+
+
+
+/* ---------- narrow ---------- */
+@media (max-width: 760px) {
+  .case-head .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lessons { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: 1fr; gap: 10px; }
+  .flow { grid-template-columns: 1fr; gap: 26px; }
+  .proc { grid-template-columns: 1fr; gap: 18px; }
+  .proc-media { height: 380px; }
+  .gallery { gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; filter: none; transform: none; transition: none; }
+  .pm-set { transition: none !important; }
+}
+
+/* ---------- process 01, sketching: the sketchbook pages on the table ----------
+   Laid out from Jen's mock on a 600 x 285 canvas (all positions are % of it).
+   Each page is torn off the pad (ragged left edge, baked into the PNG) and
+   graded from the photo's green to white paper. Pages 1 and 3 have a blank
+   corner where another sheet covered them in the photo; pages 2 and 4 sit
+   over those corners here too, so keep that overlap if they move.
+   The pencil is the grid-view table pencil; top right is a paper clip. */
+.sk-block { margin-top: 36px; }
+.sk-block .lesson-n, .sk-block .lesson-t { margin-bottom: 0; }
+.sk-block .lesson-n { margin-top: 0; }
+.sk-copy { max-width: 640px; margin-top: 10px; }
+.sketchbook { position: relative; width: 100%; aspect-ratio: 600 / 285; margin-top: 28px; }
+.sk-page, .sk-pencil, .sk-clip { position: absolute; display: block; transform: rotate(var(--r)); }
+.sk-page {
+  height: auto;
+  filter: drop-shadow(0 1px 1px rgba(20, 24, 40, .10)) drop-shadow(0 8px 14px rgba(20, 24, 40, .12));
+}
+.sk-p1 { --r: -5deg;   left: 16.667%; top: 6.316%;  width: 21.667%; z-index: 1; }
+.sk-p2 { --r: 3deg;    left: 30%;     top: 24.561%; width: 19.667%; z-index: 2; }
+.sk-p3 { --r: -1.5deg; left: 48%;     top: 2.807%;  width: 21.667%; z-index: 3; }
+.sk-p4 { --r: 5deg;    left: 60%;     top: 36.842%; width: 26.667%; z-index: 4; }
+.sk-pencil { --r: -8deg; left: 10.333%; top: 49.123%; width: 1.5%; height: 47.368%; z-index: 5;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .16)); }
+.sk-pencil svg, .sk-clip svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.sk-pbody { fill: var(--accent); }
+.sk-clip { --r: 7deg; left: 81.333%; top: 2.105%; width: 2.333%; height: 13.333%; z-index: 5;
+  filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, .18)); }
+:root[data-theme="dark"] .sk-page {
+  filter: brightness(.93) drop-shadow(0 1px 1px rgba(0, 0, 0, .4)) drop-shadow(0 10px 18px rgba(0, 0, 0, .45));
+}
+:root[data-theme="dark"] .sk-pencil { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .5)); }
+/* placed on the table one at a time when it scrolls in (script adds .sk-ready, then .in) */
+.sketchbook.sk-ready > * {
+  opacity: 0; transform: translate(0, -16px) rotate(calc(var(--r) + 4deg)) scale(1.03);
+  transition: opacity .45s ease, transform .7s var(--cl-ease, cubic-bezier(.22, 1, .36, 1));
+}
+.sketchbook.sk-ready > .in { opacity: 1; transform: translate(var(--dx, 0cqw), var(--dy, 0cqw)) rotate(calc(var(--r) + var(--tilt, 0deg))); }
+.sk-block + .proc { margin-top: 72px; }
+@media (prefers-reduced-motion: reduce) { .sketchbook.sk-ready > * { transition: none; } }
+
+/* ---------- process 01: the table under the pages ----------
+   Faint graph paper like the grid view's header (grid-table.css), fading out
+   at every edge. The pages, pencil and clip can be picked up and moved
+   anywhere on it (clarusai-test.js): --dx/--dy are in cqw of the table so a
+   moved page stays put when the window resizes. */
+.sk-table {
+  --sk-line: 40, 40, 40;
+  position: relative;
+  margin-top: 28px;
+  padding: 6% 0 7%;
+  container-type: inline-size;
+}
+:root[data-theme="dark"] .sk-table { --sk-line: 255, 255, 255; }
+.sk-table::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(var(--sk-line), .06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--sk-line), .06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
+    linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  mask-composite: intersect;
+}
+.sk-table .sketchbook { margin-top: 0; }
+.sketchbook > * {
+  transform: translate(var(--dx, 0cqw), var(--dy, 0cqw)) rotate(calc(var(--r) + var(--tilt, 0deg)));
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-user-drag: none;
+}
+.sketchbook > .is-dragging { cursor: grabbing; }
+/* picked up: the shadow grows like it is lifted off the table */
+.sk-page { transition: filter .2s ease; }
+.sk-page.is-dragging {
+  filter: drop-shadow(0 2px 2px rgba(20, 24, 40, .10)) drop-shadow(0 18px 26px rgba(20, 24, 40, .18));
+}
+:root[data-theme="dark"] .sk-page.is-dragging {
+  filter: brightness(.93) drop-shadow(0 2px 2px rgba(0, 0, 0, .45)) drop-shadow(0 20px 30px rgba(0, 0, 0, .55));
+}
+.sk-pencil.is-dragging, .sk-clip.is-dragging { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, .22)); }
+/* let go: it settles flat with a small overshoot */
+.sketchbook > .is-settling { transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), filter .2s ease; }
+.sketchbook > .is-dragging { transition: filter .2s ease !important; }
+
+/* ---------- process 04, building and wiring: Jen's 2 x 2 mock ----------
+   The four photos sit in one container dressed like the "Thanks for reading"
+   card (near-white fill, hairline border, 12px corners). The rows are
+   staggered: top-left a little wider than top-right, bottom-right a little
+   wider than bottom-left. 20 columns: 11 + 9 on top, 9 + 11 below. */
+.pm-set.pm-build {
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: rgb(252, 252, 252);
+}
+.pm-build figure { border-radius: 7px; }
+.pm-build .b-wide, .pm-build .b-tall { grid-column: auto; grid-row: auto; }
+.pm-build figure:nth-child(1) { grid-column: 1 / span 11; grid-row: 1; }
+.pm-build figure:nth-child(2) { grid-column: 12 / span 9; grid-row: 1; }
+.pm-build figure:nth-child(3) { grid-column: 1 / span 9;  grid-row: 2; }
+.pm-build figure:nth-child(4) { grid-column: 10 / span 11; grid-row: 2; }
+:root[data-theme="dark"] .pm-set.pm-build { background: rgb(26, 26, 28); }
+
+/* ---------- process: the same "Thanks for reading" frame on every stage ----------
+   Prototyping (the collage) and 3D modeling (the renders) get the container
+   the build photos sit in, so all three stages read as one set. */
+.pm-set.pm-proto, .pm-set.pm-renders {
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: rgb(252, 252, 252);
+}
+.pm-proto figure { border-radius: 7px; }
+.pm-renders figure { border-radius: 7px; border: 1px solid var(--rule); }
+.pm-renders .r-big { border: 1px solid var(--rule); }
+:root[data-theme="dark"] .pm-set.pm-proto,
+:root[data-theme="dark"] .pm-set.pm-renders { background: rgb(26, 26, 28); }
+
+/* ---------- process 02, prototyping: the collage fills its frame ----------
+   img-02.png has a wide transparent margin baked in (the pieces sit in
+   x 72-952, y 68-580 of 1024 x 649). Scaling by 1024/880 trims exactly that
+   margin off the sides, so the collage spans the frame edge to edge with no
+   piece cropped. */
+.pm-proto figure { overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.pm-proto img { transform: scale(1.164); transform-origin: 50.8% 49.1%; }
+
+/* ---------- process on phones: the three stages as tabs in a row ----------
+   Jen's mobile mock: the stage names sit side by side, the active stage's
+   description runs full width under them, then the framed photos. The
+   description comes from the active button (.ps-b) via .proc-desc in the JS.
+   The fill line stays under each tab and they line up even when a name wraps. */
+.proc-desc { display: none; }
+@media (max-width: 760px) {
+  .proc { gap: 0; }
+  .proc-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+  .proc-step { grid-template-rows: 1fr auto; padding-top: 0; align-content: end; }
+  .ps-t { font-size: 15px; line-height: 1.3; align-self: end; }
+  .ps-b, .proc-step.on .ps-b { display: none; }
+  .ps-bar { margin-top: 10px; }
+  .proc-desc {
+    display: block; margin: 16px 0 18px; font-size: 15px; line-height: 1.55; color: var(--body);
+    min-height: calc(1.55em * 3);
+  }
+  .proc-desc.swap { animation: procDesc .45s ease; }
+  .proc-media { height: 340px; }
+}
+@keyframes procDesc { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .proc-desc.swap { animation: none; } }
+
+/* ---------- process 02, prototyping: the four photos in the build grid ----------
+   The old collage (img-02.png) overlapped the pieces. They are now cut out
+   as four files (proto-1..4) and sit in the same staggered 2 x 2 as the
+   build photos: 11 + 9 on top, 9 + 11 below, in build order. */
+.pm-set.pm-proto { grid-template-columns: repeat(20, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; place-items: stretch; }
+.pm-set.pm-proto figure { display: block; width: auto; height: auto; border-radius: 7px; }
+.pm-set.pm-proto img { width: 100%; height: 100%; object-fit: cover; transform: none; }
+.pm-proto figure:nth-child(1) { grid-column: 1 / span 11; grid-row: 1; }
+.pm-proto figure:nth-child(2) { grid-column: 12 / span 9; grid-row: 1; }
+.pm-proto figure:nth-child(3) { grid-column: 1 / span 9;  grid-row: 2; }
+.pm-proto figure:nth-child(4) { grid-column: 10 / span 11; grid-row: 2; }
+
+/* reflection: Jen removed the 01 / 02 numbers, so the title now leads each lesson */
+#reflection .lesson > .lesson-t:first-child { margin-top: 0; }
+
+
+/* ---------- concept steps: number and title share one line (Jen) ----------
+   "01  Ask" on one baseline, the description full width underneath.
+   Layout only: sizes and colours are left to the .fs-n / .fs-t / .fs-b rules above. */
+#flow .flow-step figcaption { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; }
+#flow .fs-n { grid-column: 1; grid-row: 1; margin: 0; }
+#flow .fs-t { grid-column: 2; grid-row: 1; margin-top: 0; }
+#flow .fs-b { grid-column: 1 / -1; grid-row: 2; }

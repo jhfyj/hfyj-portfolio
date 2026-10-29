@@ -24,7 +24,10 @@ function outsidePhotos() {
 const PAGES = {
     index: 'index.html',
     aboutme: 'aboutme.html',
-    clarusai: 'clarusai.html',
+    // Clarus AI: the redesign (clarusai-test.html) IS the Clarus AI page now,
+    // served as clarusai.html (LIVE_PAGES below); the old clarusai.html stays in
+    // the repo, unbuilt.
+    clarusaitest: 'clarusai-test.html',
     povi: 'povi.html',
     // PureGym: the redesign (puregym-test.html) IS the PureGym page now. It is
     // built under its own name and served as puregym.html (PUREGYM_LIVE below);
@@ -54,6 +57,7 @@ const CLASSIC_SCRIPTS = [
     'card-transition.js',
     'case-modal.js',
     'case.js',
+    'clarusai-test.js',
     'dice.js',
     'felt.js',
     'footer-deck.js',
@@ -80,6 +84,7 @@ const CLASSIC_STYLES = [
     'bmw.css',
     'case.css',
     'clarusai.css',
+    'clarusai-test.css',
     'dice.css',
     'photo-viewer.css',
     'povi.css',
@@ -108,6 +113,9 @@ const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo', 'fonts'];
 // The PureGym redesign is the real PureGym page: every link on the site points
 // at puregym.html, so that address serves the redesign, in dev and in the build.
 const PUREGYM_LIVE = { from: 'puregym-test.html', to: 'puregym.html' };
+// Same for Clarus AI: clarusai.html serves the redesign.
+const CLARUS_LIVE = { from: 'clarusai-test.html', to: 'clarusai.html' };
+const LIVE_PAGES = [PUREGYM_LIVE, CLARUS_LIVE];
 
 // Where the home page's covers land for the case pages (see /__card-export).
 const CARD_EXPORT_DIR = 'assets/cards';
@@ -117,8 +125,10 @@ function copyStaticFiles() {
         name: 'copy-static-files',
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
-                if (/^\/puregym(\.html)?(?=[?#]|$)/.test(req.url)) {
-                    req.url = req.url.replace(/^\/puregym(\.html)?/, '/' + PUREGYM_LIVE.from);
+                for (const live of LIVE_PAGES) {
+                    const name = live.to.replace(/\.html$/, '');
+                    const re = new RegExp('^/' + name + '(\\.html)?(?=[?#]|$)');
+                    if (re.test(req.url)) { req.url = req.url.replace(new RegExp('^/' + name + '(\\.html)?'), '/' + live.from); break; }
                 }
                 next();
             });
@@ -162,7 +172,9 @@ function copyStaticFiles() {
                 cpSync(resolve(__dirname, d), resolve(__dirname, 'dist', d), { recursive: true });
             }
             writeFileSync(resolve(__dirname, 'dist', OUTSIDE_LIST), JSON.stringify(outsidePhotos()));
-            copyFileSync(resolve(__dirname, 'dist', PUREGYM_LIVE.from), resolve(__dirname, 'dist', PUREGYM_LIVE.to));
+            for (const live of LIVE_PAGES) {
+                copyFileSync(resolve(__dirname, 'dist', live.from), resolve(__dirname, 'dist', live.to));
+            }
         },
     };
 }

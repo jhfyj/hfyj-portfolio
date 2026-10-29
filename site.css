@@ -384,3 +384,279 @@ figcaption,
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* ---------- side column layout (site.js) ----------
+   In the home page's project pop-up (html.in-modal) and on the full page at
+   1100px and up (html.has-side). The column holds the back button (full page
+   only), the title and theme toggle at the top, and the section steps at the
+   bottom; the top bar goes away. */
+html.has-side { --ms-w: 236px; }
+/* Dark mode in the pop-up: the page a step lighter (#1a1a1a, not #121212) so
+   the panel doesn't sink into the frosted dark behind it. Everything that
+   paints the page colour reads --page, so the column and fades follow. */
+html.in-modal[data-theme="dark"] { --page: #1a1a1a; }
+html.in-frame-full { scrollbar-width: thin; }
+/* The pop-up hides the browser's scrollbar (grey track and arrow buttons) and
+   draws its own slim one instead: .ms-scroll below, driven by site.js. */
+html.in-modal { scrollbar-width: none; }
+html.in-modal::-webkit-scrollbar { display: none; }
+html.has-side #topbar { display: none; }
+html.has-side body { padding-left: var(--ms-w); }
+html.has-side .case { width: min(var(--col), calc(100% - 128px)); padding-top: 64px; }
+html.in-modal .hero-home,
+html.in-modal .to-cards,
+html.in-frame-full .hero-home,
+html.in-frame-full .to-cards { pointer-events: none; }
+
+#modal-side { display: none; }
+html.has-side #modal-side {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  width: var(--ms-w);
+  padding: 28px 24px 36px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--rule);
+  background: var(--page);
+}
+#modal-side .ms-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+}
+#modal-side .ms-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+#modal-side .ms-title {
+  margin: 0;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--head);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Back: the theme toggle's 36px square, hairline edge and 1.4 stroke */
+#modal-side .ms-back {
+  --ink-rgb: 40, 40, 40;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(var(--ink-rgb), 0.14);
+  border-radius: 10px;
+  color: rgba(var(--ink-rgb), 0.75);
+  text-decoration: none;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+#modal-side .ms-back svg { transition: transform 200ms ease; }
+#modal-side .ms-back:hover {
+  color: rgba(var(--ink-rgb), 0.95);
+  background: rgba(var(--ink-rgb), 0.05);
+  border-color: rgba(var(--ink-rgb), 0.24);
+}
+#modal-side .ms-back:hover svg { transform: translateX(-2px); }
+#modal-side .ms-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root[data-theme="dark"] #modal-side .ms-back {
+  --ink-rgb: 255, 255, 255;
+  color: rgba(var(--ink-rgb), 0.88);
+  border-color: rgba(var(--ink-rgb), 0.22);
+}
+:root[data-theme="dark"] #modal-side .ms-back:hover {
+  color: rgb(var(--ink-rgb));
+  background: rgba(var(--ink-rgb), 0.09);
+  border-color: rgba(var(--ink-rgb), 0.3);
+}
+html.has-side #modal-side #toc {
+  position: static;
+  transform: none;
+  display: flex;
+  gap: 14px;
+  font-size: 14px;
+}
+html.has-side #modal-side #toc .suit { font-size: 12px; }
+/* Arriving when the pop-up expands: the button opens its own space from
+   nothing, so the title glides down under it instead of jumping. */
+#modal-side .ms-back {
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease,
+    height 380ms cubic-bezier(.22, .61, .36, 1), margin 380ms cubic-bezier(.22, .61, .36, 1),
+    opacity 260ms ease 120ms;
+}
+#modal-side .ms-back.is-arriving {
+  height: 0;
+  margin-bottom: -28px;   /* cancels the column's gap under it */
+  opacity: 0;
+  overflow: hidden;
+  transition: none;
+}
+
+/* Back as a word, not a boxed arrow (Jen, Oct 28): "< Back" in plain text.
+   Overrides the 36px square above; keeps the arriving glide (height 24px). */
+#modal-side .ms-back {
+  width: auto;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--caption);
+}
+#modal-side .ms-back .ms-back-chev { transition: transform 200ms ease; }
+#modal-side .ms-back:hover,
+:root[data-theme="dark"] #modal-side .ms-back:hover {
+  background: none;
+  border: 0;
+  color: var(--head);
+}
+:root[data-theme="dark"] #modal-side .ms-back { color: var(--caption); border: 0; }
+#modal-side .ms-back:hover .ms-back-chev { transform: translateX(-2px); }
+#modal-side .ms-back:focus-visible { outline-offset: 4px; border-radius: 4px; }
+
+/* Back: no hover effect at all, and sits closer to the title (Jen, Oct 28).
+   The colour, the chevron nudge and the cursor label pill are all gone; the
+   gap under it drops from 28px to 12px (the arriving glide cancels the same). */
+#modal-side .ms-top { gap: 12px; }
+#modal-side .ms-back.is-arriving { margin-bottom: -12px; }
+#modal-side .ms-back:hover,
+:root[data-theme="dark"] #modal-side .ms-back:hover { color: var(--caption); }
+#modal-side .ms-back:hover .ms-back-chev { transform: none; }
+
+/* Theme toggle hidden in the side column for now (Jen, Oct 28: "remove the
+   sun icon for now, let's see how it looks"). Just hidden, not removed: the
+   page still follows the theme picked on the home page. Delete this rule to
+   bring it back. */
+#modal-side #theme-toggle { display: none; }
+
+/* Pop-up scrollbar (Jen, Oct 28: the browser's one looked ugly). A slim
+   rounded thumb with no track and no arrows, inset from the panel's rounded
+   corners. It shows while scrolling or when the pointer is near the right
+   edge, then fades away; it can be dragged. Only in the pop-up: the expanded
+   page keeps the normal scrollbar. */
+.ms-scroll { display: none; }
+html.in-modal .ms-scroll {
+  display: block;
+  position: fixed;
+  top: 12px;
+  bottom: 12px;
+  right: 3px;
+  width: 12px;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 360ms ease;
+  pointer-events: none;
+}
+html.in-modal .ms-scroll.is-on,
+html.in-modal .ms-scroll.is-dragging { opacity: 1; pointer-events: auto; }
+html.in-modal .ms-scroll.is-none { display: none; }
+.ms-scroll-thumb {
+  position: absolute;
+  right: 3px;
+  width: 4px;
+  min-height: 32px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  transition: width 160ms ease, background 160ms ease;
+  cursor: default;
+}
+.ms-scroll:hover .ms-scroll-thumb,
+.ms-scroll.is-dragging .ms-scroll-thumb { width: 6px; background: rgba(0, 0, 0, 0.36); }
+:root[data-theme="dark"] .ms-scroll-thumb { background: rgba(255, 255, 255, 0.22); }
+:root[data-theme="dark"] .ms-scroll:hover .ms-scroll-thumb,
+:root[data-theme="dark"] .ms-scroll.is-dragging .ms-scroll-thumb { background: rgba(255, 255, 255, 0.38); }
+html.in-modal.ms-scroll-drag, html.in-modal.ms-scroll-drag * { user-select: none !important; }
+
+/* About Me + Playground top bar, matched to the case pages' new navigation
+   (Jen, Oct 28): "< Back" in the same caption grey with no hover effect, then
+   the page name in the side column's title style, and the taglines with no
+   slashes. The bar keeps its 63px height (sketchbook.css counts on it), so
+   Back and the name sit side by side instead of stacked. The theme toggle is
+   hidden here too, like on the case pages; the page still follows the theme
+   picked on the home page. */
+.topbar-left:has(.tb-back) { gap: 20px; }
+.topbar-left .tb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--caption);
+}
+.topbar-left .tb-back:hover { color: var(--caption); }
+.topbar-left .tb-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+.topbar-left .tb-back ~ .here {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--head);
+}
+#topbar:has(.tb-back) .topbar-right { gap: 32px; }
+#topbar:has(.tb-back) #theme-toggle { display: none; }
+
+/* About Me side column (Jen, Oct 28): the case-page column, with a line under
+   the title and the social links where the section steps would be. Links
+   look like the steps: light grey, full dark on hover. */
+#side-tagline, #toc.side-socials { display: none; }
+html.has-side #modal-side #side-tagline {
+  display: block;
+  margin: 0;
+  max-width: 184px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--caption);
+}
+html.has-side #modal-side #toc.side-socials { flex-direction: column; }
+#toc.side-socials a {
+  color: var(--faint);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+#toc.side-socials a:hover { color: var(--head); }
+#toc.side-socials .suit { font-family: Arial, sans-serif; margin-right: 4px; }
+
+/* About Me socials: Carbon icons in place of the card suits (Jen, Oct 28). */
+#toc.side-socials a { display: inline-flex; align-items: center; gap: 8px; }
+#toc.side-socials .ss-icon { flex: none; display: block; }
+
+/* About Me column blur-in (site.js, .side-intro), after naheeljawaid.com:
+   blocks (Back, each link) fade up out of a 14px blur; words fade, rise 10px
+   and grow from 0.8 out of a 22px blur, one after another. */
+#modal-side.side-intro .si-word { display: inline-block; }
+#modal-side.side-intro .si-word,
+#modal-side.side-intro .si-block {
+  opacity: 0;
+  filter: blur(14px);
+  transition: opacity 380ms cubic-bezier(.22, 1, .36, 1) var(--d, 0ms),
+              filter 380ms cubic-bezier(.22, 1, .36, 1) var(--d, 0ms),
+              transform 380ms cubic-bezier(.22, 1, .36, 1) var(--d, 0ms),
+              color 0.2s ease;
+}
+#modal-side.side-intro .si-word { filter: blur(22px); transform: translateY(10px) scale(0.8); transform-origin: left bottom; }
+#modal-side.side-intro .si-block { transform: translateY(6px); }
+#modal-side.side-intro.is-in .si-word,
+#modal-side.side-intro.is-in .si-block { opacity: 1; filter: blur(0); transform: none; }

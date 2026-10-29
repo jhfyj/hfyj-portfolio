@@ -23,7 +23,7 @@
   font-size: 16px;
 }
 #toc a {
-  color: var(--caption);
+  color: var(--faint);
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.2s ease;
@@ -34,9 +34,12 @@
      fixed for the same reason, which is what lets those centres be cached. */
   transform-origin: left center;
 }
-#toc a:hover { color: var(--ink); }
-/* scroll-spy: case.js marks whichever section is currently in view */
-#toc a.is-active { color: var(--accent); }
+/* Resting steps are light grey, the pointer turns a step full dark, and the
+   section in view is the accent (blue; the theme's yellow in dark mode).
+   scroll-spy: case.js marks whichever section is currently in view */
+#toc a:hover { color: var(--head); }
+#toc a.is-active,
+#toc a.is-active:hover { color: var(--accent); }
 
 .suit {
   font-family: Arial, sans-serif;
@@ -420,7 +423,7 @@ main { padding-bottom: 0; }
   align-items: flex-start;
   margin-top: 34px;
   --card-w: 205px;
-  --card-h: calc(var(--card-w) * 246 / 179);   /* the thumbnail's aspect */
+  --card-h: calc(var(--card-w) * 1449 / 1059);   /* the home cover's aspect */
   /* the fraction is the knob: lower shows less of the card */
   padding-top: 30px;
   height: calc(30px + var(--card-h) * 0.88);
@@ -462,7 +465,7 @@ main { padding-bottom: 0; }
   width: var(--card-w);
   height: var(--card-h);
   background: var(--card-img) center / cover no-repeat;
-  border-radius: 8px;
+  border-radius: 7px;   /* the cover's own 36/1059 corner at this size */
   overflow: hidden;
   /* the original's three-layer stack — it does not change on hover */
   box-shadow: 0 0.602187px 0.602187px -0.666667px rgba(0, 0, 0, 0.12),
@@ -471,13 +474,16 @@ main { padding-bottom: 0; }
   transition: transform 0.28s cubic-bezier(.34, 1.15, .64, 1);
 }
 
-/* One line per project: the light face, and the dark face beside it. */
-.next-card[data-card="clarusai"] { --card-img: url('assets/cards/clarusai.jpg'); --card-img-dark: url('assets/cards/clarusai-dark.jpg'); }
-.next-card[data-card="povi"] { --card-img: url('assets/cards/povi.jpg'); --card-img-dark: url('assets/cards/povi-dark.jpg'); }
-.next-card[data-card="puregym"] { --card-img: url('assets/cards/puregym.jpg'); --card-img-dark: url('assets/cards/puregym-dark.jpg'); }
-.next-card[data-card="techatnyu"] { --card-img: url('assets/cards/techatnyu.jpg'); --card-img-dark: url('assets/cards/techatnyu-dark.jpg'); }
-.next-card[data-card="the-dial"] { --card-img: url('assets/cards/the-dial.jpg'); --card-img-dark: url('assets/cards/the-dial-dark.jpg'); }
-
+/* One line per project: the light face, and the dark face beside it. These
+   are the home page covers themselves, saved by the home page in dev
+   (script.js CARD_EXPORT), so a change to a card there shows up here too. */
+.next-card[data-card="puregym"] { --card-img: url('assets/cards/puregym.webp'); --card-img-dark: url('assets/cards/puregym-dark.webp'); }
+.next-card[data-card="techatnyu"] { --card-img: url('assets/cards/techatnyu.webp'); --card-img-dark: url('assets/cards/techatnyu-dark.webp'); }
+.next-card[data-card="clarusai"] { --card-img: url('assets/cards/clarusai.webp'); --card-img-dark: url('assets/cards/clarusai-dark.webp'); }
+.next-card[data-card="povi"] { --card-img: url('assets/cards/povi.webp'); --card-img-dark: url('assets/cards/povi-dark.webp'); }
+.next-card[data-card="the-dial"] { --card-img: url('assets/cards/the-dial.webp'); --card-img-dark: url('assets/cards/the-dial-dark.webp'); }
+.next-card[data-card="bmw"] { --card-img: url('assets/cards/bmw.webp'); --card-img-dark: url('assets/cards/bmw-dark.webp'); }
+.next-card[data-card="nenos"] { --card-img: url('assets/cards/nenos.webp'); --card-img-dark: url('assets/cards/nenos-dark.webp'); }
 :root[data-theme="dark"] .next-card { background-image: var(--card-img-dark); }
 
 .next-card:hover { transform: translateY(-11px); }

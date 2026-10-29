@@ -1498,3 +1498,11 @@ body.modal-open { overflow: hidden; }
     #felt { --felt-base: 70dvh; }
   }
 }
+
+/* Playground cards: just the work (Jen, Oct 28). The rank + suit indices in
+   the corners are gone, and so are the folded notches that only existed to
+   give them paper to sit on: the picture fills the whole rounded well. The
+   indices are still built in sketchbook.js, only hidden; delete this block to
+   bring both back. */
+.card-pip { display: none; }
+.card-well { clip-path: none; }

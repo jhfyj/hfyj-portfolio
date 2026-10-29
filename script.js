@@ -1127,11 +1127,15 @@ function stashCardHandoff(index, url) {
 // keyboard route through here so neither can forget the hand-off.
 function openCard(index) {
     if (COMING_SOON_INDICES.has(index)) return;
-    stashCardHandoff(index, CARD_URLS[index]);
     // Here rather than at either call site for the same reason the hand-off is:
     // this is the single funnel every carousel open passes through. No-op unless
     // analytics.js loaded and a key is configured.
     window.Analytics && window.Analytics.projectOpen(CARD_URLS[index], 'carousel');
+    // Project case studies open in the pop-up first (case-modal.js); About Me,
+    // Playground and phones go straight to the page as before.
+    if (HANDOFF_INDICES.has(index) && window.CaseModal && window.CaseModal.open(CARD_URLS[index])) return;
+    // the flight into the case page only plays on a direct open
+    stashCardHandoff(index, CARD_URLS[index]);
     window.open(CARD_URLS[index], '_top');
 }
 
@@ -1192,13 +1196,25 @@ function makeRoundedCardShape(cardW, cardH, radius) {
 }
 
 // Shared grain texture Ã¢â‚¬â€ subtle paper/card surface bump, created once and reused
+// A seeded random (mulberry32) for the grain tiles: the same speckle on every
+// load, so a card paints the same pixels each time and the exported copies on
+// the case pages only change when the card itself does.
+function seededRandom(seed) {
+    return function () {
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
 function makeGrainTexture(size = 128) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d');
     const img = ctx.createImageData(size, size);
+    const rnd = seededRandom(7);
     for (let i = 0; i < img.data.length; i += 4) {
-        const v = Math.floor(128 + (Math.random() - 0.5) * 80);
+        const v = Math.floor(128 + (rnd() - 0.5) * 80);
         img.data[i] = img.data[i+1] = img.data[i+2] = v;
         img.data[i+3] = 255;
     }
@@ -3549,12 +3565,13 @@ function coverRisoGrain() {
     c.width = c.height = n;
     const x = c.getContext('2d');
     const d = x.createImageData(n, n);
+    const rnd = seededRandom(11);
     for (let i = 0; i < d.data.length; i += 4) {
         // Sum of three randoms: bell-shaped, so most specks are mid and a few
         // are properly dark or light, like real grain
-        const g = (Math.random() + Math.random() + Math.random()) / 3 - 0.5;
+        const g = (rnd() + rnd() + rnd()) / 3 - 0.5;
         let v = 128 + g * 260;
-        if (Math.random() < 0.004) v -= 90;            // the odd dark fleck
+        if (rnd() < 0.004) v -= 90;            // the odd dark fleck
         v = Math.max(0, Math.min(255, v));
         d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
         d.data[i + 3] = 255;
@@ -4032,6 +4049,100 @@ const COVER_SPECS = {
     },
 };
 
+// ---- Case-page cards come from here (Jen, Oct 28) ----
+// The "You might also enjoy" cards at the end of every case page are these
+// very covers, not artwork kept in step by hand. In dev only, once the ring
+// has settled, each cover is painted flat at a fixed size in both themes and
+// sent to the dev server, which saves it to assets/cards/<slug>(-dark).webp
+// if, and only if, it changed. So: edit a card here, open the home page on
+// localhost, and the case pages pick it up; the files ship with the next push.
+// Fixed scale + seeded grain = identical pixels when nothing changed, so no
+// churn. Never runs on the live site.
+const CARD_EXPORT = !!(import.meta.env && import.meta.env.DEV);
+const CARD_EXPORT_SLUGS = { 1: 'puregym', 2: 'techatnyu', 3: 'clarusai', 4: 'povi', 5: 'the-dial', 6: 'bmw', 7: 'nenos' };
+const CARD_EXPORT_SCALE = 0.5;   // 530 x 725: crisp at the case pages' 205px card on a 2x screen
+const cardExportJobs = [];
+let cardExportTimer = 0;
+function cardExportQueue(index, paint, canvas) {
+    if (!CARD_EXPORT || !CARD_EXPORT_SLUGS[index]) return;
+    cardExportJobs.push({ index, paint, canvas });
+    // wait out the load-in, then one card per idle moment
+    clearTimeout(cardExportTimer);
+    cardExportTimer = setTimeout(cardExportRun, 9000);
+}
+function cardExportFlat(canvas, theme, paint) {
+    paint(theme);
+    const W = canvas.width, H = canvas.height;
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const c = out.getContext('2d');
+    c.save();
+    c.beginPath();
+    c.roundRect(0, 0, W, H, 36 * CARD_EXPORT_SCALE);
+    c.clip();
+    const L = canvas.__win;
+    if (L) {
+        const r = L.rect;
+        c.drawImage(L.canvas, r.x * W, (1 - r.y - r.w) * H, r.z * W, r.w * H);
+    }
+    c.drawImage(canvas, 0, 0);
+    c.restore();
+    return out;
+}
+function cardExportRun() {
+    const job = cardExportJobs.shift();
+    if (!job) return;
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+    idle(() => {
+        const entry = cardFaceRepaints.find((e) => e.index === job.index);
+        // the cover's own canvas, not whatever the mesh shows right now: during
+        // the load-in the mesh can still be wearing the build-in's copy
+        const canvas = job.canvas;
+        if (!entry || !canvas) { cardExportRun(); return; }
+        // All in one go, before the next frame: paint flat at the export size,
+        // then straight back to the ring's own size and theme, so the card on
+        // screen never shows the detour.
+        const saved = CARD_TEXTURE_SCALE;
+        CARD_TEXTURE_SCALE = CARD_EXPORT_SCALE;
+        let flats;
+        try {
+            flats = { light: cardExportFlat(canvas, 'light', job.paint), dark: cardExportFlat(canvas, 'dark', job.paint) };
+        } finally {
+            CARD_TEXTURE_SCALE = saved;
+            entry.repaint(currentTheme);
+        }
+        const slug = CARD_EXPORT_SLUGS[job.index];
+        // Only re-saved when the card's design changed: its copy and settings,
+        // the code that paints covers, and the picture file itself. Not by
+        // comparing pixels: three covers use animated pictures, so every paint
+        // catches a different frame and would rewrite the file each load.
+        cardExportSignature(job.index).then((sig) => {
+            if (cardExportSigs[slug] === sig) return;
+            return Promise.all(Object.entries(flats).map(([theme, cv]) =>
+                new Promise((res) => cv.toBlob(res, 'image/webp', 0.9)).then((blob) => blob &&
+                    fetch('/__card-export?name=' + slug + (theme === 'dark' ? '-dark' : '') + '.webp', { method: 'POST', body: blob }))
+            )).then(() => fetch('/__card-export?name=' + slug + '.sig', { method: 'POST', body: sig })
+            ).then(() => { cardExportSigs[slug] = sig; });
+        }).catch(() => {}).finally(cardExportRun);
+    });
+}
+let cardExportSigs = {};
+if (CARD_EXPORT) {
+    fetch('/assets/cards/cards.json?t=' + Date.now()).then((r) => (r.ok ? r.json() : {}))
+        .then((j) => { cardExportSigs = j || {}; }).catch(() => {});
+}
+function cardExportSignature(index) {
+    const o = COVER_SPECS[index];
+    const code = [buildCoverCardTexture, coverPaintPhoto, coverTextLayout, coverSmudge, coverRiso,
+        coverDrawBleed, tmplDrawImageCover, cardExportFlat].map((f) => String(f)).join('\n');
+    const settings = JSON.stringify({ o, COVER, THEME_COLORS, soon: COMING_SOON_INDICES.has(index), COMING_SOON_INK, CARD_EXPORT_SCALE });
+    const pics = [o.imageSrc, o.imageSrcDark].filter(Boolean).map((u) =>
+        fetch(u).then((r) => r.arrayBuffer()).then((b) => crypto.subtle.digest('SHA-256', b))
+            .then((d) => Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, '0')).join(''))
+            .catch(() => 'nofetch:' + u));
+    return Promise.all(pics).then((hs) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(code + settings + hs.join(','))))
+        .then((d) => Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, '0')).join(''));
+}
 function loadTemplateCard(index, opts) {
     if (COMING_SOON_INDICES.has(index)) opts = Object.assign({ comingSoon: true }, opts);
     // The copy, so the build-in can lay out this card's wireframe right away
@@ -4062,6 +4173,7 @@ function loadTemplateCard(index, opts) {
         // The bare picture, for the card Ã¢â€ â€™ page flight (see stashCardHandoff)
         group.userData.handoffPhoto = photo || null;
         if (opts.cover) group.userData.faceLayout = coverFaceLayout(opts);
+        if (opts.cover) cardExportQueue(index, paint, canvas);
         group.add(mesh);
         _placeCard(index, group);
     });
@@ -7266,8 +7378,19 @@ const renderloop = (now = 0) => {
         }
     }
 
+    // A project pop-up (case-modal.js) is open over the ring, or has grown
+    // into the full page: the ring holds still behind it (Jen, Oct 28). When
+    // it closes, the 5 s idle wait starts over so the cards don't start
+    // turning the moment the reader is back.
+    const caseModalUp = document.documentElement.classList.contains('cm-open')
+        || document.documentElement.classList.contains('cm-full');
+    if (caseModalUp) {
+        if (autoRotating) { autoRotating = false; snaptoNearestCard(); }
+        lastInteractionTime = now;
+    }
+
     // Auto-rotate after idle
-    if (introPhase === 'done' && !isDragging && !isFlinging && !scrubberDragging
+    if (introPhase === 'done' && !caseModalUp && !isDragging && !isFlinging && !scrubberDragging
         && !introAnimActive && targetRotation === null && !isStackMode() && !cbRing
         && cbIntroDone && cbCards.every((st) => st.finished)
         && now - lastInteractionTime > IDLE_TIMEOUT) {

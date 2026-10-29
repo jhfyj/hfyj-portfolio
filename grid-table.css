@@ -409,3 +409,7 @@ body.gt-holding #grid-view .gt-canvas { cursor: none; }
   .gt-stage.gt-in .gt-lift { animation: none; }
   .gt-inner, .gt-lift { transition: none; }
 }
+
+/* Table cards can't be dragged any more, only flipped (Jen, Oct 28): a
+   pointer, not a grab hand. Hover lift and press tilt stay. */
+.gt-card, .gt-card.is-dragging { cursor: pointer; }

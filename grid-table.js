@@ -174,6 +174,7 @@
         setTimeout(turned, reduced ? 0 : 860);
     }
 
+    var NO_DRAG = true;
     function dragOrClick(item, onClick) {
         var start = null;
         item.addEventListener('pointerdown', function (e) {
@@ -220,6 +221,10 @@
         }
         item.addEventListener('pointermove', function (e) {
             if (!start) return;
+            // Cards stay where they're dealt (Jen, Oct 28): no dragging. A press
+            // still tips the card and a click still flips it; a wiggle while
+            // pressing is still a click. NO_DRAG = false brings dragging back.
+            if (NO_DRAG) return;
             var mx = e.clientX - start.x, my = e.clientY - start.y;
             if (!start.moved && Math.hypot(mx, my) < 5) return;
             start.moved = true;

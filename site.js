@@ -375,3 +375,272 @@ window.Site = (function () {
 
     return { reduceMotion: reduceMotion, reveal: reveal };
 })();
+
+/* -- Side column layout ---------------------------------------------------
+   Three places a case page wears it:
+   - inside the home page's project pop-up (?view=modal, case-modal.js);
+   - expanded from that pop-up to fill the window (?view=full, or switched
+     over in place by an 'hfyj-modal:full' message): the same page, still in
+     the home page's frame, now with a back button above the title. Nothing
+     reloads, so the move from pop-up to full screen is one smooth motion;
+   - the real page opened on its own on a wide window (refresh, a shared
+     link), which looks the same as the expanded one.
+   The top bar goes; a fixed column on the left holds the back button, the
+   project title and the theme toggle at the top and the section steps at the
+   bottom; the content sits to the right. Below WIDE the real page goes back
+   to the normal top bar layout (the pop-up never opens on narrow screens). */
+(function () {
+    'use strict';
+    var params = new URLSearchParams(window.location.search);
+    var view = params.get('view');
+    var framed = window.parent !== window && (view === 'modal' || view === 'full');
+    var mode = framed ? view : 'page';          // 'modal' | 'full' | 'page'
+    var toc = document.getElementById('toc');
+    var toggle = document.getElementById('theme-toggle');
+    var topbar = document.getElementById('topbar');
+    if (!framed && (!toc || !topbar)) return;   // not a case page
+
+    var html = document.documentElement;
+    var WIDE = window.matchMedia('(min-width: 1100px)');
+
+    var side = document.createElement('aside');
+    side.id = 'modal-side';
+    var top = document.createElement('div');
+    top.className = 'ms-top';
+    var head = document.createElement('div');
+    head.className = 'ms-head';
+    var title = document.createElement('h2');
+    title.className = 'ms-title';
+    var here = document.querySelector('.topbar-left .here');
+    title.textContent = here ? here.textContent.trim() : document.title.split(/\s[\u2014-]\s/)[0];
+    head.appendChild(title);
+    top.appendChild(head);
+    // A line under the title, if the page has one (About Me)
+    var tagline = document.getElementById('side-tagline');
+    if (tagline) top.appendChild(tagline);
+    side.appendChild(top);
+    document.body.appendChild(side);
+
+    // index.html#cards, so card-transition.js gives the real page the same
+    // fade home as every other way back to the cards
+    function addBack(animate) {
+        if (top.querySelector('.ms-back')) return;
+        var back = document.createElement('a');
+        back.className = 'ms-back';
+        back.href = 'index.html#cards';
+        back.setAttribute('aria-label', 'Back to the cards');
+        // no cursor label: the back button has no hover effect (Jen, Oct 28)
+        back.innerHTML =
+            '<svg class="ms-back-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
+            '<path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '<span class="ms-back-word">Back</span>';
+        if (animate) back.classList.add('is-arriving');
+        top.insertBefore(back, head);
+        if (animate) {
+            // the title glides down to make room while the button fades in
+            back.getBoundingClientRect();
+            requestAnimationFrame(function () {
+                back.classList.remove('is-arriving');
+            });
+        }
+    }
+    if (mode !== 'modal') addBack(false);
+
+    // Where the toggle and the steps normally live, to put them back
+    var toggleHome = toggle && toggle.parentNode, toggleNext = toggle && toggle.nextSibling;
+    var tocHome = toc && toc.parentNode, tocNext = toc && toc.nextSibling;
+
+    function apply() {
+        var on = framed || WIDE.matches;
+        html.classList.toggle('has-side', on);
+        if (on) {
+            if (toggle && toggle.parentNode !== head) head.appendChild(toggle);
+            if (toc && toc.parentNode !== side) side.appendChild(toc);
+        } else {
+            if (toggle && toggle.parentNode !== toggleHome) toggleHome.insertBefore(toggle, toggleNext);
+            if (toc && toc.parentNode !== tocHome) tocHome.insertBefore(toc, tocNext);
+        }
+        // the steps' proximity magnify caches their centres; let it re-measure
+        window.dispatchEvent(new Event('resize'));
+    }
+    apply();
+    // About Me's column blurs in on arrival, after naheeljawaid.com (Jen,
+    // Oct 28): Back, then the title and the line under it word by word, each
+    // word sharpening out of a blur as it rises, then the links one by one.
+    // Only the contents move; the column itself is there from the first frame
+    // so nothing on the page shifts. Once per visit, wide screens only.
+    if (tagline && WIDE.matches && !framed &&
+        !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        var words = function (el, start, step) {
+            var parts = el.textContent.trim().split(/\s+/);
+            el.textContent = '';
+            parts.forEach(function (w, i) {
+                var s = document.createElement('span');
+                s.className = 'si-word';
+                s.textContent = w;
+                s.style.setProperty('--d', (start + i * step) + 'ms');
+                el.appendChild(s);
+                if (i < parts.length - 1) el.appendChild(document.createTextNode(' '));
+            });
+            return start + parts.length * step;
+        };
+        var t = 40;
+        var backEl = top.querySelector('.ms-back');
+        if (backEl) { backEl.classList.add('si-block'); backEl.style.setProperty('--d', '0ms'); }
+        t = words(title, t, 35);
+        t = words(tagline, t + 20, 12);
+        Array.prototype.forEach.call(toc ? toc.querySelectorAll('a') : [], function (a, i) {
+            a.classList.add('si-block');
+            a.style.setProperty('--d', (t + 40 + i * 45) + 'ms');
+        });
+        side.classList.add('side-intro');
+        // two frames, so the start state is painted before it animates away
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () { side.classList.add('is-in'); });
+        });
+    }
+    if (!framed) {
+        if (WIDE.addEventListener) WIDE.addEventListener('change', apply);
+        else if (WIDE.addListener) WIDE.addListener(apply);
+        return;
+    }
+
+    // ---- inside the home page's frame: talk to the page around it ----
+    html.classList.add(mode === 'modal' ? 'in-modal' : 'in-frame-full');
+    // Pop-up scrollbar: the browser's own is hidden (site.css, html.in-modal)
+    // and this slim thumb stands in for it. Shows while scrolling or with the
+    // pointer near the right edge, fades after a beat, and can be dragged.
+    if (mode === 'modal') (function () {
+        var bar = document.createElement('div');
+        bar.className = 'ms-scroll';
+        bar.setAttribute('aria-hidden', 'true');
+        var thumb = document.createElement('div');
+        thumb.className = 'ms-scroll-thumb';
+        bar.appendChild(thumb);
+        document.body.appendChild(bar);
+        var se = document.scrollingElement || document.documentElement;
+        var hideT = 0, near = false, drag = null;
+        function layout() {
+            var view = window.innerHeight, full = se.scrollHeight;
+            var track = bar.clientHeight || (view - 24);
+            if (full <= view + 1) { bar.classList.add('is-none'); return; }
+            bar.classList.remove('is-none');
+            var h = Math.max(32, track * view / full);
+            var y = (track - h) * (se.scrollTop / (full - view));
+            thumb.style.height = h + 'px';
+            thumb.style.transform = 'translateY(' + y + 'px)';
+        }
+        function show() {
+            bar.classList.add('is-on');
+            clearTimeout(hideT);
+            hideT = setTimeout(function () {
+                if (!near && !drag) bar.classList.remove('is-on');
+            }, 1000);
+        }
+        window.addEventListener('scroll', function () { layout(); show(); }, { passive: true });
+        window.addEventListener('resize', layout);
+        document.addEventListener('pointermove', function (e) {
+            var n = e.clientX > window.innerWidth - 28;
+            if (n !== near) { near = n; if (n) { layout(); bar.classList.add('is-on'); } else show(); }
+        });
+        document.addEventListener('pointerleave', function () { near = false; show(); });
+        thumb.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            drag = { y: e.clientY, top: se.scrollTop };
+            thumb.setPointerCapture(e.pointerId);
+            bar.classList.add('is-dragging');
+            html.classList.add('ms-scroll-drag');
+        });
+        thumb.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            var view = window.innerHeight, full = se.scrollHeight;
+            var track = bar.clientHeight, h = thumb.offsetHeight;
+            var ratio = (full - view) / Math.max(1, track - h);
+            se.scrollTop = drag.top + (e.clientY - drag.y) * ratio;
+        });
+        function endDrag() {
+            if (!drag) return;
+            drag = null;
+            bar.classList.remove('is-dragging');
+            html.classList.remove('ms-scroll-drag');
+            show();
+        }
+        thumb.addEventListener('pointerup', endDrag);
+        thumb.addEventListener('pointercancel', endDrag);
+        // Content keeps arriving (images, demos), so the length changes.
+        if (window.ResizeObserver) new ResizeObserver(layout).observe(document.body);
+        window.addEventListener('load', layout);
+        layout();
+    })();
+    var post = function (msg) {
+        try { window.parent.postMessage(msg, window.location.origin); } catch (err) {}
+    };
+
+    // The pop-up's expand button: become the full page where we stand.
+    window.addEventListener('message', function (e) {
+        if (e.origin !== window.location.origin) return;
+        var d = e.data || {};
+        if (d.type === 'hfyj-modal:full' && mode === 'modal') {
+            mode = 'full';
+            html.classList.remove('in-modal');
+            html.classList.add('in-frame-full');
+            addBack(true);
+        }
+    });
+
+    if (toggle) {
+        toggle.addEventListener('click', function () {
+            setTimeout(function () {
+                post({ type: 'hfyj-modal:theme', theme: html.getAttribute('data-theme') });
+            }, 0);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && mode === 'modal') post({ type: 'hfyj-modal:close' });
+    });
+
+    // On the window, in the capture phase: ahead of card-transition.js's own
+    // listener on the document, which would otherwise fade this frame out and
+    // load the home page inside it.
+    window.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        var href = a.getAttribute('href');
+        if (!href || /^(mailto|tel):/i.test(href)) return;
+        // A section step: scroll there, but swap the hash in place rather
+        // than adding a history entry. Inside a frame every entry lands on
+        // the home page's history too, and Back would then walk through
+        // section hops instead of leaving the page.
+        if (href.charAt(0) === '#') {
+            e.preventDefault();
+            var id = decodeURIComponent(href.slice(1));
+            var el = id && id !== 'top' ? document.getElementById(id) : null;
+            if (el) el.scrollIntoView({ block: 'start' });
+            else window.scrollTo(0, 0);
+            try { history.replaceState(history.state, '', href); } catch (err) {}
+            return;
+        }
+        var u;
+        try { u = new URL(href, window.location.href); } catch (err) { return; }
+        if (u.origin !== window.location.origin) {
+            if (!a.target) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+            return;
+        }
+        var page = u.pathname.split('/').pop();
+        if (page === '' || page === 'index.html' || page === 'index') {
+            e.preventDefault();
+            e.stopPropagation();
+            post({ type: 'hfyj-modal:close' });
+            return;
+        }
+        if (/\.(pdf|png|jpe?g|gif|webp|mp4)$/i.test(page)) {
+            if (!a.target) a.target = '_blank';
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        u.searchParams.set('view', mode);
+        window.location.replace(u.href);   // no history entry, same reason as above
+    }, true);
+})();

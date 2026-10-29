@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
-import { copyFileSync, cpSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
+import { copyFileSync, cpSync, readdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 
 // The About page's "outside of design" photos: drop images into this folder
 // and they show up. A static page cannot list a directory, so the list is
@@ -52,6 +52,7 @@ const CLASSIC_SCRIPTS = [
     'aboutme.js',
     'analytics.js',
     'card-transition.js',
+    'case-modal.js',
     'case.js',
     'dice.js',
     'felt.js',
@@ -108,6 +109,9 @@ const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo', 'fonts'];
 // at puregym.html, so that address serves the redesign, in dev and in the build.
 const PUREGYM_LIVE = { from: 'puregym-test.html', to: 'puregym.html' };
 
+// Where the home page's covers land for the case pages (see /__card-export).
+const CARD_EXPORT_DIR = 'assets/cards';
+
 function copyStaticFiles() {
     return {
         name: 'copy-static-files',
@@ -117,6 +121,32 @@ function copyStaticFiles() {
                     req.url = req.url.replace(/^\/puregym(\.html)?/, '/' + PUREGYM_LIVE.from);
                 }
                 next();
+            });
+            // The home page posts its covers here in dev (script.js, CARD_EXPORT)
+            // and they become the case pages' "You might also enjoy" cards. Only
+            // written when the bytes differ, so an unchanged card leaves git clean.
+            server.middlewares.use('/__card-export', (req, res) => {
+                const name = new URL(req.url, 'http://x').searchParams.get('name') || '';
+                if (req.method !== 'POST' || !/^[a-z-]+\.(webp|sig)$/.test(name)) { res.statusCode = 400; res.end(); return; }
+                const chunks = [];
+                req.on('data', (c) => chunks.push(c));
+                req.on('end', () => {
+                    const buf = Buffer.concat(chunks);
+                    if (name.endsWith('.sig')) {
+                        // the design fingerprint each saved card was made from
+                        const map = resolve(__dirname, CARD_EXPORT_DIR, 'cards.json');
+                        const sigs = existsSync(map) ? JSON.parse(readFileSync(map, 'utf8')) : {};
+                        sigs[name.slice(0, -4)] = buf.toString('utf8').trim();
+                        writeFileSync(map, JSON.stringify(sigs, null, 2) + '\n');
+                        res.end('{}');
+                        return;
+                    }
+                    const file = resolve(__dirname, CARD_EXPORT_DIR, name);
+                    const same = existsSync(file) && readFileSync(file).equals(buf);
+                    if (!same && buf.length > 1000) writeFileSync(file, buf);
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ name, written: !same }));
+                });
             });
             server.middlewares.use('/' + OUTSIDE_LIST, (req, res) => {
                 res.setHeader('Content-Type', 'application/json');
@@ -140,6 +170,8 @@ function copyStaticFiles() {
 export default defineConfig({
     appType: 'mpa',
     plugins: [copyStaticFiles()],
+    // Saving a card export must not reload the page that sent it.
+    server: { watch: { ignored: ['**/assets/cards/**'] } },
     build: {
         rollupOptions: {
             input: Object.fromEntries(

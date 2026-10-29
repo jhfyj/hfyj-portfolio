@@ -121,7 +121,7 @@
 
   var W = 0, H = 0, narrow = false, base = 1;
   function measure() {
-    W = stage.clientWidth; H = stage.clientHeight; narrow = W < 640;
+    W = stage.clientWidth; H = stage.clientHeight; narrow = W < 640; stage.classList.toggle('is-narrow', narrow);
     base = Math.min((H * (narrow ? 0.72 : 0.88)) / FH, (W * 0.9) / FW);
   }
   // where the camera sits for one stop
@@ -303,6 +303,7 @@
     var S = 1;
     function fit() {
       var W = st.clientWidth, H = st.clientHeight, narrow = W < 640;
+      st.classList.toggle('is-narrow', narrow);
       S = Math.min((H * (narrow ? 0.64 : 0.9)) / FH, (W * 0.9) / FW);
       var tx = narrow ? (W - FW * S) / 2 : Math.max(28, W * 0.3 - (FW * S) / 2);
       var ty = narrow ? 22 : (H - FH * S) / 2;

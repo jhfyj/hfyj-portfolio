@@ -56,7 +56,10 @@
     // something that suits 16px text.
     const toc = document.getElementById('toc');
 
-    if (toc && links.length &&
+    // Switched off (Jen, Oct 28): the steps stay one size on hover; hover only
+    // changes their colour. Set MAGNIFY to true to bring the dock effect back.
+    const MAGNIFY = false;
+    if (MAGNIFY && toc && links.length &&
         !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
         const MAX_SCALE = 1.35;   // 2x reads well on icons and absurd on type

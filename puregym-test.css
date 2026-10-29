@@ -311,6 +311,35 @@
   }
 }
 
+/* tablet fix: the script switches to the narrow layout when the panel itself
+   is under 640px wide, which happens on tablets well above the 700px window
+   breakpoint. The script tags the panel .is-narrow, and these rules mirror
+   the phone rules above so CSS and script always agree. */
+.zoom-stage.is-narrow .callout { left: 20px !important; right: 20px; width: auto; top: auto !important; bottom: 52px; }
+.zoom-stage.is-narrow .leaders { display: none; }
+.zoom-stage.is-narrow .zoom-progress { left: 20px; right: 20px; bottom: 18px; gap: 12px; justify-content: space-between; }
+.zoom-stage.is-narrow .zoom-progress em { font-size: 11px; }
+.zoom-stage.is-narrow .p-close { left: 20px !important; right: 20px; width: auto !important; top: auto !important; bottom: 52px; }
+.zoom-stage.is-narrow .p-close-q { font-size: 26px; }
+.story .zoom-stage.is-narrow .callout, .story .zoom-stage.is-narrow .p-close {
+  padding: 12px 14px; border-radius: 12px; background: var(--pg-card);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .35);
+}
+.story .zoom-stage.is-narrow .callout .c-quote { font-size: 16px; }
+.story .zoom-stage.is-narrow .callout { width: auto; }
+#zoom .zoom-stage.is-narrow::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 250px;
+  z-index: 2; pointer-events: none;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 42%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 42%);
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--pg-stage) 0%, transparent) 0%,
+    color-mix(in srgb, var(--pg-stage) 78%, transparent) 40%,
+    color-mix(in srgb, var(--pg-stage) 94%, transparent) 70%,
+    var(--pg-stage) 100%);
+}
+
 /* ================================================================
    The rest of the page. Motion idea taken from amberlle.com's home
    tiles: the real UI on a soft painted panel, doing the thing on a
@@ -726,35 +755,46 @@
    panel, a soft teal card dropping in behind, and a front pocket the same
    colour as the back that overlaps the lower half, lifted by a soft shadow */
 .m-pass {
-  position: relative; width: 92px; height: 60px; border-radius: 12px; overflow: hidden;
+  position: relative; width: 64px; height: 42px; border-radius: 9px; overflow: hidden;
   background: var(--w-back);
-  box-shadow: 0 1px 2px rgba(1, 55, 57, .06), 0 10px 22px -12px rgba(1, 55, 57, .28);
+  box-shadow: 0 1px 2px rgba(1, 55, 57, .06), 0 8px 16px -10px rgba(1, 55, 57, .28);
 }
 .m-pass::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 28px; z-index: 2;
-  background: var(--w-front); border-radius: 10px 10px 12px 12px;
-  box-shadow: 0 -1px 0 var(--w-edge), 0 -6px 14px -4px var(--w-lift);
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 20px; z-index: 2;
+  background: var(--w-front); border-radius: 7px 7px 9px 9px;
+  box-shadow: 0 -1px 0 var(--w-edge), 0 -4px 10px -3px var(--w-lift);
 }
-.m-pass i { position: absolute; left: 11px; right: 11px; top: 8px; height: 38px; border-radius: 7px; background: var(--w-card); transform: translateY(-50px); }
+.m-pass i { position: absolute; left: 8px; right: 8px; top: 6px; height: 26px; border-radius: 5px; background: var(--w-card); transform: translateY(-36px); }
 :root { --w-back: #FFFFFF; --w-front: #FFFFFF; --w-card: #9FE3E5; --w-lift: rgba(1, 55, 57, .22); --w-edge: rgba(1, 55, 57, .05); }
 :root[data-theme="dark"] { --w-back: #2C3032; --w-front: #33383A; --w-card: #3B9EA1; --w-lift: rgba(0, 0, 0, .55); --w-edge: rgba(255, 255, 255, .04); }
 :root[data-theme="dark"] .m-pass { box-shadow: none; }
 .metrics.in .m-pass i { animation: pg-pass 2.6s var(--pg-ease) infinite; }
-@keyframes pg-pass { 0%, 10% { transform: translateY(-50px); } 45%, 85% { transform: none; } 100% { transform: translateY(-50px); } }
+@keyframes pg-pass { 0%, 10% { transform: translateY(-36px); } 45%, 85% { transform: none; } 100% { transform: translateY(-36px); } }
 /* ---------- what I'd do next: a plain to-do list you can tick off ---------- */
 :root { --todo-box: #C3C9CB; --todo-line: #E6E9EA; --todo-rim: #EDEFEF; }
 :root[data-theme="dark"] { --todo-box: #5A5F62; --todo-line: #2E3133; --todo-rim: #1F2224; }
 .next-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 48px; align-items: start; }
 .next-text .statement { margin-bottom: 0; }
-.todo { margin-top: 8px; padding: 10px; border-radius: 26px; background: var(--todo-rim); }
-:root[data-theme="dark"] .todo ul { background: #2A2E30; }
-.todo ul { list-style: none; margin: 0; padding: 20px 24px; border-radius: 17px; background: var(--pg-card); }
+/* the backdrop borrows the closing "Thanks for reading" card: near-white,
+   hairline border, 12px corners. Each task is its own white block on it */
+.todo {
+  margin-top: 8px; padding: 12px; border-radius: 12px;
+  background: rgb(244, 244, 245); border: 1px solid var(--rule);
+}
+:root[data-theme="dark"] .todo { background: rgb(20, 20, 22); }
+.todo ul { list-style: none; margin: 0; padding: 0; }
+.todo li + li { margin-top: 8px; }
 .todo li { position: relative; opacity: 0; transition: opacity .4s ease; }
 .todo li.in { opacity: 1; }
 .todo-row {
   display: grid; grid-template-columns: 16px 1fr; gap: 14px; align-items: start; width: 100%;
-  padding: 12px 0; margin: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  padding: 14px 16px; margin: 0; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--pg-card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(20, 24, 28, .04);
+  transition: border-color .25s ease, box-shadow .25s ease;
 }
+.todo-row:hover { border-color: var(--todo-box); box-shadow: 0 4px 12px -6px rgba(20, 24, 28, .12); }
+:root[data-theme="dark"] .todo-row { box-shadow: none; }
 .todo-row:focus-visible { outline: 2px solid var(--todo-box); outline-offset: 4px; border-radius: 6px; }
 .todo-box {
   position: relative; display: block; width: 14px; height: 14px; margin-top: 3px; box-sizing: border-box;

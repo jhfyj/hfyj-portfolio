@@ -67,16 +67,15 @@
 
 <nav id="topbar">
     <div class="topbar-left">
-        <!-- #cards tells the home page the intro has already played -->
-        <a href="index.html#cards">Home</a>
-        <span class="sep">/</span>
+        <!-- Same back link as the case pages: "< Back" then the page name, no
+             slashes (Jen, Oct 28). #cards tells the home page the intro has
+             already played. -->
+        <a class="tb-back" href="index.html#cards" aria-label="Back to the cards"><svg class="tb-back-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M7.5 2.5L4 6L7.5 9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Back</span></a>
         <span class="here">Playground</span>
     </div>
     <div class="topbar-right">
         <span>Brainstorm</span>
-        <span class="sep-lg">/</span>
         <span>Ideas</span>
-        <span class="sep-lg">/</span>
         <span>Inspirations</span>
     </div>
     <!-- Written out here rather than injected by site.js: the theme is already

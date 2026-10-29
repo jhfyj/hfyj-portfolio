@@ -1,0 +1,164 @@
+/* Project pop-up (home page). See case-modal.js. */
+
+#case-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500000;   /* over the nav and the view toggle (100000), under the cursor */
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  visibility: hidden;
+}
+#case-modal.is-open,
+#case-modal.is-closing {
+  visibility: visible;
+}
+#case-modal.is-open { pointer-events: auto; }
+
+/* The whole home page sits under a sheet of frosted paper: blurred, washed
+   toward the page colour, with a faint grain so it reads as a material and
+   not as a smear. */
+#case-modal .cm-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(252, 252, 254, 0.5);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
+  backdrop-filter: blur(22px) saturate(1.1);
+  opacity: 0;
+  transition: opacity 0.32s ease;
+  cursor: none;
+}
+:root[data-theme="dark"] #case-modal .cm-backdrop {
+  background-color: rgba(18, 18, 18, 0.55);
+}
+#case-modal.is-open .cm-backdrop { opacity: 1; }
+
+/* The panel: the page colour, a hairline edge and a soft lift off the paper. */
+#case-modal .cm-panel {
+  position: relative;
+  width: min(1180px, calc(100vw - 96px));
+  height: min(800px, calc(100vh - 96px));
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid rgba(var(--ink-rgb), 0.08);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(18px) scale(0.97);
+  transition: opacity 0.3s ease, transform 0.42s cubic-bezier(.22, .61, .36, 1);
+}
+/* A step lighter than the #121212 page so the pop-up lifts off the frosted
+   sheet instead of blending into it. Matches --page inside the frame
+   (site.css, html.in-modal). Back to the page colour once expanded. */
+:root[data-theme="dark"] #case-modal .cm-panel {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7);
+}
+#case-modal.is-open .cm-panel {
+  opacity: 1;
+  transform: none;
+}
+#case-modal.is-closing .cm-panel {
+  transition-duration: 0.22s, 0.26s;
+}
+
+#case-modal .cm-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+#case-modal.is-loaded .cm-frame { opacity: 1; }
+
+/* Full screen: a quiet grey square at the top right, the same 36px rounded
+   square and 1.4 stroke as the theme toggle, filled a shade darker so it
+   reads as a control sitting on the page rather than part of it. */
+#case-modal .cm-full {
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(var(--ink-rgb), 0.08);
+  border-radius: 10px;
+  background: rgba(var(--ink-rgb), 0.07);
+  color: rgba(var(--ink-rgb), 0.6);
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+#case-modal .cm-full:hover {
+  background: rgba(var(--ink-rgb), 0.12);
+  color: rgba(var(--ink-rgb), 0.9);
+  border-color: rgba(var(--ink-rgb), 0.16);
+}
+#case-modal .cm-full:hover svg { transform: scale(1.08); }
+#case-modal .cm-full svg { transition: transform 200ms ease; }
+
+/* Growing to full screen, right before the real page takes over. */
+#case-modal.is-growing .cm-panel {
+  transition: width 0.38s cubic-bezier(.22, .61, .36, 1), height 0.38s cubic-bezier(.22, .61, .36, 1), border-radius 0.38s ease;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-color: transparent;
+}
+#case-modal.is-growing .cm-full { opacity: 0; pointer-events: none; }
+/* Expanded: the panel is the page now. The frosted sheet behind it has
+   nothing left to show, so it stops costing a blur. */
+#case-modal.is-full .cm-panel {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-color: transparent;
+  box-shadow: none;
+  transition: none;
+}
+#case-modal.is-full .cm-backdrop { visibility: hidden; }
+:root[data-theme="dark"] #case-modal.is-growing .cm-panel,
+:root[data-theme="dark"] #case-modal.is-full .cm-panel { background: #121212; }
+#case-modal.is-full .cm-full { display: none; }
+
+/* Leaving the expanded page for the cards: it fades off the cards that are
+   already sitting underneath. */
+#case-modal.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease;
+}
+html.cm-full #dot-cursor { opacity: 0 !important; }
+
+/* The home page's own cursors stand aside over the panel (the case page draws
+   its own dot in there) and never offer to "open project" through the blur. */
+html.cm-open #card-cursor { opacity: 0 !important; }
+html.cm-open #dot-cursor { opacity: 1 !important; visibility: visible !important; }
+html.cm-over-panel #dot-cursor { opacity: 0 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  #case-modal .cm-panel,
+  #case-modal .cm-backdrop,
+  #case-modal .cm-frame { transition: none; }
+}
+
+/* Expand button: white, not grey (Jen, Oct 28). A hairline edge and a soft
+   shadow keep it visible on the white panel and over content scrolling
+   under it. Dark mode keeps its own translucent fill so it doesn't glare. */
+#case-modal .cm-full {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+#case-modal .cm-full:hover { background: #fff; }
+:root[data-theme="dark"] #case-modal .cm-full {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+:root[data-theme="dark"] #case-modal .cm-full:hover { background: rgba(255, 255, 255, 0.12); }

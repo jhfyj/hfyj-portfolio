@@ -7258,6 +7258,49 @@ function stackUpdate() {
     }
 }
 
+// Nothing to draw while the canvas is fully covered: the grid view is opaque
+// over it, and a project pop-up freezes the ring behind its frosted layer.
+// Redrawing the whole WebGL scene every frame under those was pure cost, and
+// with the frosted layer blurring a canvas that kept changing, it was the
+// heaviest thing on the page (Jen's friend's MacBook lagged, Oct 30). A short
+// grace period lets the grid's fade and the pop-up's opening finish first.
+let coverGridSince = 0, coverModalSince = 0;
+function canvasCovered(now) {
+    if (currentView === 'grid') { if (!coverGridSince) coverGridSince = now; }
+    else coverGridSince = 0;
+    if (document.documentElement.classList.contains('cm-open')) { if (!coverModalSince) coverModalSince = now; }
+    else coverModalSince = 0;
+    return (coverGridSince && now - coverGridSince > 700)
+        || (coverModalSince && now - coverModalSince > 700);
+}
+
+// Sharpness that follows the machine (Jen, Oct 30). The canvas draws at up to
+// 2x the screen's pixels; on a high-resolution laptop screen with a modest GPU
+// that is millions of shaded pixels a frame and the ring stutters. Once the
+// load-in is over, frame times are watched; if they average slower than about
+// 45 frames a second, the canvas steps down (2 → 1.5 → 1.25 → 1) until it
+// keeps up. Fast machines never step down, so nothing changes for them.
+const DPR_STEPS = [2, 1.5, 1.25, 1];
+let perfLast = 0, perfSum = 0, perfN = 0, perfHold = 0;
+function perfWatch(now, rendered) {
+    const dt = perfLast ? now - perfLast : 0;
+    perfLast = now;
+    if (!rendered || cbRunning || introPhase !== 'done' || document.hidden) { perfSum = 0; perfN = 0; return; }
+    if (!dt || dt > 150 || now < perfHold) return;
+    perfSum += dt; perfN++;
+    if (perfN < 90) return;
+    const avg = perfSum / perfN;
+    perfSum = 0; perfN = 0;
+    if (avg <= 22) return;
+    const cur = renderer.getPixelRatio();
+    const next = DPR_STEPS.find((r) => r < cur - 0.01);
+    if (!next) return;
+    renderer.setPixelRatio(next);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    perfHold = now + 1500;
+    console.log('[pg] slow frames', avg.toFixed(1) + 'ms, canvas sharpness', cur, '->', next);
+}
+
 // Render loop
 const renderloop = (now = 0) => {
 
@@ -7497,12 +7540,14 @@ const renderloop = (now = 0) => {
     // Render last Ã¢â‚¬â€ all positions are current, no stale-position flash possible.
     // Not while the loader still covers the canvas: a render there uploads
     // card textures on the same thread the CSS shuffle is running on.
-    if (!loaderEl || loaderEl.classList.contains('fade-out')) {
+    const __covered = canvasCovered(now);
+    if (!__covered && (!loaderEl || loaderEl.classList.contains('fade-out'))) {
         const __p = renderer.info.programs.length, __t = performance.now();
         renderer.render(scene, camera);
         const __d = performance.now() - __t;
         if (renderer.info.programs.length !== __p || __d > 30) console.log('[pg] render', Math.round(__t), Math.round(__d), 'programs', __p, '->', renderer.info.programs.length, renderer.info.programs.slice(__p).map(p => p.cacheKey.length + ':' + p.cacheKey.slice(-220)).join(' || '), 'tex', renderer.info.memory.textures);
     }
+    perfWatch(now, !__covered);
 };
 
 // Helpers

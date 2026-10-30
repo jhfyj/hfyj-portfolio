@@ -756,9 +756,9 @@ html.has-side #topbar.home-nav {
   padding-left: 0;
   padding-right: 0;
 }
-/* -4px: the pill pads 14px left and 10px right, which pushes its contents 2px
-   right of where the bare home line draws them. */
-#topbar.home-nav .nav-cluster { margin-left: calc(100vw - 100% - 4px); }
+/* Home's line now has the same 14px / 10px padding as this pill (style.css),
+   so the boxes match and only the scrollbar needs making up. */
+#topbar.home-nav .nav-cluster { margin-left: calc(100vw - 100%); }
 @media (max-width: 500px) {
   #topbar.home-nav { padding-top: 16px; }
 }

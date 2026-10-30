@@ -926,7 +926,12 @@ html[data-card-return] body {
   box-sizing: border-box;
   background-color: transparent;
   border-radius: 16px;
-  padding: 10px 0 0;
+  /* The pill's padding in both views (Jen, Oct 30). Card view only leaves it
+     clear, so the box is the same size as the white pill on Playground and
+     About Me. The nav carries over between pages as one shape; when the two
+     boxes differed, the white pill was squeezed narrower mid-switch and its
+     left and right padding looked like they had vanished. */
+  padding: 10px 10px 10px 14px;
   box-shadow: none;
   transition:
     background-color 0.7s cubic-bezier(0.22, 1, 0.36, 1),

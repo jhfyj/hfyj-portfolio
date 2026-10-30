@@ -2423,3 +2423,16 @@ html.gh-handle-drag .gh-handle.br::before {
   .gf-col--contact, .gf-contact-group { align-items: flex-start; text-align: left; }
   .gf-col--contact .gf-socials { justify-content: flex-start; }
 }
+
+/* ── One nav across pages (Jen, Oct 30) ──
+   Going Home → Playground the nav pill must not drop out and come back with
+   the new page. Same-site page loads run as a view transition: the pill is
+   named on both pages (sketchbook.css carries the Playground half), so the
+   browser holds it on screen across the load. The rest of the page swaps
+   instantly, exactly as before: no crossfade on the root, so the Playground
+   card's own flight into the table is untouched. Browsers without
+   cross-document view transitions just load the page as they always have. */
+@view-transition { navigation: auto; }
+#top-nav .nav-cluster { view-transition-name: site-nav; }
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }

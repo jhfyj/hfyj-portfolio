@@ -5032,14 +5032,13 @@ function loadCard8() {
 // uniforms, plus one small plane per flying piece. Nothing is repainted or
 // re-uploaded while it plays: the per-frame texture upload is exactly the cost
 // the About Me reveal above was moved into the shader to avoid.
-// Off on a return from another page (window.__skipBuild, index.html): the
-// cards are just there, no build-in, like reduced motion. A reload still builds.
-const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    && window.__skipBuild !== true;
-// Whole-card fade only, with no build after it. Off: Jen wants the build
-// kept, with just its first step (the outline drawing round the card in the
-// theme colour) swapped for the blank card fading in, naheeljawaid.com style.
-const CB_FADE = false;
+const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Whole-card fade only, with no build after it. A first visit and a reload
+// keep the full build (Jen wants it). Coming back from another page
+// (window.__skipBuild, index.html) gets just this fade: each card comes in
+// soft and a touch small, out from the front card, no wireframe build
+// (Jen, Oct 30).
+const CB_FADE = window.__skipBuild === true;
 const CB_FADE_T = {
     dur: 1000,      // ms for one card to come in (before CB_SPEED)
     stagger: 140,   // between one pair and the next, out from the front card
@@ -8771,7 +8770,9 @@ function triggerDealing() {
 }
 
 function cbHoldsChrome() {
-    return CB_ENABLED && !cbIntroDone
+    // Coming back with the fade: the nav carried over from the page before
+    // and stays put, so nothing waits for the cards
+    return CB_ENABLED && !CB_FADE && !cbIntroDone
         && document.documentElement.getAttribute('data-restore-view') !== 'grid';
 }
 

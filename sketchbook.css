@@ -1524,3 +1524,17 @@ body.modal-open { overflow: hidden; }
    with the table. The pill is already on screen from Home, so it stays. */
 :root.card-transition #topbar.home-nav { opacity: 1; pointer-events: none; }
 :root.felt-arrive #topbar.home-nav { animation: none; }
+
+/* ── The mat runs all the way up (Jen, Oct 30) ──
+   The cloth no longer starts under the nav bar: it grows up underneath it to
+   the same 16px inset it has at the sides, and the nav pill floats over the
+   grass. The bar is clear and lets clicks through (only the pill catches), so
+   the whole mat can still be dragged. It grows upward by the bar's height, so
+   its bottom edge and everything below stay where they were. Opening it to
+   full screen ends in the same place as before. */
+#felt {
+  --felt-rest-h: calc(var(--felt-base) + var(--topbar-h, 63px));
+  height: calc(var(--felt-rest-h) + (100vh - var(--felt-rest-h)) * var(--felt-expand));
+  height: calc(var(--felt-rest-h) + (100dvh - var(--felt-rest-h)) * var(--felt-expand));
+  margin-top: calc(var(--felt-inset) * var(--felt-rest) - var(--topbar-h, 63px));
+}

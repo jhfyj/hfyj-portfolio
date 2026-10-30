@@ -928,3 +928,11 @@ body.has-dot .strip { cursor: none; }
   .fan-card { transition: none !important; }
   #fan { --fan-scroll: 1 !important; }
 }
+
+/* The nav carries over from Home and Playground (Jen, Oct 30): same named
+   pill on every page, so it stays put across the load instead of reloading.
+   The rest of the page swaps instantly, as before. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+#topbar.home-nav .nav-cluster { view-transition-name: site-nav; }

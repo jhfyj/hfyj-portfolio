@@ -1518,16 +1518,8 @@ body.modal-open { overflow: hidden; }
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; }
 #topbar.home-nav .nav-cluster { view-transition-name: site-nav; }
-#topbar.home-nav {
-  padding-top: 24px;
-  padding-left: 0;
-  padding-right: 0;
-}
-/* -4px: the pill pads 14px left and 10px right, which pushes its contents 2px right of where the bare home line draws them. */
-#topbar.home-nav .nav-cluster { margin-left: calc(100vw - 100% - 4px); }
-@media (max-width: 500px) {
-  #topbar.home-nav { padding-top: 16px; }
-}
+/* Where the pill sits (the home pill's exact pixels) is shared with About Me:
+   site.css, under "Same pill position on every page". */
 /* The card flight and the arrival used to hide the bar and bring it back in
    with the table. The pill is already on screen from Home, so it stays. */
 :root.card-transition #topbar.home-nav { opacity: 1; pointer-events: none; }

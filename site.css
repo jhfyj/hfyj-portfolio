@@ -732,3 +732,33 @@ html.has-side #modal-side #toc.side-socials { flex-direction: column; }
    the content area, right of the column, and never hides on scroll. */
 html.has-side #topbar.home-nav { display: flex; }
 #topbar.home-nav.is-pinned.is-hidden { transform: none; opacity: 1; }
+
+/* About Me with the side column: the body is pushed right by the column, so
+   the bar used to centre in what was left and the pill sat ~118px right of
+   where it is on Home and Playground (Jen, Oct 30). Pull the bar back to the
+   window's left edge so the pill centres on the whole window, same spot on
+   every page. The bar is clear and click-through; only the pill catches. */
+html.has-side #topbar.home-nav {
+  margin-left: calc(-1 * var(--ms-w));
+  width: calc(100% + var(--ms-w));
+  z-index: 30;
+}
+
+/* ── Same pill position on every page (Jen, Oct 30) ──
+   Playground and About Me put the pill on exactly the home pill's pixels, so
+   it doesn't shift when you move between pages. The home bar is fixed and
+   centred on the whole window; these bars sit beside the scrollbar, so the
+   pill is nudged right by half the scrollbar (margin = 100vw - the bar's
+   width) and down to the home line (24px, 16px on phones). On About Me the
+   bar is widened back over the side column above, so the same sum holds. */
+#topbar.home-nav {
+  padding-top: 24px;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* -4px: the pill pads 14px left and 10px right, which pushes its contents 2px
+   right of where the bare home line draws them. */
+#topbar.home-nav .nav-cluster { margin-left: calc(100vw - 100% - 4px); }
+@media (max-width: 500px) {
+  #topbar.home-nav { padding-top: 16px; }
+}

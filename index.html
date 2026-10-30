@@ -55,6 +55,12 @@
             // storage throws outright in some privacy modes rather than returning null
             try { done = done || sessionStorage.getItem('introPlayed') === '1'; } catch (err) {}
             window.__introDone = done;
+            // Coming back from another page (the logo, Back, a nav link) skips
+            // the card build-in entirely: the cards are simply there (Jen,
+            // Oct 30). A reload still plays it, as she asked earlier.
+            var navType = '';
+            try { var nav = performance.getEntriesByType('navigation')[0]; navType = nav ? nav.type : ''; } catch (err) {}
+            window.__skipBuild = done && navType !== 'reload';
             if (done) document.documentElement.setAttribute('data-intro-done', '');
 
             // Same reason again, for the view. script.js restores the grid, but

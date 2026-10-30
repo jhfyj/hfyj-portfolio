@@ -5032,7 +5032,10 @@ function loadCard8() {
 // uniforms, plus one small plane per flying piece. Nothing is repainted or
 // re-uploaded while it plays: the per-frame texture upload is exactly the cost
 // the About Me reveal above was moved into the shader to avoid.
-const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Off on a return from another page (window.__skipBuild, index.html): the
+// cards are just there, no build-in, like reduced motion. A reload still builds.
+const CB_ENABLED = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    && window.__skipBuild !== true;
 // Whole-card fade only, with no build after it. Off: Jen wants the build
 // kept, with just its first step (the outline drawing round the card in the
 // theme colour) swapped for the blank card fading in, naheeljawaid.com style.

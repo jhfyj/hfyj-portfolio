@@ -152,7 +152,7 @@
   --felt-inset: 16px;
   --felt-radius: 20px;
   --felt-rest: calc(1 - var(--felt-expand));
-  margin-top: calc(var(--felt-inset) * var(--felt-rest) - 63px * var(--felt-expand));
+  margin-top: calc(var(--felt-inset) * var(--felt-rest) - var(--topbar-h, 63px) * var(--felt-expand));
   margin-left: calc(var(--felt-inset) * var(--felt-rest));
   margin-right: calc(var(--felt-inset) * var(--felt-rest));
   border-radius: calc(var(--felt-radius) * var(--felt-rest));

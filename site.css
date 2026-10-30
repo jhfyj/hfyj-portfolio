@@ -660,3 +660,70 @@ html.has-side #modal-side #toc.side-socials { flex-direction: column; }
 #modal-side.side-intro .si-block { transform: translateY(6px); }
 #modal-side.side-intro.is-in .si-word,
 #modal-side.side-intro.is-in .si-block { opacity: 1; filter: blur(0); transform: none; }
+
+/* ---------- Playground: the home page's nav (Jen, Oct 30) ----------
+   The home page's top nav in its grid-view look: logo, About, Playground and
+   the theme button in one centred pill, page colour with a soft shadow.
+   Copied from style.css (.nav-cluster, #nav-links, .nav-logo, .nav-link,
+   .nav-spacer) and scoped here so the case pages' bar is untouched. The bar
+   is clear and lets clicks through; only the pill catches them. It is 80px
+   tall, not 63, so the pill clears the cloth; sketchbook.css reads
+   --topbar-h for the cloth's fullscreen pull-up. */
+:root:has(#topbar.home-nav) { --topbar-h: 80px; }
+#topbar.home-nav {
+  --ink-rgb: 40, 40, 40;
+  height: var(--topbar-h);
+  padding: 16px 24px 0;
+  align-items: flex-start;
+  justify-content: center;
+  background: transparent;
+  pointer-events: none;
+}
+:root[data-theme="dark"] #topbar.home-nav { --ink-rgb: 255, 255, 255; }
+#topbar.home-nav.is-floating { box-shadow: none; }
+#topbar.home-nav .nav-cluster {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background-color: var(--page);
+  border-radius: 16px;
+  padding: 10px 10px 10px 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
+}
+#topbar.home-nav #nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+#topbar.home-nav .nav-logo {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+#topbar.home-nav .nav-logo-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--accent);
+  -webkit-mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+  mask: url(assets/hfyj-mark.svg) center / contain no-repeat;
+}
+#topbar.home-nav .nav-link {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(var(--ink-rgb), 0.80);
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  transition: color 200ms ease;
+}
+#topbar.home-nav .nav-link:hover { color: var(--ink); }
+#topbar.home-nav .nav-spacer {
+  flex: 0 0 20px;
+  height: 1px;
+}
+@media (max-width: 500px) {
+  #topbar.home-nav #nav-links { gap: 20px; }
+}

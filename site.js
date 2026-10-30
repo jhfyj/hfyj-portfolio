@@ -129,7 +129,8 @@ window.Site = (function () {
             if (Math.abs(delta) < DEADBAND && y > TOP) return;
             lastY = y;
 
-            topbar.classList.toggle('is-hidden', y > TOP && delta > 0);
+            // About Me's nav is pinned: it stays on screen the whole way down
+            topbar.classList.toggle('is-hidden', !topbar.classList.contains('is-pinned') && y > TOP && delta > 0);
             // only floating over content once it has left its resting place
             topbar.classList.toggle('is-floating', y > TOP);
         };
@@ -412,7 +413,12 @@ window.Site = (function () {
     var title = document.createElement('h2');
     title.className = 'ms-title';
     var here = document.querySelector('.topbar-left .here');
-    title.textContent = here ? here.textContent.trim() : document.title.split(/\s[\u2014-]\s/)[0];
+    // A page with the home page's nav pill (About Me) has no crumb to read the
+    // name from, so it says it on the bar; the pill also carries the way home
+    // and the theme button, so the column gets neither.
+    var homeNav = !!(topbar && topbar.classList.contains('home-nav'));
+    title.textContent = (topbar && topbar.dataset.title) ? topbar.dataset.title
+        : here ? here.textContent.trim() : document.title.split(/\s[\u2014-]\s/)[0];
     head.appendChild(title);
     top.appendChild(head);
     // A line under the title, if the page has one (About Me)
@@ -444,7 +450,7 @@ window.Site = (function () {
             });
         }
     }
-    if (mode !== 'modal') addBack(false);
+    if (mode !== 'modal' && !homeNav) addBack(false);
 
     // Where the toggle and the steps normally live, to put them back
     var toggleHome = toggle && toggle.parentNode, toggleNext = toggle && toggle.nextSibling;
@@ -454,7 +460,7 @@ window.Site = (function () {
         var on = framed || WIDE.matches;
         html.classList.toggle('has-side', on);
         if (on) {
-            if (toggle && toggle.parentNode !== head) head.appendChild(toggle);
+            if (toggle && !homeNav && toggle.parentNode !== head) head.appendChild(toggle);
             if (toc && toc.parentNode !== side) side.appendChild(toc);
         } else {
             if (toggle && toggle.parentNode !== toggleHome) toggleHome.insertBefore(toggle, toggleNext);

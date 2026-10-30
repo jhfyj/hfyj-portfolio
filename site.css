@@ -727,3 +727,8 @@ html.has-side #modal-side #toc.side-socials { flex-direction: column; }
 @media (max-width: 500px) {
   #topbar.home-nav #nav-links { gap: 20px; }
 }
+/* About Me: the home page's nav pill stays on wide screens too, where the
+   side column used to replace the top bar (Jen, Oct 30). The bar sits over
+   the content area, right of the column, and never hides on scroll. */
+html.has-side #topbar.home-nav { display: flex; }
+#topbar.home-nav.is-pinned.is-hidden { transform: none; opacity: 1; }

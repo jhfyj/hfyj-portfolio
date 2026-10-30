@@ -1538,3 +1538,13 @@ body.modal-open { overflow: hidden; }
   height: calc(var(--felt-rest-h) + (100dvh - var(--felt-rest-h)) * var(--felt-expand));
   margin-top: calc(var(--felt-inset) * var(--felt-rest) - var(--topbar-h, 63px));
 }
+
+/* ── Nav fades back in as full screen closes (Jen, Oct 30) ──
+   Now that the mat runs up under the nav, the cloth (z-index 11 while it is
+   open or closing) was painting over the bar, so the pill stayed hidden the
+   whole way down and then popped in when the close finished. Keep the bar
+   above the cloth while it covers: its opacity already follows the cloth
+   (1 - --felt-expand, eased over the same 480ms on a snap), so it fades out
+   as full screen opens and fades back in as it closes. It still ignores
+   clicks until the cloth is fully closed. */
+html.felt-covering #topbar.home-nav { z-index: 12; }

@@ -527,14 +527,35 @@
         // Inline rather than a class in a stylesheet: one script serves the
         // case pages and the table, their CSS is two different files, and a
         // fade on the way out is not worth saying twice.
-        document.body.style.transition = 'opacity ' + LEAVE_FADE + 'ms linear';
-        document.body.style.opacity = '0';
+        //
+        // Everything but the nav bar (Jen, Oct 30): the nav sits on the same
+        // pixels on every page and carries over to Home, so it stays at full
+        // strength while the rest of the page fades out under it. Fading
+        // <body> would take the nav with it and Home would have to bring it
+        // back in.
+        Array.prototype.forEach.call(document.body.children, function (el) {
+            if (el.id === 'topbar' || el.id === 'cursor-dot') return;
+            el.style.transition = 'opacity ' + LEAVE_FADE + 'ms linear';
+            el.style.opacity = '0';
+            el.setAttribute('data-left-home', '');
+        });
 
         // On a timer and not on the transition ending. The navigation is what
         // ends this, and a page left sitting at zero opacity because a
         // transitionend never arrived would be a dead end with no way out.
         setTimeout(function () { leaveForHome(href); }, LEAVE_FADE);
     }
+
+    // Kept by the browser and shown again with Forward: undo the fade-out
+    // above, or the page would come back blank under its nav.
+    window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        Array.prototype.forEach.call(document.querySelectorAll('[data-left-home]'), function (el) {
+            el.style.transition = '';
+            el.style.opacity = '';
+            el.removeAttribute('data-left-home');
+        });
+    });
 
     function setupExit() {
         document.addEventListener('click', function (e) {

@@ -61,6 +61,32 @@
             var navType = '';
             try { var nav = performance.getEntriesByType('navigation')[0]; navType = nav ? nav.type : ''; } catch (err) {}
             window.__skipBuild = done && navType !== 'reload';
+            // Same moment, for the nav (Jen, Oct 30): coming back from another
+            // page the nav pill is already on screen there, on the same pixels,
+            // so here it is simply on from the first frame instead of fading in.
+            // style.css holds it; the hold lifts once script.js has shown it the
+            // usual way, so its later transitions (grid scroll-hide) still run.
+            if (window.__skipBuild) {
+                document.documentElement.setAttribute('data-nav-carry', '');
+                var lift = function () {
+                    requestAnimationFrame(function () { requestAnimationFrame(function () {
+                        document.documentElement.removeAttribute('data-nav-carry');
+                    }); });
+                };
+                document.addEventListener('DOMContentLoaded', function () {
+                    var tn = document.getElementById('top-nav');
+                    if (!tn) return lift();
+                    if (tn.classList.contains('visible')) return lift();
+                    var mo = new MutationObserver(function () {
+                        if (!tn.classList.contains('visible')) return;
+                        mo.disconnect();
+                        lift();
+                    });
+                    mo.observe(tn, { attributes: true, attributeFilter: ['class'] });
+                    // never hold it past this, whatever else happens
+                    setTimeout(function () { mo.disconnect(); lift(); }, 8000);
+                });
+            }
             if (done) document.documentElement.setAttribute('data-intro-done', '');
 
             // Same reason again, for the view. script.js restores the grid, but

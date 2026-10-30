@@ -2441,3 +2441,34 @@ html.gh-handle-drag .gh-handle.br::before {
 #top-nav .nav-cluster { view-transition-name: site-nav; }
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; }
+
+/* ── The nav stays put coming back Home (Jen, Oct 30) ──
+   1. Arriving from another page (index.html sets data-nav-carry before the
+      first paint): the pill is on from the first frame. Without this it starts
+      at opacity 0 and fades in with the page, which is the "reload" Jen saw.
+   2. The quick fade a return plays (data-card-return) used to be an opacity
+      animation on <body>, and that takes the nav with it. Now a cover in the
+      page colour fades away instead. It sits just under the nav (99999) and
+      the bottom bar, so the cards come up underneath while the nav stays. */
+html[data-nav-carry] #top-nav {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+html[data-card-return] body { animation: none; }
+html[data-card-return] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: var(--bg);
+  pointer-events: none;
+  animation: card-return-cover 180ms linear both;
+}
+@keyframes card-return-cover {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-card-return] body::after { content: none; animation: none; }
+}

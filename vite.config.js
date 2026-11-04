@@ -33,7 +33,10 @@ const PAGES = {
     // built under its own name and served as puregym.html (PUREGYM_LIVE below);
     // the old puregym.html stays in the repo, unbuilt.
     puregymtest: 'puregym-test.html',
-    techatnyu: 'techatnyu.html',
+    // Tech@NYU: the redesign (techatnyu-test.html) IS the Tech@NYU page now,
+    // served as techatnyu.html (LIVE_PAGES below); the old techatnyu.html stays
+    // in the repo, unbuilt.
+    techatnyutest: 'techatnyu-test.html',
     thedial: 'the-dial.html',
     bmw: 'bmw.html',
     playground: 'playground.html',
@@ -67,6 +70,9 @@ const CLASSIC_SCRIPTS = [
     'site.js',
     'sketchbook.js',
     'skeleton.js',
+    'techatnyu-kw.js',
+    'techatnyu-reel.js',
+    'techatnyu-test.js',
 ];
 
 // The same, and for the same reason, for the stylesheets of those pages. Each
@@ -94,6 +100,9 @@ const CLASSIC_STYLES = [
     'skeleton.css',
     'sketchbook.css',
     'techatnyu.css',
+    'techatnyu-kw.css',
+    'techatnyu-reel.css',
+    'techatnyu-test.css',
     'the-dial.css',
 ];
 
@@ -115,7 +124,9 @@ const RUNTIME_ASSET_DIRS = ['assets', 'Cards', 'Company logo', 'fonts'];
 const PUREGYM_LIVE = { from: 'puregym-test.html', to: 'puregym.html' };
 // Same for Clarus AI: clarusai.html serves the redesign.
 const CLARUS_LIVE = { from: 'clarusai-test.html', to: 'clarusai.html' };
-const LIVE_PAGES = [PUREGYM_LIVE, CLARUS_LIVE];
+// And Tech@NYU: techatnyu.html serves the redesign.
+const TECHNYU_LIVE = { from: 'techatnyu-test.html', to: 'techatnyu.html' };
+const LIVE_PAGES = [PUREGYM_LIVE, CLARUS_LIVE, TECHNYU_LIVE];
 
 // Where the home page's covers land for the case pages (see /__card-export).
 const CARD_EXPORT_DIR = 'assets/cards';

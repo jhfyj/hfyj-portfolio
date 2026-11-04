@@ -1,0 +1,114 @@
+/* tech@nyu six words: a measured canvas a cursor searches across,
+   dragging a selection over each word as it finds it (techatnyu-kw.js).
+   The searcher is a Figma multiplayer cursor with a name tag. */
+
+.kw-plane {
+  position: relative; margin: 28px 0 0; padding: 0 !important;
+  aspect-ratio: 16 / 9; overflow: hidden; user-select: none; -webkit-user-select: none;
+  --ru: 22px; --kw-dot: rgba(0, 0, 0, .13); --kw-on: #fff; --kw-tint: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+:root[data-theme="dark"] .kw-plane { --kw-dot: rgba(255, 255, 255, .10); --kw-on: #111; }
+
+/* rulers */
+.kw-rx, .kw-ry { position: absolute; z-index: 4; overflow: hidden; }
+.kw-rx { left: var(--ru); right: 0; top: 0; height: var(--ru); box-shadow: inset 0 -1px 0 var(--rule); }
+.kw-ry { top: var(--ru); bottom: 0; left: 0; width: var(--ru); box-shadow: inset -1px 0 0 var(--rule); }
+.kw-plane::before {          /* the corner square where the rulers meet */
+  content: ''; position: absolute; left: 0; top: 0; z-index: 4; width: var(--ru); height: var(--ru);
+  box-shadow: inset -1px -1px 0 var(--rule);
+}
+.kw-t { position: absolute; background: var(--rule); }
+.kw-rx .kw-t { bottom: 0; width: 1px; height: 4px; }
+.kw-rx .kw-t.is-major { height: 8px; }
+.kw-ry .kw-t { right: 0; height: 1px; width: 4px; }
+.kw-ry .kw-t.is-major { width: 8px; }
+.kw-n, .kw-band span {
+  position: absolute; white-space: nowrap;
+  font: 400 9.5px/1 "DM Sans", sans-serif; font-variant-numeric: tabular-nums; color: var(--caption);
+}
+.kw-n { transition: opacity .15s ease; }
+.kw-n.is-hid { opacity: 0; }
+.kw-rx .kw-n { top: 4px; margin-left: 3px; }
+.kw-ry .kw-n { left: 4px; margin-top: 3px; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+/* the selected word's extent, marked on both rulers like Figma does */
+.kw-band { position: absolute; z-index: 1; opacity: 0; transition: opacity .2s ease; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.kw-band.is-on { opacity: 1; }
+.kw-rx .kw-band { top: 0; bottom: 0; }
+.kw-ry .kw-band { left: 0; right: 0; }
+.kw-band span { color: var(--accent); background: var(--tile); padding: 0 2px; }
+.kw-rx .kw-band span { top: 4px; }
+.kw-rx .kw-band span:first-child { right: 100%; }
+.kw-rx .kw-band span:last-child { left: 100%; }
+.kw-ry .kw-band span { left: 4px; writing-mode: vertical-rl; transform: rotate(180deg); padding: 2px 0; }
+.kw-ry .kw-band span:first-child { bottom: 100%; }
+.kw-ry .kw-band span:last-child { top: 100%; }
+
+/* the plane */
+.kw-field {
+  position: absolute; left: var(--ru); top: var(--ru); right: 0; bottom: 0;
+  background-image: radial-gradient(circle, var(--kw-dot) 1px, transparent 1.4px);
+  background-size: 18px 18px; background-position: 9px 9px;
+}
+.kw {
+  position: absolute; z-index: 1; left: var(--x); top: var(--y); white-space: nowrap;
+  font-size: clamp(20px, 2.6vw, 36px); line-height: 1.1; letter-spacing: -.02em; font-weight: 400; color: var(--head);
+  opacity: 0; filter: blur(8px); transition: opacity .55s ease, filter .55s ease;
+}
+.kw.is-found { opacity: 1; filter: none; }
+
+/* the drag selection */
+.kw-sel {
+  position: absolute; z-index: 3; left: 0; top: 0; width: 0; height: 0; pointer-events: none;
+  border: 1.5px solid var(--accent); background: var(--kw-tint);
+  opacity: 0; transition: opacity .18s ease, background-color .2s ease;
+}
+.kw-sel.is-on { opacity: 1; }
+.kw-sel.is-set { background-color: transparent; }
+.kw-sel.is-snap { transition: opacity .18s ease, left .18s ease, top .18s ease, width .18s ease, height .18s ease; }
+.kw-sel i {
+  position: absolute; width: 8px; height: 8px; background: #fff; border: 1.5px solid var(--accent);
+  opacity: 0; transform: scale(.4); transition: opacity .15s ease, transform .2s cubic-bezier(.3, 1.6, .5, 1);
+}
+:root[data-theme="dark"] .kw-sel i { background: var(--tile); }
+.kw-sel i.tl { left: -5px; top: -5px; } .kw-sel i.tr { right: -5px; top: -5px; }
+.kw-sel i.bl { left: -5px; bottom: -5px; } .kw-sel i.br { right: -5px; bottom: -5px; }
+.kw-sel.is-set i { opacity: 1; transform: none; }
+.kw-sel.is-set i.tr { transition-delay: .04s; } .kw-sel.is-set i.br { transition-delay: .08s; } .kw-sel.is-set i.bl { transition-delay: .12s; }
+.kw-dim {
+  position: absolute; left: 50%; top: calc(100% + 8px); white-space: nowrap;
+  padding: 3px 6px; border-radius: 3px; background: var(--accent); color: var(--kw-on);
+  font: 400 10.5px/1 "DM Sans", sans-serif; font-variant-numeric: tabular-nums;
+  opacity: 0; transform: translateX(-50%) translateY(-3px); transition: opacity .2s ease, transform .25s ease;
+}
+.kw-sel.is-set .kw-dim { opacity: 1; transform: translateX(-50%); }
+
+/* Jennifer's multiplayer cursor: a filled arrow with a white edge and a name tag, like Figma */
+.kw-cur { position: absolute; z-index: 5; left: 0; top: 0; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .3s ease; }
+.kw-plane.has-cur .kw-cur { opacity: 1; }
+.kw-cur svg {
+  position: absolute; left: -3px; top: -2.6px; width: 24px; height: 24px; overflow: visible;
+  fill: var(--accent); stroke: #fff; stroke-width: 1.4; stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .22));
+  transform-origin: 3px 2.6px; transition: transform .12s ease;
+}
+:root[data-theme="dark"] .kw-cur svg { stroke: #111; }
+.kw-cur.is-press svg { transform: scale(.86); }
+.kw-tag {
+  position: absolute; left: 16px; top: 20px; white-space: nowrap;
+  padding: 4px 7px; border-radius: 3px 10px 10px 10px; background: var(--accent); color: var(--kw-on);
+  font: 400 11px/1 "DM Sans", sans-serif; letter-spacing: .01em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .14);
+}
+.kw-tag.is-flip { left: auto; right: 2px; border-radius: 10px 3px 10px 10px; }
+.kw-tag.is-up { top: auto; bottom: 8px; }
+.kw-tag.is-up.is-flip { bottom: 8px; }
+
+@media (max-width: 760px) {
+  .kw-plane { aspect-ratio: 4 / 5; --ru: 18px; }
+  .kw { left: var(--mx); top: var(--my); font-size: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kw, .kw-sel, .kw-sel i, .kw-dim { transition: none; }
+}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tech@NYU - HFYJ</title>
+    <link rel="icon" id="favicon" type="image/svg+xml" href="./assets/favicon-light.svg">
+    <script>
+        // Same pre-paint theme block as every page (see techatnyu.html / site.js).
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem('theme'); } catch (err) {}
+            var theme = (saved === 'dark' || saved === 'light') ? saved
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            var favicon = document.getElementById('favicon');
+            if (favicon) favicon.href = theme === 'dark' ? './assets/favicon-dark.svg' : './assets/favicon-light.svg';
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Figtree:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="card-transition.js"></script>
+    <link rel="stylesheet" href="site.css" vite-ignore>
+    <link rel="stylesheet" href="skeleton.css" vite-ignore>
+    <script src="skeleton.js"></script>
+    <link rel="stylesheet" href="case.css" vite-ignore>
+    <link rel="stylesheet" href="techatnyu.css" vite-ignore>
+    <link rel="stylesheet" href="techatnyu-test.css" vite-ignore>
+    <link rel="stylesheet" href="techatnyu-reel.css" vite-ignore>
+<link rel="stylesheet" href="techatnyu-kw.css" vite-ignore>
+</head>
+<body>
+
+<nav id="topbar">
+    <div class="topbar-left">
+        <a href="index.html#cards">Home</a>
+        <span class="sep">/</span>
+        <span class="here">tech@nyu</span>
+    </div>
+    <div class="topbar-right">
+        <span>Branding</span>
+        <span class="sep-lg">/</span>
+        <span>UIUX</span>
+        <span class="sep-lg">/</span>
+        <span>Graphic Design</span>
+    </div>
+    <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false">
+        <span class="theme-wheel">
+            <span class="theme-face"><svg class="theme-sun" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5V2.3M8 13.7V15.5M15.5 8H13.7M2.3 8H0.5M13.13 2.87L11.85 4.15M4.15 11.85L2.87 13.13M13.13 13.13L11.85 11.85M4.15 4.15L2.87 2.87" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <span class="theme-face"><svg class="theme-moon" width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14.5 9.5A6.5 6.5 0 116.5 1.5 5.2 5.2 0 0014.5 9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        </span>
+    </button>
+</nav>
+
+<div id="cursor-dot" aria-hidden="true"><span id="cursor-label"></span></div>
+
+<!-- Work first, process last. 7 steps max. -->
+<aside id="toc" aria-label="Sections">
+<a href="#top"><span class="suit">&spades;</span> OVERVIEW</a>
+<a href="#slides"><span class="suit">&hearts;</span> SLIDES</a>
+<a href="#posts"><span class="suit">&clubs;</span> POSTS</a>
+<a href="#brand"><span class="suit">&diams;</span> BRAND</a>
+<a href="#website"><span class="suit">&spades;</span> WEBSITE</a>
+<a href="#process"><span class="suit">&hearts;</span> PROCESS</a>
+<a href="#reflections"><span class="suit">&clubs;</span> REFLECTION</a>
+</aside>
+
+<main class="case" id="top">
+
+    <figure class="shot shot-hero">
+        <a class="to-cards hero-home" href="index.html#cards" aria-label="Back to the cards" data-cursor="back to cards"><img src="assets/techatnyu/img-01.png" width="1024" height="666" alt="A grid of the rebranded tech@nyu social posts: Club Fest, Kick-Off, Hiring Event and Tech Treks" data-skel></a>
+    </figure>
+
+    <header class="case-head">
+        <h1><a class="to-cards" href="index.html#cards" data-cursor="back to cards">Tech@NYU</a></h1>
+        <p class="lede">Slides, posts and a full rebrand for Tech@NYU, one of the oldest tech clubs at NYU.</p>
+        <dl class="meta">
+            <div><dt>Timeline</dt><dd>June 2025 - Present</dd></div>
+            <div><dt>Role</dt><dd>Marketing Director, Jun - Dec 2025<br>Vice President, then President</dd></div>
+            <div><dt>Team</dt><dd>Myself, Jaik, Jiyoon</dd></div>
+            <div><dt>Tools</dt><dd>Figma, Adobe</dd></div>
+        </dl>
+    </header>
+
+    <!-- Showreel: the season's graphics as a moving wall (techatnyu-reel.css/js) -->
+    <figure class="tile reel-wall" data-reel aria-label="Tech@NYU graphics, moving wall">
+        <div class="rw-plane" aria-hidden="true">
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+            <div class="rw-col"><div class="rw-track"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+        </div>
+    </figure>
+
+    <p class="reel-cap"><span class="t">Fall 2026 posts that I designed</span></p>
+
+    <section class="case-section" id="overview">
+<p class="eyebrow">Overview</p>
+<p class="statement">Two chapters: rebuilding the brand as Marketing Director, then still designing as President.</p>
+<p class="body-copy">As President my role covers a lot more of everything, but I still try to stay hands-on with marketing. Together with our marketing directors Jaik and Jiyoon, we launched one of the busiest semesters Tech@NYU has ever seen, sometimes with up to 5 events a week. I designed every slide deck, and the Fall 2026 campaign posts and our Instagram were designed by Jaik, Jiyoon and me together. Back in 2025 I built the brand kit, the post layouts and the club website, which shipped and has since been replaced by a newer design.</p>
+</section>
+
+<!-- Stats up top, in the Clarus card style -->
+    <section class="case-section" id="impact">
+        <p class="eyebrow">Impact</p>
+        <p class="statement">The rebrand took off, especially on social media.</p>
+        <div class="stat-row">
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="180">0</span><span class="st-unit">K</span></p>
+                <p class="st-label">accounts reached in the first two months</p>
+            </div>
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="500" data-pre="+">+0</span><span class="st-unit">%</span></p>
+                <p class="st-label">increase in overall reach</p>
+            </div>
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="1000" data-pre="+">+0</span><span class="st-unit">%</span></p>
+                <p class="st-label">increase in engagement</p>
+            </div>
+            <div class="stat-tile">
+                <p class="st-num"><span class="count" data-to="4.3" data-dec="1">0.0</span><span class="st-unit">K</span></p>
+                <p class="st-label">Instagram followers. From about 2,000 to 3,000 as Marketing Director, then past 4,000 as President</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 2026 first: what I'm making now ===== -->
+<div class="era" id="y2026">
+<span class="era-mark"><span class="era-when">2026</span><span class="era-role">As President</span></span>
+<span class="era-what">Slides by me, posts as a team</span>
+</div>
+
+<section class="case-section" id="slides">
+<p class="eyebrow">Slides</p>
+<p class="statement">The decks I design and present as President.</p>
+
+<div class="tile kd" data-reel data-kd aria-label="A selection of slides from the Fall 2026 Kickoff deck">
+            <div class="kd-stage" title="Click for the next slide"><img class="kd-slide is-on" data-n="1" src="assets/techatnyu/slides/slide-01.jpg" width="1600" height="900" decoding="async" alt="Kickoff deck: Cover: tech@nyu Fall 26 Kickoff"><img class="kd-slide" data-n="2" src="assets/techatnyu/slides/slide-02.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Leadership"><img class="kd-slide" data-n="3" src="assets/techatnyu/slides/slide-03.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Creativity, Learning, Community"><img class="kd-slide" data-n="4" src="assets/techatnyu/slides/slide-04.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: What types of events do we host?"><img class="kd-slide" data-n="5" src="assets/techatnyu/slides/slide-05.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Mentorship x Databricks"><img class="kd-slide" data-n="6" src="assets/techatnyu/slides/slide-06.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Dev Team Engineer applications"><img class="kd-slide" data-n="7" src="assets/techatnyu/slides/slide-07.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Buildathon"><img class="kd-slide" data-n="8" src="assets/techatnyu/slides/slide-08.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: New York Startup Week"><img class="kd-slide" data-n="9" src="assets/techatnyu/slides/slide-09.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Kickoff deck: Thanks for being here"></div>
+        </div>
+        <div class="tile kd-strip" data-reel aria-hidden="true">
+<div class="kd-row"><div class="kd-track"><img src="assets/techatnyu/slides/th/pick-01.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-02.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-03.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-04.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-05.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-06.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-07.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-08.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-09.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-01.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-02.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-03.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-04.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-05.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-06.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-07.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-08.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""><img src="assets/techatnyu/slides/th/pick-09.jpg" width="400" height="225" fetchpriority="low" decoding="async" alt=""></div></div>
+</div>
+        <p class="reel-cap"><span class="t">Fall &rsquo;26 Kickoff</span><span>|</span><span>A few slides from the deck for our first general meeting of the semester. Designed by me</span><span class="tag">Slides</span><span class="when">Fall 2026</span></p>
+    </section>
+
+<section class="case-section" id="posts">
+<p class="eyebrow">Posts</p>
+<p class="statement">This semester&rsquo;s campaign, and the feed we run together.</p>
+
+<!-- Fall 2026: one post at a time, with the Figma layers beside it (techatnyu-reel.css/js) -->
+        <div class="bento is-joined" data-reel>
+            <div class="tile b-main" data-cycle title="Click to see the next post">
+                <div class="sel"><img class="cyc is-on" src="assets/techatnyu/f26/apps-open.jpg" alt="Program Applications Open post" data-name="Program Applications Open" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/apps-timeline.jpg" alt="Application timeline post" data-name="Application Timeline" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/club-fest.jpg" alt="Club Fest post" data-name="Club Fest" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/kickoff.jpg" alt="Kickoff post" data-name="Kickoff" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/state-of-ai.jpg" alt="State of AI with xAI post" data-name="State of AI with xAI" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/tech-treks.jpg" alt="Tech Treks post" data-name="Tech Treks" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="Mentorship x Databricks post" data-name="Mentorship x Databricks" width="820" height="1024" loading="lazy" decoding="async"><img class="cyc" src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="Buildathon and NYSW post" data-name="Buildathon and NYSW" width="820" height="1024" loading="lazy" decoding="async"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><span class="sel-name"></span><span class="sel-size">1080 &times; 1350</span></div>
+            </div>
+            <div class="b-side">
+                <div class="tile b-layers" aria-label="The Fall 2026 frames, as they sit in Figma">
+                    <div class="ly-head"><span class="ly-tab is-on">Layers</span><span class="ly-page">Fall &rsquo;26 Design</span></div>
+                    <ul class="ly-list" data-layers>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Program Applications Open</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Application Timeline</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Club Fest</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Kickoff</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>State of AI with xAI</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Tech Treks</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Mentorship x Databricks</li>
+                        <li><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 1v10M8.5 1v10M1 3.5h10M1 8.5h10"/></svg>Buildathon and NYSW</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <p class="reel-cap"><span class="t">Fall 2026 campaign</span><span>|</span><span>Program launch and the events that followed. Designed with Jaik and Jiyoon</span><span class="tag">Brand / Social</span><span class="when">Fall 2026</span></p>
+
+        <!-- The real @techatnyu profile, rebuilt from the live page (Nov 4, 2026) -->
+        <figure class="tile ig-tile" data-reel data-ig aria-label="The @techatnyu Instagram profile, scrolling">
+            <a class="ig-open" href="https://www.instagram.com/techatnyu/" target="_blank" rel="noopener noreferrer" aria-label="Open @techatnyu on Instagram"></a><div class="ig-phone"><div class="ig-screen">
+                <span class="ig-island"></span>
+                <div class="ig-bar">
+                    <div class="ig-status"><span>9:41</span><span class="ig-sys"><i></i><i></i><i></i></span></div>
+                    <div class="ig-top">
+                        <svg class="ig-back" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8"/></svg>
+                        <span class="ig-handle">techatnyu</span>
+                        <svg class="ig-dots" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+                    </div>
+                </div>
+                <div class="ig-view"><div class="ig-feed">
+                    <div class="ig-prof">
+                        <div class="ig-row">
+                            <span class="ig-av"><img src="assets/techatnyu/ig/avatar.jpg" alt="" width="150" height="150"></span>
+                            <div class="ig-meta">
+                                <p class="ig-name">tech@nyu</p>
+                                <div class="ig-stats"><span><b>4,374</b>followers</span><span><b>354</b>following</span></div>
+                            </div>
+                        </div>
+                        <p class="ig-bio">tech@nyu is an all-inclusive community of creatives, makers, and hackers to build stuff together, learn new skills and&hellip; <span>more</span></p>
+                        <p class="ig-link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>linktr.ee/techatnyu</p>
+                        <div class="ig-btns"><span class="is-follow">Follow</span><span>Message</span></div>
+                        <div class="ig-hl">
+                            <span><img src="assets/techatnyu/ig/hl-1.jpg" alt="" width="150" height="150"><i>Flushing f&rsquo;26</i></span>
+                            <span><img src="assets/techatnyu/ig/hl-2.jpg" alt="" width="150" height="150"><i>ig takeovers</i></span>
+                            <span><img src="assets/techatnyu/ig/hl-3.jpg" alt="" width="150" height="150"><i>events</i></span>
+                            <span><img src="assets/techatnyu/ig/hl-4.jpg" alt="" width="150" height="150"><i>HOF Hacks</i></span>
+                            <span><img src="assets/techatnyu/ig/hl-5.jpg" alt="" width="150" height="150"><i>techtreks</i></span>
+                            <span><img src="assets/techatnyu/ig/hl-6.jpg" alt="" width="150" height="150"><i>sw</i></span>
+                        </div>
+                    </div>
+                    <div class="ig-tabs">
+                        <span class="is-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg></span>
+                        <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zM3 8h18M8 3l3 5M13 3l3 5M10 11.5v6l5-3z"/></svg></span>
+                        <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5a2 2 0 0 1 2-2h4l3 3 3-3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM7 19a5 5 0 0 1 10 0"/></svg></span>
+                    </div>
+                    <div class="ig-grid">
+                        <span class="ig-cell is-pin" data-by="team"><img src="assets/techatnyu/ig/post-01.jpg" alt="Hackday 2026 post" width="512" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell is-pin" data-by="team"><img src="assets/techatnyu/ig/post-02.jpg" alt="Meet the Tech@NYU eboard post" width="510" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell is-pin" data-by="me"><img src="assets/techatnyu/ig/post-03.jpg" alt="Program Applications Open post" width="516" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="team"><img src="assets/techatnyu/ig/post-04.jpg" alt="Inside TPM panel post" width="512" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="team"><img src="assets/techatnyu/ig/post-05.jpg" alt="AI and Sustainability with ecoGPT post" width="512" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell is-reel" data-by="team"><img src="assets/techatnyu/ig/post-06.jpg" alt="Buildathon reel" width="361" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="me"><img src="assets/techatnyu/ig/post-07.jpg" alt="Hackday 006 with Rho post" width="518" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="team"><img src="assets/techatnyu/ig/post-08.jpg" alt="Network with Froyo post" width="518" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell is-reel" data-by="team"><img src="assets/techatnyu/ig/post-09.jpg" alt="Meta promotions vs Google reel" width="361" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="team"><img src="assets/techatnyu/ig/post-10.jpg" alt="EEG x Tech@NYU speaker post" width="512" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell" data-by="me"><img src="assets/techatnyu/ig/post-11.jpg" alt="HP USA College Tour keynote post" width="518" height="640" loading="lazy" decoding="async"></span>
+                        <span class="ig-cell is-reel" data-by="team"><img src="assets/techatnyu/ig/post-12.jpg" alt="Ryan Peterman fireside reel" width="640" height="480" loading="lazy" decoding="async"></span>
+                    </div>
+                </div></div>
+            </div></div>
+        </figure>
+        <p class="reel-cap"><span class="t"><a class="cap-link" href="https://www.instagram.com/techatnyu/" target="_blank" rel="noopener noreferrer">@techatnyu</a></span><span>|</span><span>The live feed is a team effort. About half the posts are mine, the rest are by our talented marketing directors Jaik and Jiyoon</span><span class="tag">Social</span></p>
+
+        </section>
+
+<!-- ===== 2025: the rebrand ===== -->
+<div class="era" id="y2025">
+<span class="era-mark"><span class="era-when">2025</span><span class="era-role">As Marketing Director</span></span>
+<span class="era-what">The rebrand: brand kit, post layouts, website</span>
+</div>
+
+<section class="case-section" id="brand">
+        <p class="eyebrow">Brand</p>
+        <p class="statement">Logo, color and type, set with leadership.</p>
+        <figure class="shot">
+            <img src="assets/techatnyu/img-08.png" alt="The tech@nyu brand guideline: logo, colour and type" data-skel width="1024" height="670">
+        </figure>
+        <p class="statement spaced">Post layouts in the new brand.</p>
+        <figure class="shot">
+            <img src="assets/techatnyu/img-13.png" alt="A set of Instagram post layouts in the new brand" data-skel width="1024" height="716">
+        </figure>
+        <p class="statement spaced">A club fest board built to be reused.</p>
+        <p class="body-copy">Printed sheets sit under protective covers, so new info or images can be swapped in year after year.</p>
+        <div class="media-row even" style="--n: 2">
+            <img src="assets/techatnyu/img-14.jpg" alt="The club fest board on the table at the fair" data-skel width="1024" height="576">
+            <img src="assets/techatnyu/img-15.jpg" alt="A close-up of the reusable printed panels" data-skel width="1024" height="768">
+        </div>
+    </section>
+
+    <section class="case-section" id="website">
+        <p class="eyebrow">Website</p>
+        <p class="statement">The club website I designed and shipped.</p>
+        <figure class="shot">
+            <img src="assets/techatnyu/img-09.png" alt="The redesigned tech@nyu homepage" data-skel width="1024" height="886">
+        </figure>
+        <figure class="shot">
+            <img src="assets/techatnyu/img-10.png" alt="Further pages from the redesigned website" data-skel width="1024" height="756">
+        </figure>
+        <div class="media-row" style="--n: 2">
+            <img src="assets/techatnyu/img-11.png" alt="Website sections showing the new visual identity" data-skel width="1024" height="655">
+            <img src="assets/techatnyu/img-12.png" alt="More of the redesigned website" data-skel width="1024" height="768">
+        </div>
+        <p class="source">It went live in 2025. The club has since moved to a newer design, so this version is no longer online.</p>
+    </section>
+
+    <!-- ===== PROCESS, rebuilt as tiles (2025 rebrand) ===== -->
+    <section class="case-section" id="process">
+        <p class="eyebrow">Process</p>
+        <p class="statement">How the 2025 rebrand came together.</p>
+
+        <figure class="tile proc-tile proc-wide" data-reel>
+            <img src="assets/techatnyu/img-02.png" alt="The old Instagram grid beside the old tech@nyu homepage" width="1024" height="419" loading="lazy" decoding="async">
+        </figure>
+        <p class="reel-cap"><span class="t">Where it started</span><span>|</span><span>Every post looked different, and the site had no identity of its own</span><span class="when">Summer 2025</span></p>
+
+        <div class="proc-duo">
+            <figure class="tile proc-tile"><img src="assets/techatnyu/img-03.png" alt="Early website explorations on a dark canvas" width="1024" height="957" loading="lazy" decoding="async"></figure>
+            <figure class="tile proc-tile"><img src="assets/techatnyu/img-04-solid.png" alt="The first branding direction: a futuristic layout and social media concepts" width="1024" height="688" loading="lazy" decoding="async"></figure>
+        </div>
+        <p class="reel-cap"><span class="t">A first try</span><span>|</span><span>A futuristic website. It looked cool but didn&rsquo;t feel like Tech@NYU, so I let it go</span><span class="when">Summer 2025</span></p>
+
+        <div class="proc-duo">
+            <figure class="tile proc-tile"><img src="assets/techatnyu/img-05.jpg" alt="Personifying the brand: imagining Tech@NYU as a person" width="1024" height="663" loading="lazy" decoding="async"></figure>
+            <figure class="tile proc-tile"><img src="assets/techatnyu/img-06.jpg" alt="This or that: picking between visual directions" width="1024" height="663" loading="lazy" decoding="async"></figure>
+        </div>
+        <p class="reel-cap"><span class="t">Back to the club</span><span>|</span><span>A strategy session with the president and vice president on what Tech@NYU is and what it should become</span><span class="when">Summer 2025</span></p>
+
+        <figure class="tile kw-plane" data-kw aria-label="The six words the brand was built on: Professional, Fun, Community, Ambitious, Scrappy, Legacy">
+            <div class="kw-rx" aria-hidden="true"><span class="kw-band"><span></span><span></span></span></div>
+            <div class="kw-ry" aria-hidden="true"><span class="kw-band"><span></span><span></span></span></div>
+            <div class="kw-field">
+                <span class="kw" style="--x:8%;--y:12%;--mx:7%;--my:8%">Professional</span>
+                <span class="kw" style="--x:64%;--y:9%;--mx:66%;--my:20%">Fun</span>
+                <span class="kw" style="--x:38%;--y:37%;--mx:34%;--my:34%">Community</span>
+                <span class="kw" style="--x:10%;--y:62%;--mx:6%;--my:52%">Ambitious</span>
+                <span class="kw" style="--x:69%;--y:55%;--mx:56%;--my:66%">Scrappy</span>
+                <span class="kw" style="--x:46%;--y:76%;--mx:20%;--my:81%">Legacy</span>
+                <span class="kw-sel" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><span class="kw-dim"></span></span>
+                <span class="kw-cur" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 2.6 L20.4 10.2 L12.6 12.6 L10.2 20.4 Z"/></svg><span class="kw-tag">Jennifer</span></span>
+            </div>
+        </figure>
+        <p class="reel-cap"><span class="t">Finding the essence</span><span>|</span><span>What came out of the session, and what every design after it had to feel like</span><span class="when">Summer 2025</span></p>
+    </section>
+
+    <section class="case-section" id="reflections">
+        <p class="eyebrow">Reflection</p>
+        <p class="statement">A detour doesn&rsquo;t mean failure; it can be a step in the right direction.</p>
+        <p class="body-copy">I'm grateful for the creative freedom and trust tech@nyu gave me to lead this project from start to finish :)</p>
+    </section>
+
+    <div class="thanks">
+        <p class="thanks-title">Thanks for reading!</p>
+        <p class="thanks-blurb">Want to learn more? Curious about the details? Feel free to reach out to me at</p>
+        <p class="thanks-mail"><a href="mailto:jenniferhuang724@163.com">jenniferhuang724@163.com!</a></p>
+    </div>
+
+    <div class="next">
+        <p class="next-label">You might also enjoy&hellip;</p>
+        <div class="next-cards">
+            <div class="next-slot nc1">
+                <a class="next-card" data-card="puregym" href="puregym.html" data-cursor="open project" aria-label="Puregym Redesign"></a>
+            </div>
+            <div class="next-slot nc2">
+                <a class="next-card" data-card="clarusai" href="clarusai.html" data-cursor="open project" aria-label="Clarus AI"></a>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="site.js"></script>
+<script src="case.js"></script>
+<script src="techatnyu-test.js"></script>
+<script src="techatnyu-reel.js"></script>
+<script src="techatnyu-kw.js"></script>
+</body>
+</html>

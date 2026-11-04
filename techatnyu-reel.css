@@ -1,0 +1,449 @@
+/* tech@nyu showreel compositions (test page).
+   Light grey tiles that hold the work, the way Royden So (roydenso.com/sabotage)
+   and Jean Chen (jeanxcrj.com) present brand work: a moving wall up top, then a
+   bento (one big tile + two stacked) and a three-up of tall tiles.
+   Everything stays inside the column. Animations only run while on screen
+   (techatnyu-reel.js toggles .is-live) and stop for reduced motion. */
+
+.case { --tile: rgb(239, 239, 237); --tile-edge: rgba(0, 0, 0, .05); --tile-dark: rgb(14, 14, 16); }
+:root[data-theme="dark"] .case { --tile: rgb(24, 24, 26); --tile-edge: rgba(255, 255, 255, .06); --tile-dark: rgb(8, 8, 9); }
+
+.tile {
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: 12px; background: var(--tile);
+  box-shadow: inset 0 0 0 1px var(--tile-edge);
+}
+.tile img { display: block; }
+.tile.is-dark { background: #000; }
+
+/* one caption line under a composition: title | line ........ tag  season */
+.reel-cap {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin: 14px 0 0; font-size: 15px; line-height: 1.45; font-weight: 400; color: var(--caption);
+}
+.reel-cap .t { color: var(--head); }
+.reel-cap .tag {
+  margin-left: auto; font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+}
+.reel-cap .when { color: var(--head); }
+/* the description line takes the free space and wraps inside it, so the season stays on the right */
+.reel-cap > span:nth-child(3) { flex: 1 1 0; min-width: 0; text-wrap: pretty; }
+.reel-cap > span:nth-child(3) + .tag { margin-left: 0; }
+@media (max-width: 760px) { .reel-cap > span:nth-child(3) { flex-basis: 100%; } }
+@media (max-width: 760px) { .reel-cap { font-size: 14px; } .reel-cap .tag { margin-left: 0; } }
+
+/* ---------- A. the moving wall ---------- */
+.reel-wall { margin: 40px 0 0; aspect-ratio: 16 / 10; perspective: 1600px; }
+.rw-plane {
+  position: absolute; left: 50%; top: 50%; width: 138%; height: 260%;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px;
+  transform: translate(-50%, -50%) rotateX(24deg) rotateZ(-16deg);
+  transform-style: preserve-3d;
+}
+.rw-col { position: relative; overflow: visible; }
+.rw-track {
+  display: flex; flex-direction: column; gap: 14px;
+  animation: rw-up 46s linear infinite; animation-play-state: paused;
+  will-change: transform;
+}
+.rw-col:nth-child(even) .rw-track { animation-name: rw-down; animation-duration: 54s; }
+.rw-col:nth-child(3) .rw-track { animation-duration: 40s; }
+.rw-col:nth-child(5) .rw-track { animation-duration: 50s; }
+.rw-col:nth-child(6) .rw-track { animation-duration: 58s; }
+/* each column starts at a different point so the wall never reads as rows */
+.rw-col:nth-child(2) .rw-track { animation-delay: -11s; } .rw-col:nth-child(3) .rw-track { animation-delay: -23s; }
+.rw-col:nth-child(4) .rw-track { animation-delay: -7s; } .rw-col:nth-child(5) .rw-track { animation-delay: -31s; }
+.rw-col:nth-child(6) .rw-track { animation-delay: -17s; }
+.reel-wall.is-live .rw-track { animation-play-state: running; }
+.rw-track img {
+  width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 22px 40px -18px rgba(0, 0, 0, .45), 0 6px 14px -8px rgba(0, 0, 0, .3);
+}
+@keyframes rw-up { from { transform: translateY(0); } to { transform: translateY(calc(-50% - 7px)); } }
+@keyframes rw-down { from { transform: translateY(calc(-50% - 7px)); } to { transform: translateY(0); } }
+/* soft fade at the tile's edges so posters don't cut hard against the frame */
+.reel-wall::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background:
+    linear-gradient(var(--tile), transparent 9%, transparent 91%, var(--tile)),
+    linear-gradient(90deg, var(--tile), transparent 6%, transparent 94%, var(--tile));
+  opacity: .85;
+}
+
+/* ---------- B. bento: one big tile + two stacked ---------- */
+.bento {
+  display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr); gap: 10px;
+  margin: 28px 0 0; aspect-ratio: 16 / 9.4;
+}
+.b-side { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; min-height: 0; }
+.bento .tile { min-height: 0; }
+
+/* big tile: one post at a time inside a Figma-style selection box */
+.b-main { display: grid; place-items: center; }
+.sel {
+  position: relative; height: 72%; aspect-ratio: 4 / 5;
+}
+.sel .cyc {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px;
+  opacity: 0; filter: blur(10px); transform: scale(.985);
+  transition: opacity .55s ease, filter .55s ease, transform .7s cubic-bezier(.2, .7, .2, 1);
+  box-shadow: 0 26px 46px -24px rgba(0, 0, 0, .5);
+}
+.sel .cyc.is-on { opacity: 1; filter: blur(0); transform: none; }
+.sel::before {               /* the selection outline */
+  content: ''; position: absolute; inset: -1px; z-index: 3; pointer-events: none;
+  border: 1.5px solid var(--accent);
+}
+.sel i {                     /* corner handles */
+  position: absolute; z-index: 4; width: 9px; height: 9px; background: #fff;
+  border: 1.5px solid var(--accent);
+}
+:root[data-theme="dark"] .sel i { background: var(--tile); }
+.sel i.tl { left: -5px; top: -5px; } .sel i.tr { right: -5px; top: -5px; }
+.sel i.bl { left: -5px; bottom: -5px; } .sel i.br { right: -5px; bottom: -5px; }
+.sel .sel-name, .sel .sel-size {
+  position: absolute; z-index: 4; white-space: nowrap;
+  font: 400 11px/1 "DM Sans", sans-serif; letter-spacing: .01em;
+}
+.sel .sel-name { left: -1px; top: -20px; color: var(--accent); }
+.sel .sel-size {
+  left: 50%; bottom: -24px; transform: translateX(-50%);
+  padding: 3px 6px; border-radius: 3px; background: var(--accent); color: #fff;
+}
+:root[data-theme="dark"] .sel .sel-size { color: #111; }
+
+/* top side tile: the frames as they sit in Figma's layers panel, synced to the big tile */
+.b-layers {
+  display: flex; flex-direction: column; padding: 0;
+  font: 400 12px/1 "DM Sans", sans-serif; color: var(--head);
+}
+.ly-head {
+  display: flex; align-items: center; gap: 14px; flex: 0 0 auto;
+  padding: 13px 14px 11px; border-bottom: 1px solid var(--tile-edge);
+}
+.ly-tab { color: var(--caption); }
+.ly-tab.is-on { color: var(--head); }
+.ly-page { margin-left: auto; color: var(--caption); font-size: 11px; }
+.ly-list { list-style: none; margin: 0; padding: 6px 6px 10px; overflow: hidden; flex: 1 1 auto; position: relative; }
+.ly-list li {
+  display: flex; align-items: center; gap: 9px; height: 26px; padding: 0 9px; border-radius: 5px;
+  color: var(--body); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background-color .3s ease, color .3s ease;
+}
+.ly-list li svg { flex: 0 0 11px; width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 1.1; opacity: .7; }
+.ly-list li:hover { background: rgba(0, 0, 0, .04); }
+:root[data-theme="dark"] .ly-list li:hover { background: rgba(255, 255, 255, .05); }
+.ly-list li.is-on { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.ly-list li.is-on svg { opacity: 1; }
+
+/* bottom side tile: the timeline, scrolling past like a ticker */
+.b-time img {
+  position: absolute; left: 0; top: 0; width: 100%; height: auto;
+  transform: translateY(-14%);
+  animation: b-time 16s ease-in-out infinite alternate; animation-play-state: paused;
+}
+.bento.is-live .b-time img { animation-play-state: running; }
+@keyframes b-time { from { transform: translateY(-14%); } to { transform: translateY(-46%); } }
+
+/* joined: the canvas and the layers panel read as one Figma window.
+   One frame, no gap, a hairline between them; the panel is a shade off the canvas. */
+.bento.is-joined {
+  gap: 0; border-radius: 12px; overflow: hidden; isolation: isolate;
+  box-shadow: inset 0 0 0 1px var(--tile-edge); background: var(--tile);
+}
+.bento.is-joined .tile { border-radius: 0; box-shadow: none; }
+.bento.is-joined .b-side { display: block; gap: 0; border-left: 1px solid var(--tile-edge); }
+.bento.is-joined .b-layers { height: 100%; background: color-mix(in srgb, var(--tile) 55%, #fff); }
+:root[data-theme="dark"] .bento.is-joined .b-layers { background: color-mix(in srgb, var(--tile) 94%, #fff); }
+.bento.is-joined .ly-list { overflow-y: auto; scrollbar-width: none; }
+.bento.is-joined .ly-list::-webkit-scrollbar { display: none; }
+@media (max-width: 760px) {
+  .bento.is-joined .b-side { border-left: 0; border-top: 1px solid var(--tile-edge); }
+  .bento.is-joined .b-side .tile { aspect-ratio: auto; }
+}
+
+/* ---------- C. three tall tiles ---------- */
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 28px 0 0; }
+.trio .tile { aspect-ratio: 4 / 5.2; }
+
+/* 1. a phone scrolling the @techatnyu grid */
+.t-phone { display: grid; place-items: center; }
+.mini-phone {
+  position: relative; width: 62%; aspect-ratio: 393 / 852; border-radius: 15% / 7%;
+  background: #0b0c0d; padding: 3.2%;
+  box-shadow: 0 0 0 1px #8a8f94, 0 0 0 2px #50555a, 0 30px 50px -26px rgba(0, 0, 0, .55);
+  transform: translateY(9%);
+}
+.mp-screen {
+  position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 12.5% / 5.8%;
+  background: #fff; clip-path: inset(0 round 12.5% / 5.8%);
+  font-family: "DM Sans", sans-serif; color: #111;
+}
+.mp-island { position: absolute; top: 2%; left: 50%; width: 30%; height: 3.6%; transform: translateX(-50%); border-radius: 99px; background: #000; z-index: 3; }
+.mp-feed { position: absolute; left: 0; right: 0; top: 0; animation: mp-scroll 22s ease-in-out infinite alternate; animation-play-state: paused; }
+.trio.is-live .mp-feed { animation-play-state: running; }
+@keyframes mp-scroll { 0%, 8% { transform: translateY(0); } 92%, 100% { transform: translateY(-48%); } }
+.mp-head { padding: 22% 7% 5%; }
+.mp-row { display: flex; align-items: center; gap: 9%; }
+.mp-av {
+  flex: 0 0 26%; aspect-ratio: 1; border-radius: 50%; background: #0d0d0f; display: grid; place-items: center;
+  color: #fff; font-size: clamp(6px, .9vw, 9px); letter-spacing: -.02em;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #8b5cf6;
+}
+.mp-stats { display: flex; flex: 1; justify-content: space-between; text-align: center; font-size: clamp(5px, .72vw, 8px); line-height: 1.25; color: #555; }
+.mp-stats b { display: block; font-weight: 500; color: #111; font-size: 1.15em; }
+.mp-name { margin-top: 6%; font-size: clamp(6px, .8vw, 9px); font-weight: 500; }
+.mp-bio { margin-top: 2%; font-size: clamp(5px, .66vw, 7.5px); color: #666; line-height: 1.35; }
+.mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5px; }
+.mp-grid img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+
+/* 2. the program pages, fanned like a hand of cards */
+.t-fan { display: grid; place-items: center; }
+/* the program pages are black, so their tile stays light grey (no black on black) */
+.tile.t-fan.is-dark { background: var(--tile); }
+:root[data-theme="dark"] .t-fan .fan img { box-shadow: 0 22px 40px -20px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .14); }
+.fan { position: relative; width: 52%; aspect-ratio: 4 / 5; transform: translateY(4%); }
+.fan img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 5px;
+  transform-origin: 50% 120%;
+  box-shadow: 0 22px 40px -20px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .04);
+  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
+}
+.fan img:nth-child(1) { transform: rotate(-13deg) translateX(-6%); }
+.fan img:nth-child(2) { transform: rotate(0deg) translateY(-3%); z-index: 2; }
+.fan img:nth-child(3) { transform: rotate(13deg) translateX(6%); }
+.t-fan:hover .fan img:nth-child(1) { transform: rotate(-19deg) translateX(-14%); }
+.t-fan:hover .fan img:nth-child(2) { transform: rotate(0deg) translateY(-8%); }
+.t-fan:hover .fan img:nth-child(3) { transform: rotate(19deg) translateX(14%); }
+.trio.is-live .fan { animation: fan-sway 7s ease-in-out infinite alternate; }
+@keyframes fan-sway { from { transform: translateY(4%) rotate(-1.5deg); } to { transform: translateY(2%) rotate(1.5deg); } }
+
+/* 3. the event posters as a deck: the top one deals off and goes to the back */
+.t-deck { display: grid; place-items: center; }
+.deck { position: relative; width: 58%; aspect-ratio: 4 / 5; }
+.deck img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 5px;
+  box-shadow: 0 18px 34px -18px rgba(0, 0, 0, .6), 0 0 0 1px rgba(255, 255, 255, .05);
+  transition: transform .7s cubic-bezier(.2, .8, .2, 1), opacity .4s ease;
+}
+.deck img[data-pos="0"] { z-index: 3; transform: none; }
+.deck img[data-pos="1"] { z-index: 2; transform: translate(5%, -4%) rotate(4deg) scale(.97); }
+.deck img[data-pos="2"] { z-index: 1; transform: translate(9%, -8%) rotate(8deg) scale(.94); }
+.deck img.is-dealt { z-index: 4; transform: translate(-125%, 6%) rotate(-16deg); opacity: 0; }
+
+/* two tall tiles instead of three, now the phone has its own tile */
+.trio.duo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.trio.duo .tile { aspect-ratio: 1 / 1.02; }
+.trio.duo .fan { width: 46%; }
+.trio.duo .deck { width: 50%; }
+
+/* ---------- D. the real @techatnyu profile in a phone ---------- */
+/* Everything inside the screen is sized in container units off a 393pt-wide
+   iPhone, so the replica keeps Instagram's proportions at any width. */
+.ig-tile { aspect-ratio: 16 / 11; margin: 28px 0 0; }
+.ig-phone {
+  position: absolute; left: 50%; top: 6%; height: 108%; aspect-ratio: 393 / 852;
+  transform: translateX(-50%);
+  border-radius: 13.5% / 6.2%; background: #0b0c0d; padding: 1.15%;
+  box-shadow: 0 0 0 1px #8a8f94, 0 0 0 2.5px #4b5055, 0 40px 70px -34px rgba(0, 0, 0, .55);
+}
+.ig-screen {
+  --ig-bg: #fff; --ig-ink: #0c1014; --ig-sub: #65676b; --ig-line: #dbdbdb; --ig-btn: #efefef; --ig-link: #00376b;
+  position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 12.4% / 5.75%;
+  background: var(--ig-bg); color: var(--ig-ink);
+  container-type: inline-size;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+}
+:root[data-theme="dark"] .ig-screen {
+  --ig-bg: #000; --ig-ink: #f5f5f5; --ig-sub: #a8a8a8; --ig-line: #262626; --ig-btn: #262626; --ig-link: #e0f1ff;
+}
+.ig-island { position: absolute; z-index: 5; top: 2.8cqw; left: 50%; width: 31cqw; height: 9.4cqw; transform: translateX(-50%); border-radius: 99px; background: #000; }
+.ig-bar { position: absolute; z-index: 4; left: 0; right: 0; top: 0; background: var(--ig-bg); }
+.ig-status { display: flex; justify-content: space-between; align-items: center; height: 13.7cqw; padding: 1.4cqw 8.5cqw 0 10cqw; font-size: 4.3cqw; font-weight: 500; }
+.ig-sys { display: flex; gap: 1.6cqw; align-items: center; }
+.ig-sys i { display: block; width: 4.4cqw; height: 2.8cqw; border-radius: .7cqw; background: var(--ig-ink); }
+.ig-sys i:first-child { clip-path: polygon(0 100%, 25% 70%, 25% 100%, 37% 100%, 37% 45%, 50% 45%, 50% 100%, 62% 100%, 62% 20%, 75% 20%, 75% 100%, 87% 100%, 87% 0, 100% 0, 100% 100%); border-radius: 0; }
+.ig-sys i:last-child { width: 6.6cqw; height: 3.1cqw; border-radius: .9cqw; background: none; box-shadow: inset 0 0 0 .3cqw var(--ig-sub), inset 0 0 0 .75cqw var(--ig-bg); background-color: var(--ig-ink); }
+.ig-top { display: flex; align-items: center; gap: 2cqw; height: 11.2cqw; padding: 0 4cqw; }
+.ig-top svg { width: 6.2cqw; height: 6.2cqw; fill: none; stroke: var(--ig-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ig-top .ig-dots { margin-left: auto; fill: var(--ig-ink); stroke: none; }
+.ig-handle { font-size: 5cqw; font-weight: 500; letter-spacing: -.01em; }
+.ig-view { position: absolute; left: 0; right: 0; top: 24.9cqw; bottom: 0; overflow: hidden; }
+.ig-feed { will-change: transform; }
+.ig-tile.is-live .ig-feed { animation: ig-scroll 20s cubic-bezier(.45, 0, .2, 1) infinite; }
+/* --ig-max is set from the measured feed (techatnyu-reel.js), so the scroll ends on the last row */
+@keyframes ig-scroll {
+  0%, 10% { transform: translateY(0); }
+  30%, 42% { transform: translateY(calc(var(--ig-mid, 300px) * -1)); }
+  62%, 84% { transform: translateY(calc(var(--ig-max, 500px) * -1)); }
+  100% { transform: translateY(0); }
+}
+.ig-prof { padding: 3.2cqw 4cqw 0; }
+.ig-row { display: flex; align-items: center; gap: 5.5cqw; }
+.ig-av {
+  flex: 0 0 22.4cqw; height: 22.4cqw; border-radius: 50%; padding: .75cqw;
+  background: conic-gradient(from 210deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5, #feda75);
+}
+.ig-av img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 .9cqw var(--ig-bg); }
+.ig-meta { flex: 1; min-width: 0; }
+.ig-name { margin: 0 0 1.6cqw; font-size: 3.7cqw; font-weight: 500; }
+.ig-stats { display: flex; gap: 7cqw; }
+.ig-stats span { display: flex; flex-direction: column; font-size: 3.5cqw; line-height: 1.25; }
+.ig-stats b { font-size: 4.1cqw; font-weight: 500; }
+.ig-bio { margin: 3.4cqw 0 0; font-size: 3.55cqw; line-height: 1.35; }
+.ig-bio span { color: var(--ig-sub); }
+.ig-link { display: flex; align-items: center; gap: 1.2cqw; margin: .8cqw 0 0; font-size: 3.55cqw; font-weight: 500; color: var(--ig-link); }
+.ig-link svg { width: 3.6cqw; height: 3.6cqw; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.ig-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6cqw; margin: 3.6cqw 0 0; }
+.ig-btns span { display: grid; place-items: center; height: 8.2cqw; border-radius: 2cqw; background: var(--ig-btn); font-size: 3.6cqw; font-weight: 500; }
+.ig-btns .is-follow { background: #4a5df9; color: #fff; }
+.ig-hl { display: flex; gap: 4.1cqw; margin: 4.4cqw -4cqw 0 0; overflow: hidden; }
+.ig-hl span { flex: 0 0 16.3cqw; display: flex; flex-direction: column; align-items: center; gap: 1.4cqw; }
+.ig-hl img { width: 16.3cqw; height: 16.3cqw; border-radius: 50%; object-fit: cover; padding: .7cqw; background: var(--ig-bg); box-shadow: 0 0 0 .3cqw var(--ig-line); }
+.ig-hl i { font-style: normal; font-size: 3cqw; white-space: nowrap; max-width: 18cqw; overflow: hidden; text-overflow: ellipsis; }
+.ig-tabs { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 4.2cqw; border-bottom: .3cqw solid var(--ig-line); }
+.ig-tabs span { display: grid; place-items: center; height: 11cqw; }
+.ig-tabs span.is-on { box-shadow: inset 0 -.5cqw 0 var(--ig-ink); }
+.ig-tabs svg { width: 6.1cqw; height: 6.1cqw; fill: none; stroke: var(--ig-sub); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.ig-tabs .is-on svg { stroke: var(--ig-ink); }
+.ig-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4cqw; }
+.ig-cell { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--ig-btn); transition: opacity .6s ease, filter .6s ease; }
+.ig-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ig-cell.is-pin::after, .ig-cell.is-reel::after {     /* Instagram's corner glyphs */
+  content: ''; position: absolute; top: 2cqw; right: 2cqw; width: 4.4cqw; height: 4.4cqw;
+  background: #fff; filter: drop-shadow(0 0 1px rgba(0, 0, 0, .5));
+}
+.ig-cell.is-pin::after { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 3l6 6-3 1-4 4 1 5-2 1-4-4-5 5-1-1 5-5-4-4 1-2 5 1 4-4z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 3l6 6-3 1-4 4 1 5-2 1-4-4-5 5-1-1 5-5-4-4 1-2 5 1 4-4z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.ig-cell.is-reel::after { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm6 6.5v7l6-3.5z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm6 6.5v7l6-3.5z'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ---------- chapter dividers: a time checkpoint across the full column ---------- */
+.era {
+  display: grid; grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+  align-items: center; column-gap: 22px; row-gap: 8px;
+  margin: 120px 0 -12px; text-align: center;
+  font-size: 15px; line-height: 1.4; color: var(--caption);
+}
+.era::before, .era::after { content: ""; grid-row: 1; height: 1px; background: var(--rule); }
+.era::before { grid-column: 1; }
+.era::after { grid-column: 3; }
+.era-mark { grid-column: 2; grid-row: 1; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.era-when { display: inline-flex; align-items: center; gap: 10px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.era-when::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.era-role { color: var(--head); }
+.era-what { grid-column: 1 / -1; grid-row: 2; }
+@media (max-width: 760px) { .era { margin-top: 80px; column-gap: 10px; } .era-mark, .era-when { gap: 7px; } .era-mark { font-size: 14px; } }
+
+/* ---------- process, rebuilt as tiles ---------- */
+.proc-tile { margin: 28px 0 0; display: grid; place-items: center; padding: 6%; }
+.proc-tile img { width: 100%; height: auto; max-height: 100%; object-fit: contain; border-radius: 4px; }
+:root:not([data-theme="dark"]) .proc-tile img[src$=".png"] { mix-blend-mode: multiply; }
+.proc-wide { padding: 5% 7%; }
+.proc-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 28px; }
+.proc-duo .proc-tile { margin: 0; aspect-ratio: 1 / .82; padding: 0; }
+.proc-duo .proc-tile img { position: absolute; left: 9%; top: 10%; width: 82%; height: 80%; object-fit: contain; }
+.proc-words {
+  margin: 28px 0 0; padding: 7% 8%;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 4%;
+  font-size: clamp(20px, 2.5vw, 34px); line-height: 1.1; letter-spacing: -.02em; color: var(--head);
+}
+.proc-words span {
+  padding-top: 14px; border-top: 1px solid var(--rule);
+  opacity: 0; filter: blur(8px); transform: translateY(6px);
+  transition: opacity .7s ease, filter .7s ease, transform .9s cubic-bezier(.2, .7, .2, 1);
+}
+.proc-words.is-seen span { opacity: 1; filter: none; transform: none; }
+.proc-words span:nth-child(2) { transition-delay: .12s; } .proc-words span:nth-child(3) { transition-delay: .24s; }
+.proc-words span:nth-child(4) { transition-delay: .36s; } .proc-words span:nth-child(5) { transition-delay: .48s; }
+.proc-words span:nth-child(6) { transition-delay: .6s; }
+@media (max-width: 760px) {
+  .proc-duo { grid-template-columns: minmax(0, 1fr); }
+  .proc-words { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ig-tile { aspect-ratio: 4 / 5; }
+  .trio.duo { grid-template-columns: none; grid-auto-columns: 82%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rw-track, .b-time img, .mp-feed, .fan, .ig-feed { animation: none !important; }
+  .sel .cyc, .deck img, .proc-words span { transition: none; }
+}
+
+@media (max-width: 760px) {
+  .reel-wall { aspect-ratio: 4 / 5; }
+  .rw-plane { grid-template-columns: repeat(4, minmax(0, 1fr)); width: 170%; gap: 10px; }
+  .rw-col:nth-child(n+5) { display: none; }
+  .bento { grid-template-columns: minmax(0, 1fr); aspect-ratio: auto; }
+  .b-main { aspect-ratio: 1 / 1; }
+  .b-side { grid-template-columns: 1fr 1fr; grid-template-rows: none; }
+  .b-side .tile { aspect-ratio: 1 / 1; }
+  .trio {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%;
+    overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  }
+  .trio::-webkit-scrollbar { display: none; }
+  .trio .tile { scroll-snap-align: center; }
+}
+
+/* ---------- Fall '26 Kickoff deck: the deck playing, plus every slide on a strip ---------- */
+.kd { margin: 28px 0 0; padding: 5.5% 7%; display: flex; flex-direction: column; }
+.kd-stage {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; cursor: pointer;
+  background: #000; box-shadow: 0 28px 60px -30px rgba(0, 0, 0, .55), 0 0 0 1px rgba(0, 0, 0, .06);
+}
+:root[data-theme="dark"] .kd-stage { box-shadow: 0 28px 60px -30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 255, 255, .1); }
+.kd-slide {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transform: translateX(4%); transition: opacity .55s ease, transform .7s cubic-bezier(.2, .7, .2, 1);
+}
+.kd-slide.is-on { opacity: 1; transform: none; z-index: 2; }
+.kd-slide.is-off { opacity: 0; transform: translateX(-4%); z-index: 1; }
+.kd-bar {
+  display: flex; align-items: center; gap: 14px; padding: 16px 2px 18px;
+  font: 400 12px/1 "DM Sans", sans-serif; color: var(--caption); font-variant-numeric: tabular-nums;
+}
+.kd-count b { font-weight: 400; color: var(--head); }
+.kd-prog { flex: 1; height: 2px; border-radius: 2px; background: var(--tile-edge); overflow: hidden; }
+:root:not([data-theme="dark"]) .kd-prog { background: rgba(0, 0, 0, .08); }
+.kd-prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+
+.kd-strip {
+  margin: 10px 0 0; padding: 16px 0; display: grid; gap: 10px; overflow: hidden;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+          mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.kd-row { overflow: hidden; }
+.kd-track { display: flex; gap: 10px; width: max-content; animation: kd-run 90s linear infinite; animation-play-state: paused; }
+.kd-row.is-rev .kd-track { animation-direction: reverse; animation-duration: 100s; }
+.kd-strip.is-live .kd-track { animation-play-state: running; }
+.kd-track img { width: 168px; height: auto; aspect-ratio: 16 / 9; border-radius: 4px; flex: none; }
+:root[data-theme="dark"] .kd-track img { box-shadow: 0 0 0 1px rgba(255, 255, 255, .08); }
+@keyframes kd-run { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (max-width: 760px) {
+  .kd { padding: 6% 5%; }
+  .kd-bar { padding: 12px 0 14px; }
+  .kd-track img { width: 132px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kd-track { animation: none; }
+  .kd-slide { transition: none; }
+}
+
+/* ---------- captions: use the site's existing caption style (Jen, Nov 4) ----------
+   The title | line | TAG | date row was new to the site. Captions now read like
+   every other case page's figcaption: one quiet grey line under the media, with
+   the short title leading in the body colour. No divider, tag or date. */
+.case .reel-cap { display: block; margin: 12px 0 0; font-size: 16px; line-height: 1.45; font-weight: 300; color: var(--caption); }
+.case .reel-cap .t { color: var(--body, var(--head)); font-weight: 400; margin-right: 8px; }
+.case .reel-cap > span:nth-child(2),
+.case .reel-cap .tag,
+.case .reel-cap .when { display: none; }
+@media (max-width: 760px) { .case .reel-cap { font-size: 15px; } }
+/* the Instagram tile and its @techatnyu caption open the real profile */
+.ig-open { position: absolute; inset: 0; z-index: 20; border-radius: inherit; cursor: pointer; }
+.ig-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cap-link { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); transition: text-decoration-color .2s ease; }
+.cap-link:hover { text-decoration-color: currentColor; }

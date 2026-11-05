@@ -2086,6 +2086,10 @@ html.gh-handle-drag .gh-handle.br::before {
   border-radius: 0;
 }
 
+/* POVI's clip has a white backdrop baked in, so its tile stays all white in
+   dark mode too and the video blends in with no visible box. */
+:root[data-theme="dark"] .grid-card-image--padded { background: #fff; }
+
 .grid-card-video {
   position: relative;
   width: 100%;

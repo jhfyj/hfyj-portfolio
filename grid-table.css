@@ -385,6 +385,9 @@ body.gt-holding #grid-view .gt-canvas { cursor: none; }
 .gt-swatch:hover { transform: scale(1.12); opacity: 1; }
 .gt-swatch.is-on { box-shadow: 0 0 0 calc(var(--ww) * 0.018 * var(--u)) var(--card-stock), 0 0 0 calc(var(--ww) * 0.03 * var(--u)) rgba(var(--ink-rgb), 0.35); }
 
+/* Pieces that only exist on phones (the second card standing in for the canvas) */
+.gt-phone-only { display: none; }
+
 /* ---------- phones: text on top, a smaller table under it ---------- */
 @media (max-width: 760px) {
   #grid-hero.gt-has-table { min-height: 0; display: block; padding-top: 128px; }
@@ -397,8 +400,12 @@ body.gt-holding #grid-view .gt-canvas { cursor: none; }
     height: auto;
     margin-top: 1.5rem;
   }
-  .gt-frame { position: relative; width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .gt-frame { position: relative; width: 100%; height: auto; aspect-ratio: 16 / 9; }
   .gt-desk-only { display: none; }
+  .gt-phone-only { display: block; }
+  /* Pencil and eraser are only props on phones: no tap, no lift */
+  #grid-view.visible .gt-item.gt-tool,
+  html[data-restore-view="grid"] #grid-view .gt-item.gt-tool { pointer-events: none; cursor: default; }
   .gt-item { --xx: var(--mx); --yy: var(--my); --ww: var(--mw); --hh: var(--mh); --rr: var(--mr); }
 }
 @media (max-width: 500px) {

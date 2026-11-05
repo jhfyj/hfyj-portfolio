@@ -57,3 +57,54 @@
 @media (max-width: 600px) {
   .la-polaroids { gap: 28px 12px; padding: 0 4px; }
 }
+
+/* ---------- closing card: the project is under lock ---------- */
+.thanks--locked .thanks-lock {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 14px;
+  padding: 6px;          /* a bigger hover target than the icon itself */
+  box-sizing: content-box;
+  margin-top: -6px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+/* Hover the lock and it unlocks: the shackle pops up and swings open on its
+   right leg, with a tiny settle; moving off snaps it shut again. */
+.thanks-lock .lock-shackle {
+  transform-box: view-box;
+  transform-origin: 21px 14.5px;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.thanks-lock .lock-body,
+.thanks-lock .lock-hole {
+  transform-box: view-box;
+  transform-origin: 16px 21px;
+  transition: transform 0.22s ease;
+}
+/* The shackle legs run down behind the body, which is filled with the card
+   colour, so nothing pokes into the body: closed, both legs disappear into it;
+   open, the long right leg stays tucked in and the short left leg lifts clear. */
+.thanks-lock .lock-body { fill: rgb(252, 252, 252); }
+:root[data-theme="dark"] .thanks-lock .lock-body { fill: rgb(26, 26, 28); }
+.thanks-lock:hover .lock-shackle {
+  transform: translateY(-3.5px) rotate(20deg);
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.thanks-lock:hover .lock-body,
+.thanks-lock:hover .lock-hole { animation: lock-nudge 0.32s ease; }
+@keyframes lock-nudge {
+  0%, 100% { transform: none; }
+  35% { transform: rotate(-5deg); }
+  70% { transform: rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thanks-lock .lock-shackle { transition: none !important; }
+  .thanks-lock:hover .lock-body, .thanks-lock:hover .lock-hole { animation: none; }
+}
+.thanks--locked .thanks-blurb { width: min(300px, 100%); }

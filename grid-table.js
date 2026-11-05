@@ -7,7 +7,7 @@
 
    Layout is in the units of Jen's mock: a 1600 x 800 frame on desktop
    (x, y = centre, w/h = size, r = degrees clockwise), and a 1600 x 1200
-   frame on phones, where only the canvas, tools and one card are kept.
+   frame on phones, where only two project cards are kept (no drawing).
    CSS turns the units into cqw of the frame, so the whole table scales as one. */
 (function () {
     'use strict';
@@ -29,11 +29,15 @@
         cardA:   [{ x: 1020, y: 133, w: 205, r: -9 },   null],
         cardB:   [{ x: 920,  y: 279, w: 190, r: -21 },  null],
         deck:    [{ x: 1440, y: 112, w: 186, r: 24 },   null],
-        canvas:  [{ x: 1250, y: 425, w: 187, r: 20 },   { x: 850,  y: 560, w: 450, r: 8 }],
-        cardC:   [{ x: 1522, y: 590, w: 187, r: -15.5 }, { x: 1325, y: 600, w: 450, r: -12 }],   // phone: same size as the canvas card
-        eraser:  [{ x: 1000, y: 578, w: 54,  h: 99,  r: -18 }, { x: 210, y: 880, w: 140, h: 258, r: -16 }],
-        pencil:  [{ x: 1089, y: 591, w: 18,  h: 272, r: -10.8 }, { x: 420, y: 560, w: 44, h: 660, r: -14 }],
-        palette: [{ x: 1267, y: 626, w: 170, h: 50,  r: 0 },   { x: 850,  y: 1090, w: 460, h: 130, r: 0 }]
+        // Phones get no drawing (Jen, Nov 4): no canvas or palette, two project
+        // cards side by side. The pencil and eraser stay as props that do nothing.
+        // cardD only exists on phones.
+        canvas:  [{ x: 1250, y: 425, w: 187, r: 20 },   null],
+        cardD:   [null,                                  { x: 560,  y: 445, w: 520, r: -7 }],
+        cardC:   [{ x: 1522, y: 590, w: 187, r: -15.5 }, { x: 1060, y: 460, w: 520, r: 9 }],
+        eraser:  [{ x: 1000, y: 578, w: 54,  h: 99,  r: -18 }, { x: 165, y: 640, w: 120, h: 220, r: -16 }],
+        pencil:  [{ x: 1089, y: 591, w: 18,  h: 272, r: -10.8 }, { x: 1455, y: 450, w: 40, h: 620, r: 12 }],
+        palette: [{ x: 1267, y: 626, w: 170, h: 50,  r: 0 },   null]
     };
 
     var COLORS = [
@@ -115,10 +119,11 @@
     }
 
     function place(item, name, isCard) {
-        var L = LAYOUT[name], d = L[0], m = L[1];
+        var L = LAYOUT[name], d = L[0] || L[1], m = L[1];
         var s = item.style;
         s.setProperty('--x', d.x); s.setProperty('--y', d.y); s.setProperty('--w', d.w);
         s.setProperty('--h', d.h || d.w * CARD_RATIO); s.setProperty('--r', d.r);
+        if (!L[0]) item.classList.add('gt-phone-only');
         if (m) {
             s.setProperty('--mx', m.x); s.setProperty('--my', m.y); s.setProperty('--mw', m.w);
             s.setProperty('--mh', m.h || m.w * CARD_RATIO); s.setProperty('--mr', m.r);
@@ -316,7 +321,8 @@
        the screen, turns over to one of Jen's cards at random, and the rest of
        the page blurs behind it. After 2 seconds it turns face down, lines up
        with the box's open end and slides back in on top of the stack.
-       A short drag (or a plain click) just lets the card drop back. */
+       A plain click deals a random card the same way (the top card slides
+       out on its own first). A short drag just lets the card drop back. */
     var HOLD_MS = 2000;
     // How far outside the box (share of the box width) the card lines up
     // before it slides back in
@@ -403,6 +409,9 @@
                 item.removeEventListener('pointerup', up);
                 item.removeEventListener('pointercancel', up);
                 if (!out) {
+                    // A plain click (barely moved): the top card slides out
+                    // on its own and deals a random card, same as a full pull
+                    if (dist < 6) { clickDeal(); return; }
                     // Let go inside the box: a short pull slides back in, a
                     // long one carries on out and up to the middle
                     if (slide - base < item.offsetHeight * 0.3) { slideHome(); return; }
@@ -420,6 +429,19 @@
                 }
                 if (dist < 30) { putBack(false); return; }
                 reveal();
+            }
+            // Click to deal: slide the top card the rest of the way out of the
+            // box quickly, hand it to the overlay, then fly it to the middle
+            function clickDeal() {
+                var ms = reduced ? 0 : 200;
+                boxCard.style.transition = 'transform ' + ms + 'ms cubic-bezier(0.3, 0.7, 0.2, 1)';
+                boxCard.style.transform = 'translateY(' + clear + 'px)';
+                setTimeout(function () {
+                    boxCard.style.transition = 'none';
+                    handOver(null);
+                    void pull.offsetWidth;
+                    reveal();
+                }, ms);
             }
             function slideHome() {
                 boxCard.style.transition = 'transform ' + (reduced ? 0 : 320) + 'ms cubic-bezier(0.2, 0.8, 0.25, 1)';
@@ -617,6 +639,7 @@
         setTimeout(function () { item.classList.remove('gt-fresh'); }, 700);
     }
     var held = null, heldEl = null, ink = 'accent';
+    var PHONE = window.matchMedia('(max-width: 760px)');
     var tools = {};
 
     function buildTool(name, svg) {
@@ -625,6 +648,8 @@
         var lift = el('div', 'gt-lift', item);
         lift.innerHTML = svg;
         item.addEventListener('pointerdown', function (e) {
+            // Phones: the pencil and eraser are just props, nothing happens
+            if (PHONE.matches) return;
             e.stopPropagation();
             pickUp(held === name ? null : name, e);
         });
@@ -967,7 +992,7 @@
         // Order = stacking order and drop order
         var items = [
             makeCard('cardA').item, makeCard('cardB').item, buildDeck(),
-            buildCanvas(), makeCard('cardC').item,
+            buildCanvas(), makeCard('cardD').item, makeCard('cardC').item,
             buildTool('pencil', pencilSvg()), buildTool('eraser', eraserSvg()),
             buildPalette()
         ];

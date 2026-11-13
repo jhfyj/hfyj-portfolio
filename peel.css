@@ -11,12 +11,14 @@
    point at the bottom left, the back of the paper goes from white at the
    fold into grey, and it casts a soft shadow on the page. No sun or star
    behind it any more, just the colour. Smaller at rest, and hover only
-   lifts it a little.
+   lifts it a little. Nov 13, 2:20 AM: retraced from her second reference,
+   with a rounded roll where the fold meets the edge, a shadow on the
+   revealed corner and slightly bigger (56 x 36 at rest, 62 x 40 on hover).
 
-   Geometry: one square box pinned to the corner; peel.js draws both parts
-   as SVG in a 100 x 100 box that stretches with it.
+   Geometry: one box pinned to the corner, always 100:64; peel.js draws
+   both parts as SVG in a matching 100 x 64 box.
    .peel-under  = above the fold: what is behind the page.
-   .peel-flap   = the curled paper. Its tip reaches a little past the box. */
+   .peel-flap   = the curled paper. */
 
 #theme-peel {
   position: fixed;
@@ -39,15 +41,15 @@
 
 /* In once the nav is: the corner curls in from nothing. */
 #theme-peel.is-in {
-  width: 36px;
+  width: 56px;
   height: 36px;
 }
 
 /* Hover lifts the curl just a little. */
 @media (hover: hover) {
   #theme-peel.is-in:hover {
-    width: 42px;
-    height: 42px;
+    width: 62px;
+    height: 40px;
     transition:
       width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
       height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -87,43 +89,43 @@ html.cm-open #theme-peel {
   width: 100%;
   height: 100%;
 }
-#theme-peel[data-paper="light"] .peel-under path { fill: #121212; }
-#theme-peel[data-paper="dark"] .peel-under path { fill: #FCFCFE; }
+#theme-peel[data-paper="light"] .pu-base { fill: #121212; }
+#theme-peel[data-paper="dark"] .pu-base { fill: #FCFCFE; }
+/* The shadow the curl casts on the revealed corner, along the fold. */
+.ps-0 { stop-color: #000; stop-opacity: 0.34; }
+.ps-1 { stop-color: #000; stop-opacity: 0.1; }
+.ps-2 { stop-color: #000; stop-opacity: 0; }
+#theme-peel[data-paper="light"] .ps-0 { stop-opacity: 0.6; }
+#theme-peel[data-paper="light"] .ps-1 { stop-opacity: 0.2; }
 
 /* -- The curl -- */
-/* The shadow lives on a wrapper so it follows the curl's shape. It falls
-   under the swelling outer edge, down and to the right, onto the page. */
+/* The shadow lives on a wrapper so it follows the curl's shape: a faint
+   one where the flap lifts off the page. */
 .peel-flap-wrap {
   filter:
-    drop-shadow(1px 2px 1.5px rgba(0, 0, 0, 0.14))
-    drop-shadow(3px 5px 6px rgba(0, 0, 0, 0.12));
+    drop-shadow(-0.5px 1px 1px rgba(0, 0, 0, 0.16))
+    drop-shadow(-1px 3px 5px rgba(0, 0, 0, 0.12));
 }
 #theme-peel[data-paper="dark"] .peel-flap-wrap {
   filter:
-    drop-shadow(1px 2px 1.5px rgba(0, 0, 0, 0.55))
-    drop-shadow(3px 5px 7px rgba(0, 0, 0, 0.45));
+    drop-shadow(-0.5px 1px 1px rgba(0, 0, 0, 0.5))
+    drop-shadow(-1px 2.5px 5px rgba(0, 0, 0, 0.4));
 }
 
-.peel-flap {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
+/* The back of the paper, shaded across the fold as in Jen's reference:
+   a bright roll at the fold, a grey band through the middle, lighter
+   again toward the tip. */
+#theme-peel[data-paper="light"] .pf-0 { stop-color: #f2f2f4; }
+#theme-peel[data-paper="light"] .pf-1 { stop-color: #ffffff; }
+#theme-peel[data-paper="light"] .pf-2 { stop-color: #bdbdc3; }
+#theme-peel[data-paper="light"] .pf-3 { stop-color: #d3d3d8; }
+#theme-peel[data-paper="light"] .pf-4 { stop-color: #f0f0f2; }
+#theme-peel[data-paper="dark"] .pf-0 { stop-color: #3a3a3d; }
+#theme-peel[data-paper="dark"] .pf-1 { stop-color: #4b4b4f; }
+#theme-peel[data-paper="dark"] .pf-2 { stop-color: #2c2c2f; }
+#theme-peel[data-paper="dark"] .pf-3 { stop-color: #323235; }
+#theme-peel[data-paper="dark"] .pf-4 { stop-color: #3c3c3f; }
 
-/* The back of the paper, as in Jen's reference: a grey band just inside
-   the left edge, brightening across to white where the outer edge rolls
-   up toward the light. */
-#theme-peel[data-paper="light"] .pf-0 { stop-color: #ececee; }
-#theme-peel[data-paper="light"] .pf-1 { stop-color: #d4d4d8; }
-#theme-peel[data-paper="light"] .pf-2 { stop-color: #eeeef0; }
-#theme-peel[data-paper="light"] .pf-3 { stop-color: #fbfbfc; }
-#theme-peel[data-paper="light"] .pf-4 { stop-color: #ffffff; }
-#theme-peel[data-paper="dark"] .pf-0 { stop-color: #2a2a2c; }
-#theme-peel[data-paper="dark"] .pf-1 { stop-color: #1f1f21; }
-#theme-peel[data-paper="dark"] .pf-2 { stop-color: #2f2f31; }
-#theme-peel[data-paper="dark"] .pf-3 { stop-color: #3d3d40; }
-#theme-peel[data-paper="dark"] .pf-4 { stop-color: #454548; }
 /* -- The peel itself (view transition) -- */
 /* The old page stays put; the new one is revealed by peel.js clipping it
    from the corner, in step with the curl sweeping across. */
@@ -140,7 +142,7 @@ html.cm-open #theme-peel {
 ::view-transition-new(theme-peel) { animation: none; opacity: 1; }
 
 @media (max-width: 720px) {
-  #theme-peel.is-in { width: 30px; height: 30px; }
+  #theme-peel.is-in { width: 47px; height: 30px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

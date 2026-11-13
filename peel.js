@@ -16,28 +16,44 @@
     var peel = document.createElement('button');
     peel.id = 'theme-peel';
     peel.type = 'button';
-    // The curl, drawn in a 100 x 100 box that stretches with the corner
-    // (Jen's reference: a curled page corner). The fold runs from the top
-    // edge (30,0) to the right edge (100,70) and bows a little toward the
-    // flap, like paper that is bent rather than creased. The flap's left
-    // edge runs down to a sharp point at the bottom left (it reaches a bit
-    // past the box), and its outer edge swells out as it rolls back up to
-    // the fold.
+    // The curl, traced from Jen's reference (a page corner curled back,
+    // Nov 13 2 AM), turned to sit at the top right. Drawn in a 100 x 64 box
+    // that keeps that shape at every size (peel.css sizes it 100:64).
+    //  - The fold runs from the top edge at (0,0) down to the right edge at
+    //    (100,52.6), long and shallow, bowing very slightly like bent paper.
+    //  - The flap's left edge leaves the corner hugging the fold, then peels
+    //    away and curves down to a softly rounded tip; its outer edge runs back right and
+    //    ends in a rounded lip where the paper rolls over the right edge,
+    //    so no end of the fold is a sharp corner.
+    //  - Under the flap, the revealed corner gets a soft shadow along the
+    //    fold that fades toward the corner.
     // revealPath() below uses the same fold for the page underneath.
-    var FOLD = 'Q45 55 30 0';
-    var LEAF = 'M30 0 C28 44 14 86 -2 112 C36 96 84 94 100 70 ' + FOLD + ' Z';
-    var UNDER = 'M30 0 L100 0 L100 70 ' + FOLD + ' Z';
+    var FOLD = 'Q50 28.5 0 0';
+    var LEAF = 'M0 0 C30 19.5 58 36 65.2 60.2 Q66.4 63.4 68.6 61.6 ' +
+        'C76 57 85 52.6 91 53.2 C96 53.8 99 56 100 59.7 L100 52.6 ' + FOLD + ' Z';
+    var UNDER = 'M0 0 L100 0 L100 52.6 ' + FOLD + ' Z';
     peel.innerHTML =
-        '<svg class="peel-under" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
-            '<path d="' + UNDER + '"/>' +
+        '<svg class="peel-under" viewBox="0 0 100 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+            // The shadow runs across the fold: dark right at it, gone about
+            // halfway to the corner.
+            '<defs><linearGradient id="peel-shade" gradientUnits="userSpaceOnUse" x1="50" y1="26.3" x2="70" y2="-11.7">' +
+                '<stop class="ps-0" offset="0"/>' +
+                '<stop class="ps-1" offset="0.35"/>' +
+                '<stop class="ps-2" offset="1"/>' +
+            '</linearGradient></defs>' +
+            '<path class="pu-base" d="' + UNDER + '"/>' +
+            '<path class="pu-shade" d="' + UNDER + '" fill="url(#peel-shade)"/>' +
         '</svg>' +
         '<span class="peel-flap-wrap" aria-hidden="true">' +
-            '<svg class="peel-flap" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">' +
-                '<defs><linearGradient id="peel-back" x1="0.1" y1="0.62" x2="0.62" y2="0.42">' +
+            '<svg class="peel-flap" viewBox="0 0 100 64" preserveAspectRatio="none" focusable="false">' +
+                // The back of the paper is shaded across the fold too: a
+                // bright roll right at the fold, a grey band through the
+                // middle of the flap, lighter again toward the tip.
+                '<defs><linearGradient id="peel-back" gradientUnits="userSpaceOnUse" x1="50" y1="26.3" x2="38.4" y2="48.4">' +
                     '<stop class="pf-0" offset="0"/>' +
-                    '<stop class="pf-1" offset="0.2"/>' +
-                    '<stop class="pf-2" offset="0.55"/>' +
-                    '<stop class="pf-3" offset="0.85"/>' +
+                    '<stop class="pf-1" offset="0.08"/>' +
+                    '<stop class="pf-2" offset="0.45"/>' +
+                    '<stop class="pf-3" offset="0.7"/>' +
                     '<stop class="pf-4" offset="1"/>' +
                 '</linearGradient></defs>' +
                 '<path d="' + LEAF + '" fill="url(#peel-back)"/>' +
@@ -95,10 +111,9 @@
     // of a W-wide window. Same commands at every size, so it animates.
     function revealPath(W, s) {
         var x0 = W - s, k = s / 100;
-        return 'path("M' + (x0 + 30 * k) + ' 0 L' + W + ' 0 L' + W + ' ' + (70 * k) +
-            ' Q' + (x0 + 45 * k) + ' ' + (55 * k) + ' ' + (x0 + 30 * k) + ' 0 Z")';
+        return 'path("M' + x0 + ' 0 L' + W + ' 0 L' + W + ' ' + (52.6 * k) +
+            ' Q' + (x0 + 50 * k) + ' ' + (28.5 * k) + ' ' + x0 + ' 0 Z")';
     }
-
     var busy = false;
     peel.addEventListener('click', function () {
         if (busy) return;
@@ -115,11 +130,10 @@
         var W = window.innerWidth;
         var H = window.innerHeight;
         var s = peel.getBoundingClientRect().width;
-        // Big enough that the fold has left the screen entirely: the fold's
-        // ends sit 70% of the box in from the corner, and a right triangle
-        // with legs W + H covers the whole viewport.
-        var D = Math.ceil((W + H) / 0.7) + 80;
-
+        // Big enough that the fold has left the screen entirely: the fold
+        // drops 0.526 px for every px it runs left, so it clears the bottom
+        // left corner of the window once the box is W + H / 0.526 wide.
+        var D = Math.ceil(W + H / 0.526) + 80;
         peel.style.viewTransitionName = 'theme-peel';
         var vt = document.startViewTransition(function () {
             pressToggle();
@@ -128,7 +142,7 @@
             peel.dataset.paper = from;
             peel.classList.add('is-sweeping');
             peel.style.width = D + 'px';
-            peel.style.height = D + 'px';
+            peel.style.height = (D * 0.64) + 'px';
             // Give the WebGL cards a moment to redraw in the new theme before
             // the new page is captured.
             return new Promise(function (r) { setTimeout(r, 90); });

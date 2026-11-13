@@ -197,6 +197,17 @@ html.cm-open #theme-peel {
   .peel-sun { transition: none; }
 }
 
+/* Project pages (Jen, Nov 13): the corner stays here too, on the page
+   opened on its own and once the pop-up has gone full screen, so the
+   sun/moon button leaves the side column / top bar there. Inside the small
+   pop-up the corner would sit in a box in the middle of the screen, so
+   there the old button stays and the corner waits until full screen. */
+html.in-modal #theme-peel { display: none; }
+html:not(.in-modal) #modal-side #theme-toggle,
+html:not(.in-modal) #topbar:not(.home-nav) > #theme-toggle {
+  display: none !important;
+}
+
 /* About Me and Playground: the sun/moon button stays in the page (the
    corner presses it) but leaves the pill, along with the gap before it. */
 #topbar.home-nav #theme-toggle,
@@ -205,34 +216,48 @@ html.cm-open #theme-peel {
 }
 
 /* ── Card / grid switch in the nav (Jen, Nov 13) ──
-   It sits where the sun/moon button was, at the same 36px height and with
-   the same hairline edge, so the pill keeps its shape. */
+   It sits where the sun/moon button was. Jen: "toggle should follow
+   original design", so it is the old bottom pill's switch, just scaled to
+   the nav: the frosted shell (see-through panel, blur, inset hairline, even
+   drop shadow), the raised white plate with its small shadow, the accent
+   colour on the view that is on, and the same 56:40 button shape and
+   15/11 corner rounding, all at about 0.82 size. */
 #top-nav .view-switch {
   box-sizing: border-box;
-  height: 36px;
-  padding: 2px;
-  border: 1px solid rgba(var(--ink-rgb), 0.14);
-  border-radius: 10px;
+  padding: 4px;
+  border: none;
+  border-radius: 13px;
+  background: rgba(var(--panel-rgb), 0.5);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
   pointer-events: auto;
 }
 #top-nav .toggle-btn {
-  width: 40px;
-  height: 30px;
-  border-radius: 8px;
+  width: 46px;
+  height: 34px;
+  border-radius: 10px;
 }
-#top-nav .toggle-btn[data-view="cards"] svg { width: 24px; height: 17px; }
-#top-nav .toggle-btn[data-view="grid"] svg { width: 16px; height: 16px; }
+#top-nav .toggle-btn[data-view="cards"] svg { width: 28px; height: 19px; }
+#top-nav .toggle-btn[data-view="grid"] svg { width: 19px; height: 19px; }
 #top-nav .view-toggle-thumb {
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: 40px;
-  border-radius: 8px;
-  background: rgba(var(--ink-rgb), 0.07);
-  box-shadow: none;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 46px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-:root[data-theme="dark"] #top-nav .view-switch { border-color: rgba(var(--ink-rgb), 0.22); }
-:root[data-theme="dark"] #top-nav .view-toggle-thumb { background: rgba(var(--ink-rgb), 0.12); box-shadow: none; }
+:root[data-theme="dark"] #top-nav .view-switch {
+  background: rgba(var(--panel-rgb), 0.88);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+}
+:root[data-theme="dark"] #top-nav .view-toggle-thumb {
+  background: #3d3d3d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
 
 #top-nav .view-switch[data-active="grid"] .view-toggle-thumb,
 html[data-restore-view="grid"] #top-nav .view-switch .view-toggle-thumb {

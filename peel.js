@@ -43,7 +43,19 @@
 
     // Curl in with the nav. On the home page the nav waits for the cards to
     // finish building; everywhere else it is there from the start.
-    function curlIn() { peel.classList.add('is-in'); }
+    // A project page inside the small pop-up keeps its old button; the
+    // corner curls in once the pop-up goes full screen (site.js swaps
+    // in-modal for in-frame-full on <html>).
+    function curlIn() {
+        if (root.classList.contains('in-modal')) return;
+        peel.classList.add('is-in');
+    }
+    if (root.classList.contains('in-modal')) {
+        var mm = new MutationObserver(function () {
+            if (!root.classList.contains('in-modal')) { mm.disconnect(); setTimeout(curlIn, 350); }
+        });
+        mm.observe(root, { attributes: true, attributeFilter: ['class'] });
+    }
     var nav = document.getElementById('top-nav');
     if (nav && !nav.classList.contains('visible')) {
         var mo = new MutationObserver(function () {

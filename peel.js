@@ -7,7 +7,6 @@
 (function () {
     'use strict';
 
-    var STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0c.6 5.9 6.1 11.4 12 12-5.9.6-11.4 6.1-12 12-.6-5.9-6.1-11.4-12-12C5.9 11.4 11.4 5.9 12 0z"/></svg>';
 
     var root = document.documentElement;
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -17,13 +16,33 @@
     var peel = document.createElement('button');
     peel.id = 'theme-peel';
     peel.type = 'button';
+    // The curl, drawn in a 100 x 100 box that stretches with the corner
+    // (Jen's reference: a curled page corner). The fold runs from the top
+    // edge (30,0) to the right edge (100,70) and bows a little toward the
+    // flap, like paper that is bent rather than creased. The flap's left
+    // edge runs down to a sharp point at the bottom left (it reaches a bit
+    // past the box), and its outer edge swells out as it rolls back up to
+    // the fold.
+    // revealPath() below uses the same fold for the page underneath.
+    var FOLD = 'Q45 55 30 0';
+    var LEAF = 'M30 0 C28 44 14 86 -2 112 C36 96 84 94 100 70 ' + FOLD + ' Z';
+    var UNDER = 'M30 0 L100 0 L100 70 ' + FOLD + ' Z';
     peel.innerHTML =
-        '<span class="peel-under" aria-hidden="true">' +
-            '<span class="peel-speck s1"></span><span class="peel-speck s2"></span>' +
-            '<span class="peel-star">' + STAR + '</span>' +
-            '<span class="peel-sun"></span>' +
-        '</span>' +
-        '<span class="peel-flap-wrap" aria-hidden="true"><span class="peel-flap"></span></span>';
+        '<svg class="peel-under" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+            '<path d="' + UNDER + '"/>' +
+        '</svg>' +
+        '<span class="peel-flap-wrap" aria-hidden="true">' +
+            '<svg class="peel-flap" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">' +
+                '<defs><linearGradient id="peel-back" x1="0.1" y1="0.62" x2="0.62" y2="0.42">' +
+                    '<stop class="pf-0" offset="0"/>' +
+                    '<stop class="pf-1" offset="0.2"/>' +
+                    '<stop class="pf-2" offset="0.55"/>' +
+                    '<stop class="pf-3" offset="0.85"/>' +
+                    '<stop class="pf-4" offset="1"/>' +
+                '</linearGradient></defs>' +
+                '<path d="' + LEAF + '" fill="url(#peel-back)"/>' +
+            '</svg>' +
+        '</span>';
     document.body.appendChild(peel);
 
     function sync() {
@@ -71,6 +90,15 @@
         if (btn) btn.click();
     }
 
+    // The part of the screen behind the corner, as a clip path in pixels:
+    // the same shape as UNDER, for a corner box of size s at the top right
+    // of a W-wide window. Same commands at every size, so it animates.
+    function revealPath(W, s) {
+        var x0 = W - s, k = s / 100;
+        return 'path("M' + (x0 + 30 * k) + ' 0 L' + W + ' 0 L' + W + ' ' + (70 * k) +
+            ' Q' + (x0 + 45 * k) + ' ' + (55 * k) + ' ' + (x0 + 30 * k) + ' 0 Z")';
+    }
+
     var busy = false;
     peel.addEventListener('click', function () {
         if (busy) return;
@@ -87,9 +115,10 @@
         var W = window.innerWidth;
         var H = window.innerHeight;
         var s = peel.getBoundingClientRect().width;
-        // Big enough that the fold has left the screen entirely: a right
-        // triangle with legs W + H covers the whole viewport.
-        var D = W + H + 60;
+        // Big enough that the fold has left the screen entirely: the fold's
+        // ends sit 70% of the box in from the corner, and a right triangle
+        // with legs W + H covers the whole viewport.
+        var D = Math.ceil((W + H) / 0.7) + 80;
 
         peel.style.viewTransitionName = 'theme-peel';
         var vt = document.startViewTransition(function () {
@@ -107,10 +136,7 @@
 
         vt.ready.then(function () {
             root.animate({
-                clipPath: [
-                    'polygon(' + (W - s) + 'px 0px, ' + W + 'px 0px, ' + W + 'px ' + s + 'px)',
-                    'polygon(' + (W - D) + 'px 0px, ' + W + 'px 0px, ' + W + 'px ' + D + 'px)'
-                ]
+                clipPath: [revealPath(W, s), revealPath(W, D)]
             }, {
                 duration: 950,
                 easing: 'cubic-bezier(0.55, 0, 0.2, 1)',

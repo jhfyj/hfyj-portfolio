@@ -1,14 +1,22 @@
-/* ── Peel-back corner (Jen, Nov 13) ──
+/* -- Peel-back corner (Jen, Nov 13) --
    Day/night is no longer a button in the nav. The top-right corner of the
-   page is curled back like paper, and behind the curl you can see a bit of
-   the other side: a night sky with a star when the page is light, sunlight
-   when it is dark. Clicking the corner peels the whole page off (peel.js
-   drives a view transition) and the other theme is underneath.
+   page is curled back like paper, and behind the curl you can see the
+   colour of the other side: the dark page's black when the page is light,
+   the light page's white when it is dark. Clicking the corner peels the
+   whole page off (peel.js drives a view transition) and the other theme is
+   underneath.
 
-   Geometry: one square box pinned to the corner. The fold runs along its
-   diagonal, from top-left to bottom-right of the box.
-   .peel-under  = the top-right half: what is behind the page.
-   .peel-flap   = the bottom-left half: the back of the curled paper. */
+   Nov 13, 2 AM (Jen, from a reference of a curled page): the curl is a
+   soft leaf of paper, not a flat triangle. Two curved edges sweep in to a
+   point at the bottom left, the back of the paper goes from white at the
+   fold into grey, and it casts a soft shadow on the page. No sun or star
+   behind it any more, just the colour. Smaller at rest, and hover only
+   lifts it a little.
+
+   Geometry: one square box pinned to the corner; peel.js draws both parts
+   as SVG in a 100 x 100 box that stretches with it.
+   .peel-under  = above the fold: what is behind the page.
+   .peel-flap   = the curled paper. Its tip reaches a little past the box. */
 
 #theme-peel {
   position: fixed;
@@ -25,27 +33,32 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
-    width 0.55s cubic-bezier(0.34, 1.32, 0.5, 1),
-    height 0.55s cubic-bezier(0.34, 1.32, 0.5, 1);
+    width 0.5s cubic-bezier(0.34, 1.18, 0.5, 1),
+    height 0.5s cubic-bezier(0.34, 1.18, 0.5, 1);
 }
 
 /* In once the nav is: the corner curls in from nothing. */
 #theme-peel.is-in {
-  width: 58px;
-  height: 58px;
+  width: 36px;
+  height: 36px;
 }
 
-/* Hover lifts the curl further so more of the other side shows. */
+/* Hover lifts the curl just a little. */
 @media (hover: hover) {
   #theme-peel.is-in:hover {
-    width: 88px;
-    height: 88px;
+    width: 42px;
+    height: 42px;
+    transition:
+      width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 
 #theme-peel:focus { outline: none; }
-#theme-peel:focus-visible .peel-flap {
-  box-shadow: inset 0 0 0 2px var(--accent);
+#theme-peel:focus-visible .peel-flap path {
+  stroke: var(--accent);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
 }
 
 /* While the page is being peeled off, peel.js sizes the box itself. */
@@ -68,111 +81,50 @@ html.cm-open #theme-peel {
   pointer-events: none;
 }
 
-/* ── Behind the page ── */
+/* -- Behind the page: just the other theme's colour -- */
 .peel-under {
-  overflow: hidden;
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  display: block;
+  width: 100%;
+  height: 100%;
 }
+#theme-peel[data-paper="light"] .peel-under path { fill: #121212; }
+#theme-peel[data-paper="dark"] .peel-under path { fill: #FCFCFE; }
 
-/* Light page: night is underneath. Same black as the dark theme. */
-#theme-peel[data-paper="light"] .peel-under {
-  background:
-    radial-gradient(circle at 78% 22%, rgba(255, 250, 80, 0.18), rgba(255, 250, 80, 0) 45%),
-    #121212;
-}
-
-/* Dark page: day is underneath, sunlight pouring in from the corner. */
-#theme-peel[data-paper="dark"] .peel-under {
-  background:
-    radial-gradient(circle at 100% 0%, #FFE27A 0%, #FFE9A3 16%, rgba(255, 236, 170, 0.55) 34%, rgba(255, 244, 214, 0) 62%),
-    #FCFCFE;
-}
-
-/* The star: four points, the dark theme's yellow, with a soft glow. */
-.peel-star {
-  position: absolute;
-  top: 13%;
-  right: 13%;
-  width: 30%;
-  height: 30%;
-  display: none;
-  color: #FFFA50;
-  filter: drop-shadow(0 0 3px rgba(255, 250, 80, 0.55));
-  transform-origin: 50% 50%;
-  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1);
-}
-.peel-star svg { display: block; width: 100%; height: 100%; }
-#theme-peel[data-paper="light"] .peel-star { display: block; }
-
-/* Two specks of sky beside it. */
-.peel-speck {
-  position: absolute;
-  display: none;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-}
-.peel-speck.s1 { top: 9%; right: 46%; }
-.peel-speck.s2 { top: 40%; right: 8%; width: 1.5px; height: 1.5px; opacity: 0.6; }
-#theme-peel[data-paper="light"] .peel-speck { display: block; }
-
-/* The sun: a warm disc sitting in the corner, mostly off the page. */
-.peel-sun {
-  position: absolute;
-  top: -14%;
-  right: -14%;
-  width: 46%;
-  height: 46%;
-  display: none;
-  border-radius: 50%;
-  background: radial-gradient(circle, #FFD54A 0%, #FFC93A 60%, #FFBE2E 100%);
-  box-shadow: 0 0 10px 4px rgba(255, 205, 70, 0.45);
-  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1);
-}
-#theme-peel[data-paper="dark"] .peel-sun { display: block; }
-
-@media (hover: hover) {
-  #theme-peel.is-in:hover .peel-star { transform: rotate(45deg) scale(1.08); }
-  #theme-peel.is-in:hover .peel-sun { transform: scale(1.12); }
-}
-
-/* ── The curl ── */
-/* The shadow lives on a wrapper: a filter on the clipped element itself
-   would be clipped away with it. */
+/* -- The curl -- */
+/* The shadow lives on a wrapper so it follows the curl's shape. It falls
+   under the swelling outer edge, down and to the right, onto the page. */
 .peel-flap-wrap {
-  filter: drop-shadow(-2px 3px 3px rgba(0, 0, 0, 0.14)) drop-shadow(-6px 8px 10px rgba(0, 0, 0, 0.08));
+  filter:
+    drop-shadow(1px 2px 1.5px rgba(0, 0, 0, 0.14))
+    drop-shadow(3px 5px 6px rgba(0, 0, 0, 0.12));
 }
 #theme-peel[data-paper="dark"] .peel-flap-wrap {
-  filter: drop-shadow(-2px 3px 3px rgba(0, 0, 0, 0.5)) drop-shadow(-6px 8px 12px rgba(0, 0, 0, 0.35));
+  filter:
+    drop-shadow(1px 2px 1.5px rgba(0, 0, 0, 0.55))
+    drop-shadow(3px 5px 7px rgba(0, 0, 0, 0.45));
 }
 
-/* The back of the paper. Brightest right at the fold, where the curl
-   catches the light, then rolling into shade toward the tip. The tip
-   itself is slightly rounded, like real paper. */
 .peel-flap {
-  clip-path: polygon(0 0, 0 90%, 1.5% 96%, 4% 99%, 10% 100%, 100% 100%);
-}
-#theme-peel[data-paper="light"] .peel-flap {
-  background: linear-gradient(to bottom left,
-    transparent 50%,
-    #ffffff 50%,
-    #f6f6f8 56%,
-    #e4e4e8 74%,
-    #d6d6db 90%,
-    #e2e2e6 100%);
-}
-#theme-peel[data-paper="dark"] .peel-flap {
-  background: linear-gradient(to bottom left,
-    transparent 50%,
-    #3a3a3c 50%,
-    #303032 56%,
-    #252527 74%,
-    #1c1c1e 90%,
-    #232325 100%);
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-/* ── The peel itself (view transition) ── */
+/* The back of the paper, as in Jen's reference: a grey band just inside
+   the left edge, brightening across to white where the outer edge rolls
+   up toward the light. */
+#theme-peel[data-paper="light"] .pf-0 { stop-color: #ececee; }
+#theme-peel[data-paper="light"] .pf-1 { stop-color: #d4d4d8; }
+#theme-peel[data-paper="light"] .pf-2 { stop-color: #eeeef0; }
+#theme-peel[data-paper="light"] .pf-3 { stop-color: #fbfbfc; }
+#theme-peel[data-paper="light"] .pf-4 { stop-color: #ffffff; }
+#theme-peel[data-paper="dark"] .pf-0 { stop-color: #2a2a2c; }
+#theme-peel[data-paper="dark"] .pf-1 { stop-color: #1f1f21; }
+#theme-peel[data-paper="dark"] .pf-2 { stop-color: #2f2f31; }
+#theme-peel[data-paper="dark"] .pf-3 { stop-color: #3d3d40; }
+#theme-peel[data-paper="dark"] .pf-4 { stop-color: #454548; }
+/* -- The peel itself (view transition) -- */
 /* The old page stays put; the new one is revealed by peel.js clipping it
    from the corner, in step with the curl sweeping across. */
 ::view-transition-old(root),
@@ -188,13 +140,11 @@ html.cm-open #theme-peel {
 ::view-transition-new(theme-peel) { animation: none; opacity: 1; }
 
 @media (max-width: 720px) {
-  #theme-peel.is-in { width: 46px; height: 46px; }
+  #theme-peel.is-in { width: 30px; height: 30px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #theme-peel,
-  .peel-star,
-  .peel-sun { transition: none; }
+  #theme-peel { transition: none; }
 }
 
 /* Project pages (Jen, Nov 13): the corner stays here too, on the page

@@ -22,15 +22,19 @@
     //  - The fold runs from the top edge at (0,0) down to the right edge at
     //    (100,52.6), long and shallow, bowing very slightly like bent paper.
     //  - The flap's left edge leaves the corner hugging the fold, then peels
-    //    away and curves down to a softly rounded tip; its outer edge runs back right and
-    //    ends in a rounded lip where the paper rolls over the right edge,
-    //    so no end of the fold is a sharp corner.
+    //    away and curves down into a broad rounded tip; its bottom edge
+    //    runs on to the right edge and rolls gently up into it.
     //  - Under the flap, the revealed corner gets a soft shadow along the
     //    fold that fades toward the corner.
     // revealPath() below uses the same fold for the page underneath.
     var FOLD = 'Q50 28.5 0 0';
-    var LEAF = 'M0 0 C30 19.5 58 36 65.2 60.2 Q66.4 63.4 68.6 61.6 ' +
-        'C76 57 85 52.6 91 53.2 C96 53.8 99 56 100 59.7 L100 52.6 ' + FOLD + ' Z';
+    // Nov 13, 2:30 AM (Jen: "the little tip of the paper bends suddenly"):
+    // the outline is now one smooth sweep. The left edge curves down into a
+    // broad rounded tip and carries straight on along the bottom edge, which
+    // rises gently to the right edge. No hook at the tip and no dip before
+    // the right edge; every join keeps the same direction on both sides.
+    var LEAF = 'M0 0 C28 17.5 50 36 61 54 C64.5 59.5 69 63 75 62.4 ' +
+        'C83 61.4 90 59.6 95 58.6 C98 58 99.7 57 100 55.4 L100 52.6 ' + FOLD + ' Z';
     var UNDER = 'M0 0 L100 0 L100 52.6 ' + FOLD + ' Z';
     peel.innerHTML =
         '<svg class="peel-under" viewBox="0 0 100 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +

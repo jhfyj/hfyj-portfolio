@@ -1,0 +1,250 @@
+/* ── Peel-back corner (Jen, Nov 13) ──
+   Day/night is no longer a button in the nav. The top-right corner of the
+   page is curled back like paper, and behind the curl you can see a bit of
+   the other side: a night sky with a star when the page is light, sunlight
+   when it is dark. Clicking the corner peels the whole page off (peel.js
+   drives a view transition) and the other theme is underneath.
+
+   Geometry: one square box pinned to the corner. The fold runs along its
+   diagonal, from top-left to bottom-right of the box.
+   .peel-under  = the top-right half: what is behind the page.
+   .peel-flap   = the bottom-left half: the back of the curled paper. */
+
+#theme-peel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100002;
+  box-sizing: border-box;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    width 0.55s cubic-bezier(0.34, 1.32, 0.5, 1),
+    height 0.55s cubic-bezier(0.34, 1.32, 0.5, 1);
+}
+
+/* In once the nav is: the corner curls in from nothing. */
+#theme-peel.is-in {
+  width: 58px;
+  height: 58px;
+}
+
+/* Hover lifts the curl further so more of the other side shows. */
+@media (hover: hover) {
+  #theme-peel.is-in:hover {
+    width: 88px;
+    height: 88px;
+  }
+}
+
+#theme-peel:focus { outline: none; }
+#theme-peel:focus-visible .peel-flap {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* While the page is being peeled off, peel.js sizes the box itself. */
+#theme-peel.is-sweeping {
+  transition: none !important;
+}
+#theme-peel.is-sweeping .peel-under { visibility: hidden; }
+
+/* A project pop-up owns the screen; the corner steps out of its way. */
+html.cm-open #theme-peel {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.peel-under,
+.peel-flap-wrap,
+.peel-flap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ── Behind the page ── */
+.peel-under {
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* Light page: night is underneath. Same black as the dark theme. */
+#theme-peel[data-paper="light"] .peel-under {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 250, 80, 0.18), rgba(255, 250, 80, 0) 45%),
+    #121212;
+}
+
+/* Dark page: day is underneath, sunlight pouring in from the corner. */
+#theme-peel[data-paper="dark"] .peel-under {
+  background:
+    radial-gradient(circle at 100% 0%, #FFE27A 0%, #FFE9A3 16%, rgba(255, 236, 170, 0.55) 34%, rgba(255, 244, 214, 0) 62%),
+    #FCFCFE;
+}
+
+/* The star: four points, the dark theme's yellow, with a soft glow. */
+.peel-star {
+  position: absolute;
+  top: 13%;
+  right: 13%;
+  width: 30%;
+  height: 30%;
+  display: none;
+  color: #FFFA50;
+  filter: drop-shadow(0 0 3px rgba(255, 250, 80, 0.55));
+  transform-origin: 50% 50%;
+  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.peel-star svg { display: block; width: 100%; height: 100%; }
+#theme-peel[data-paper="light"] .peel-star { display: block; }
+
+/* Two specks of sky beside it. */
+.peel-speck {
+  position: absolute;
+  display: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+}
+.peel-speck.s1 { top: 9%; right: 46%; }
+.peel-speck.s2 { top: 40%; right: 8%; width: 1.5px; height: 1.5px; opacity: 0.6; }
+#theme-peel[data-paper="light"] .peel-speck { display: block; }
+
+/* The sun: a warm disc sitting in the corner, mostly off the page. */
+.peel-sun {
+  position: absolute;
+  top: -14%;
+  right: -14%;
+  width: 46%;
+  height: 46%;
+  display: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFD54A 0%, #FFC93A 60%, #FFBE2E 100%);
+  box-shadow: 0 0 10px 4px rgba(255, 205, 70, 0.45);
+  transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+#theme-peel[data-paper="dark"] .peel-sun { display: block; }
+
+@media (hover: hover) {
+  #theme-peel.is-in:hover .peel-star { transform: rotate(45deg) scale(1.08); }
+  #theme-peel.is-in:hover .peel-sun { transform: scale(1.12); }
+}
+
+/* ── The curl ── */
+/* The shadow lives on a wrapper: a filter on the clipped element itself
+   would be clipped away with it. */
+.peel-flap-wrap {
+  filter: drop-shadow(-2px 3px 3px rgba(0, 0, 0, 0.14)) drop-shadow(-6px 8px 10px rgba(0, 0, 0, 0.08));
+}
+#theme-peel[data-paper="dark"] .peel-flap-wrap {
+  filter: drop-shadow(-2px 3px 3px rgba(0, 0, 0, 0.5)) drop-shadow(-6px 8px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* The back of the paper. Brightest right at the fold, where the curl
+   catches the light, then rolling into shade toward the tip. The tip
+   itself is slightly rounded, like real paper. */
+.peel-flap {
+  clip-path: polygon(0 0, 0 90%, 1.5% 96%, 4% 99%, 10% 100%, 100% 100%);
+}
+#theme-peel[data-paper="light"] .peel-flap {
+  background: linear-gradient(to bottom left,
+    transparent 50%,
+    #ffffff 50%,
+    #f6f6f8 56%,
+    #e4e4e8 74%,
+    #d6d6db 90%,
+    #e2e2e6 100%);
+}
+#theme-peel[data-paper="dark"] .peel-flap {
+  background: linear-gradient(to bottom left,
+    transparent 50%,
+    #3a3a3c 50%,
+    #303032 56%,
+    #252527 74%,
+    #1c1c1e 90%,
+    #232325 100%);
+}
+
+/* ── The peel itself (view transition) ── */
+/* The old page stays put; the new one is revealed by peel.js clipping it
+   from the corner, in step with the curl sweeping across. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-group(theme-peel) {
+  animation-duration: 0.95s;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.2, 1);
+}
+::view-transition-old(theme-peel) { animation: none; opacity: 0; }
+::view-transition-new(theme-peel) { animation: none; opacity: 1; }
+
+@media (max-width: 720px) {
+  #theme-peel.is-in { width: 46px; height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #theme-peel,
+  .peel-star,
+  .peel-sun { transition: none; }
+}
+
+/* About Me and Playground: the sun/moon button stays in the page (the
+   corner presses it) but leaves the pill, along with the gap before it. */
+#topbar.home-nav #theme-toggle,
+#topbar.home-nav .nav-spacer {
+  display: none !important;
+}
+
+/* ── Card / grid switch in the nav (Jen, Nov 13) ──
+   It sits where the sun/moon button was, at the same 36px height and with
+   the same hairline edge, so the pill keeps its shape. */
+#top-nav .view-switch {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid rgba(var(--ink-rgb), 0.14);
+  border-radius: 10px;
+  pointer-events: auto;
+}
+#top-nav .toggle-btn {
+  width: 40px;
+  height: 30px;
+  border-radius: 8px;
+}
+#top-nav .toggle-btn[data-view="cards"] svg { width: 24px; height: 17px; }
+#top-nav .toggle-btn[data-view="grid"] svg { width: 16px; height: 16px; }
+#top-nav .view-toggle-thumb {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: 40px;
+  border-radius: 8px;
+  background: rgba(var(--ink-rgb), 0.07);
+  box-shadow: none;
+}
+:root[data-theme="dark"] #top-nav .view-switch { border-color: rgba(var(--ink-rgb), 0.22); }
+:root[data-theme="dark"] #top-nav .view-toggle-thumb { background: rgba(var(--ink-rgb), 0.12); box-shadow: none; }
+
+#top-nav .view-switch[data-active="grid"] .view-toggle-thumb,
+html[data-restore-view="grid"] #top-nav .view-switch .view-toggle-thumb {
+  transform: translateX(100%);
+}
+#top-nav .view-switch.no-thumb-move .view-toggle-thumb { transition: none; }
+
+/* The bottom pill keeps only the tick carousel, so it has nothing to show
+   in grid view. */
+#view-toggle[data-active="grid"],
+html[data-restore-view="grid"] #view-toggle {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

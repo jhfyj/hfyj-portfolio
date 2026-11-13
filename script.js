@@ -7963,6 +7963,16 @@ function applyViewChrome(view, animateThumb = true) {
 
     // The plate is one element. Moving data-active slides it. A restore
     // lands it in place, so a returning grid doesn't watch it travel over.
+    const navSwitch = document.getElementById('nav-view-switch');
+    if (navSwitch) {
+        if (!animateThumb) navSwitch.classList.add('no-thumb-move');
+        navSwitch.dataset.active = view;
+        if (!animateThumb) {
+            void navSwitch.offsetWidth;
+            navSwitch.classList.remove('no-thumb-move');
+        }
+    }
+
     if (viewToggle) {
         if (!animateThumb) viewToggle.classList.add('no-thumb-move');
         viewToggle.dataset.active = view;

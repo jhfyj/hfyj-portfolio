@@ -319,3 +319,17 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber { wid
   text-decoration-color: currentColor;
   outline: none;
 }
+
+/* About Me / Playground have no card/grid switch, so the pill ends on the
+   Playground link: more room on the right (20px) than the 10px top and the
+   10px it keeps against the switch's outline on Home (Jen, Nov 16).
+   nav-squeeze.js eases between the two. */
+#topbar.home-nav .nav-cluster { padding-right: 20px; }
+
+/* Grid header text block narrower (Jen, Nov 16: it was cutting into the
+   cards on the right). The table's frame is 2:1 and pinned right, so on a
+   laptop the tilted BMW card's left edge sits about 49vw across; the text
+   used to run to 7.5vw + 46vw = 53.5vw. 40vw ends it at 47.5vw, clear of
+   the cards, and on wide screens it keeps the same gap. */
+#grid-hero.gt-has-table > .gh-reveal-mask { max-width: 40vw; }
+@media (max-width: 760px) { #grid-hero.gt-has-table > .gh-reveal-mask { max-width: none; } }

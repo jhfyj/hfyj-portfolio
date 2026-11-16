@@ -47,6 +47,14 @@
 // The switch itself is never scaled (its icons keep their shape): the pill's
 // right edge slides in over it, clipping it as it goes, and it fades out.
 // Must be a plain script in <head>: pagereveal fires before the first frame.
+//
+// Nov 16 (Jen: "the transition from Playground back into the home page is not
+// smooth, it refreshes"): Playground goes Home with history.back()
+// (card-transition.js), so the browser usually shows Home straight from its
+// back/forward cache instead of loading it. The page's scripts don't run again
+// on that path, so the switch was simply there at full width and the pill
+// jumped. pagereveal fires on those restores too, before the first frame, so
+// the same open-out now runs there as well (and on the browser's own Back).
 (function () {
     'use strict';
 
@@ -56,34 +64,50 @@
     function pathOf(url) {
         try { return new URL(url, location.href).pathname; } catch (e) { return ''; }
     }
+    function sameOrigin(url) {
+        try { return new URL(url, location.href).origin === location.origin; } catch (e) { return false; }
+    }
     function isHome(p) { return /(^|\/)(index\.html)?$/.test(p); }
     function isSub(p) { return /(aboutme|playground)\.html$/.test(p); }
 
-    // Where we came from. The Navigation API knows even for scripted
-    // navigations (the Playground card); the referrer covers the rest.
-    var fromUrl = '';
-    try {
-        var act = window.navigation && navigation.activation;
-        if (act && act.navigationType === 'reload') return;
-        if (act && act.from && act.from.url) fromUrl = act.from.url;
-    } catch (e) {}
-    if (!fromUrl) fromUrl = document.referrer || '';
-    if (!fromUrl) return;
-    try { if (new URL(fromUrl).origin !== location.origin) return; } catch (e) { return; }
+    // Every page notes itself on the way out, for the restore case below where
+    // the browser may not say where we came from.
+    var FROM_KEY = 'nsq:from';
+    window.addEventListener('pagehide', function () {
+        try { sessionStorage.setItem(FROM_KEY, JSON.stringify({ p: location.pathname, t: Date.now() })); } catch (e) {}
+    });
 
-    var here = location.pathname;
-    var from = pathOf(fromUrl);
-    var mode = null;
-    if (isSub(here) && isHome(from)) mode = 'squash';
-    else if (isHome(here) && isSub(from)) mode = 'open';
-    if (!mode) return;
+    // Where we came from. The Navigation API knows even for scripted
+    // navigations (the Playground card) and for restores; the referrer covers
+    // fresh loads elsewhere, and the note above covers restores elsewhere.
+    function fromPath(restored) {
+        var url = '';
+        try {
+            var act = window.navigation && navigation.activation;
+            if (act && act.navigationType === 'reload') return '';
+            if (act && act.from && act.from.url) url = act.from.url;
+        } catch (e) {}
+        if (!url && !restored) url = document.referrer || '';
+        if (url) return sameOrigin(url) ? pathOf(url) : '';
+        if (restored) {
+            try {
+                var n = JSON.parse(sessionStorage.getItem(FROM_KEY));
+                if (n && Date.now() - n.t < 10000) return n.p;
+            } catch (e) {}
+        }
+        return '';
+    }
+
+    function modeFor(from) {
+        var here = location.pathname;
+        if (!from) return null;
+        if (isSub(here) && isHome(from)) return 'squash';
+        if (isHome(here) && isSub(from)) return 'open';
+        return null;
+    }
 
     var DUR = 560;
     var EASE = 'cubic-bezier(0.6, 0, 0.25, 1)';
-    var built = false;
-    var anims = [];
-    var cleanup = null;
-
     function frames(sw, gap, w) {
         // full -> tucked away. Nov 16 (Jen: "don't squash the width of the
         // element"): the switch is never scaled, so its icons keep their exact
@@ -105,9 +129,12 @@
         };
     }
 
-    function setup() {
-        if (built) return;
-        if (mode === 'squash') {
+    // One run of the animation: built before the first frame, held there,
+    // played once the page's view transition (if any) is done.
+    function makeRun(mode, restored) {
+        var built = false, played = false, anims = [], cleanup = null;
+
+        function setupSquash() {
             var cluster = document.querySelector('#topbar.home-nav .nav-cluster');
             var links = cluster && cluster.querySelector('#nav-links');
             if (!links) return;
@@ -143,53 +170,96 @@
             var opts = { duration: DUR, easing: EASE, fill: 'forwards' };
             anims = [sw.animate(f.sw, opts), gap.animate(f.gap, opts)];
             cleanup = function () { gap.remove(); sw.remove(); };
-        } else {
+        }
+
+        function setupOpen() {
             var nav = document.getElementById('top-nav');
             var sw2 = nav && nav.querySelector('.view-switch');
             var gap2 = nav && nav.querySelector('.nav-spacer');
             if (!sw2 || !gap2) return;
-            // Only when the nav is carried over from the page before (index.html
-            // sets data-nav-carry on a return visit); otherwise it fades in on
-            // its own and there is nothing to open.
-            if (!root.hasAttribute('data-nav-carry') && !window.__skipBuild) return;
+            // Only when the nav is carried over from the page before: on a fresh
+            // load index.html sets data-nav-carry; on a restore the nav is simply
+            // still up. Otherwise it fades in on its own and there's nothing to open.
+            var carried = restored ? nav.classList.contains('visible')
+                : (root.hasAttribute('data-nav-carry') || window.__skipBuild);
+            if (!carried) return;
+            // A restore can land in grid view scrolled down with the nav tucked
+            // away; nothing to animate then.
+            if (nav.classList.contains('is-scroll-hidden')) return;
             built = true;
             var f2 = frames(sw2, gap2.offsetWidth || 20, sw2.offsetWidth);
             var o2 = { duration: DUR, easing: EASE, direction: 'reverse', fill: 'backwards' };
             anims = [sw2.animate(f2.sw, o2), gap2.animate(f2.gap, o2)];
             cleanup = null;
         }
-        // Hold on the first frame until the page's transition is over.
-        anims.forEach(function (a) { a.pause(); a.currentTime = 0; });
-    }
 
-    var played = false;
-    function play() {
-        if (played || !built) return;
-        played = true;
-        anims.forEach(function (a) { a.play(); });
-        Promise.all(anims.map(function (a) { return a.finished; })).then(function () {
-            if (cleanup) cleanup();
-            anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
-        }).catch(function () {});
-    }
-
-    var gotReveal = false;
-    window.addEventListener('pagereveal', function (e) {
-        gotReveal = true;
-        setup();
-        var vt = e.viewTransition;
-        if (vt) {
-            vt.finished.then(function () { setTimeout(play, 40); }, function () { setTimeout(play, 40); });
-        } else {
-            setTimeout(play, 120);
+        function setup() {
+            if (built) return;
+            if (mode === 'squash') setupSquash(); else setupOpen();
+            // Hold on the first frame until the page's transition is over.
+            anims.forEach(function (a) { a.pause(); a.currentTime = 0; });
         }
+
+        function play() {
+            if (played || !built) return;
+            played = true;
+            anims.forEach(function (a) { a.play(); });
+            Promise.all(anims.map(function (a) { return a.finished; })).then(function () {
+                if (cleanup) cleanup();
+                anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+            }).catch(function () {});
+        }
+
+        return { setup: setup, play: play, isBuilt: function () { return built; } };
+    }
+
+    function playAfter(run, vt) {
+        if (vt) {
+            vt.finished.then(function () { setTimeout(run.play, 40); }, function () { setTimeout(run.play, 40); });
+        } else {
+            setTimeout(run.play, 120);
+        }
+    }
+
+    // The first load.
+    var first = null;
+    var firstMode = modeFor(fromPath(false));
+    if (firstMode) first = makeRun(firstMode, false);
+
+    var revealed = false;
+    window.addEventListener('pagereveal', function (e) {
+        if (!revealed) {
+            revealed = true;
+            if (!first) return;
+            first.setup();
+            playAfter(first, e.viewTransition);
+            return;
+        }
+        // Any later reveal is a restore from the back/forward cache.
+        var mode = modeFor(fromPath(true));
+        if (!mode) return;
+        var run = makeRun(mode, true);
+        run.setup();
+        playAfter(run, e.viewTransition);
     });
+
     // Browsers without pagereveal: build as soon as the nav exists and play
-    // just after.
-    // Also the backstop if the nav wasn't parsed yet when pagereveal fired.
+    // just after. Also the backstop if the nav wasn't parsed yet when
+    // pagereveal fired.
     document.addEventListener('DOMContentLoaded', function () {
-        if (built) return;
-        setup();
-        setTimeout(play, gotReveal ? 60 : 150);
+        if (!first || first.isBuilt()) return;
+        first.setup();
+        setTimeout(first.play, revealed ? 60 : 150);
     });
+    // Same for restores in browsers without pagereveal.
+    if (!('onpagereveal' in window)) {
+        window.addEventListener('pageshow', function (e) {
+            if (!e.persisted) return;
+            var mode = modeFor(fromPath(true));
+            if (!mode) return;
+            var run = makeRun(mode, true);
+            run.setup();
+            setTimeout(run.play, 120);
+        });
+    }
 })();

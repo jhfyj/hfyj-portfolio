@@ -1,34 +1,3 @@
-/*NSQDBG-START*/
-(function () {
-    try { if (/nsqdbg=1/.test(location.search)) localStorage.setItem('nsqdbg', '1'); if (/nsqdbg=0/.test(location.search)) localStorage.removeItem('nsqdbg'); } catch (e) {}
-    var on = false; try { on = !!localStorage.getItem('nsqdbg'); } catch (e) {}
-    if (!on) return;
-    var page = location.pathname.split('/').pop() || 'index.html';
-    function push(o) { try { var a = JSON.parse(localStorage.getItem('nsqlog') || '[]'); a.push(o); localStorage.setItem('nsqlog', JSON.stringify(a.slice(-400))); } catch (e) {} }
-    var t0 = performance.now();
-    push({ p: page, ev: 'script', t: 0, nav: (window.navigation && navigation.activation) ? navigation.activation.navigationType : '?', ref: document.referrer.split('/').pop() });
-    window.addEventListener('pageswap', function (e) { push({ p: page, ev: 'pageswap', vt: !!e.viewTransition, to: e.activation && e.activation.entry ? e.activation.entry.url.split('/').pop() : '?', type: e.activation ? e.activation.navigationType : '?' }); });
-    window.addEventListener('pageshow', function (e) { push({ p: page, ev: 'pageshow', persisted: e.persisted, t: Math.round(performance.now() - t0) }); if (e.persisted) frames('bfcache'); });
-    window.addEventListener('pagereveal', function (e) { push({ p: page, ev: 'pagereveal', vt: !!e.viewTransition, t: Math.round(performance.now() - t0) }); frames('reveal'); });
-    var running = false;
-    function frames(tag) {
-        if (running) return; running = true;
-        var start = performance.now(), rows = [];
-        (function tick() {
-            var now = performance.now() - start;
-            var tn = document.getElementById('top-nav') || document.getElementById('topbar');
-            var c = tn && tn.querySelector('.nav-cluster');
-            if (c) {
-                var r = c.getBoundingClientRect(), cs = getComputedStyle(tn), ccs = getComputedStyle(c);
-                var sw = tn.querySelector('.view-switch, .nsq-switch');
-                rows.push([Math.round(now), (+cs.opacity).toFixed(2), cs.transform === 'none' ? '-' : cs.transform.replace(/matrix\(1, 0, 0, 1, /, 'T(').slice(0, 20), Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height), ccs.backgroundColor.replace(/ /g, ''), (+ccs.opacity).toFixed(2), sw ? Math.round(sw.getBoundingClientRect().width) : 'none', (tn.className || '').replace(/\s+/g, '.'), ['data-nav-carry', 'data-card-return', 'data-intro-done'].filter(function (a) { return root().hasAttribute(a); }).join('|')].join(' '));
-            }
-            if (now < 1600) requestAnimationFrame(tick); else { push({ p: page, ev: 'frames-' + tag, rows: rows }); running = false; }
-        })();
-    }
-    function root() { return document.documentElement; }
-})();
-/*NSQDBG-END*/
 // One nav across pages, with the card / grid switch (Jen, Nov 16).
 //
 // Home's nav pill has the card / grid switch at its right end; About Me and
@@ -125,6 +94,13 @@
             gap: [
                 { flexBasis: gap + 'px', width: gap + 'px' },
                 { flexBasis: '0px', width: '0px' }
+            ],
+            // Jen, Nov 16: with no switch the pill ends on plain text, so it gets
+            // more room on the right (peel.css) than the 10px it has against the
+            // switch's outline. The pill eases between the two with the switch.
+            pad: [
+                { paddingRight: '10px' },
+                { paddingRight: '20px' }
             ]
         };
     }
@@ -168,7 +144,7 @@
             links.after(gap, sw);
             var f = frames(sw, 20, sw.offsetWidth);
             var opts = { duration: DUR, easing: EASE, fill: 'forwards' };
-            anims = [sw.animate(f.sw, opts), gap.animate(f.gap, opts)];
+            anims = [sw.animate(f.sw, opts), gap.animate(f.gap, opts), cluster.animate(f.pad, opts)];
             cleanup = function () { gap.remove(); sw.remove(); };
         }
 
@@ -189,7 +165,9 @@
             built = true;
             var f2 = frames(sw2, gap2.offsetWidth || 20, sw2.offsetWidth);
             var o2 = { duration: DUR, easing: EASE, direction: 'reverse', fill: 'backwards' };
+            var cl2 = nav.querySelector('.nav-cluster');
             anims = [sw2.animate(f2.sw, o2), gap2.animate(f2.gap, o2)];
+            if (cl2) anims.push(cl2.animate(f2.pad, o2));
             cleanup = null;
         }
 
@@ -246,13 +224,18 @@
     // Browsers without pagereveal: build as soon as the nav exists and play
     // just after. Also the backstop if the nav wasn't parsed yet when
     // pagereveal fired.
+    // Where pagereveal exists it decides when to play (after the page is first
+    // drawn and its transition is done), so only build here unless it has
+    // already fired.
+    var hasReveal = 'onpagereveal' in window;
     document.addEventListener('DOMContentLoaded', function () {
         if (!first || first.isBuilt()) return;
         first.setup();
-        setTimeout(first.play, revealed ? 60 : 150);
+        if (!hasReveal) setTimeout(first.play, 150);
+        else if (revealed) setTimeout(first.play, 60);
     });
     // Same for restores in browsers without pagereveal.
-    if (!('onpagereveal' in window)) {
+    if (!hasReveal) {
         window.addEventListener('pageshow', function (e) {
             if (!e.persisted) return;
             var mode = modeFor(fromPath(true));

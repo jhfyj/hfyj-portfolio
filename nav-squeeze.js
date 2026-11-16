@@ -1,3 +1,34 @@
+/*NSQDBG-START*/
+(function () {
+    try { if (/nsqdbg=1/.test(location.search)) localStorage.setItem('nsqdbg', '1'); if (/nsqdbg=0/.test(location.search)) localStorage.removeItem('nsqdbg'); } catch (e) {}
+    var on = false; try { on = !!localStorage.getItem('nsqdbg'); } catch (e) {}
+    if (!on) return;
+    var page = location.pathname.split('/').pop() || 'index.html';
+    function push(o) { try { var a = JSON.parse(localStorage.getItem('nsqlog') || '[]'); a.push(o); localStorage.setItem('nsqlog', JSON.stringify(a.slice(-400))); } catch (e) {} }
+    var t0 = performance.now();
+    push({ p: page, ev: 'script', t: 0, nav: (window.navigation && navigation.activation) ? navigation.activation.navigationType : '?', ref: document.referrer.split('/').pop() });
+    window.addEventListener('pageswap', function (e) { push({ p: page, ev: 'pageswap', vt: !!e.viewTransition, to: e.activation && e.activation.entry ? e.activation.entry.url.split('/').pop() : '?', type: e.activation ? e.activation.navigationType : '?' }); });
+    window.addEventListener('pageshow', function (e) { push({ p: page, ev: 'pageshow', persisted: e.persisted, t: Math.round(performance.now() - t0) }); if (e.persisted) frames('bfcache'); });
+    window.addEventListener('pagereveal', function (e) { push({ p: page, ev: 'pagereveal', vt: !!e.viewTransition, t: Math.round(performance.now() - t0) }); frames('reveal'); });
+    var running = false;
+    function frames(tag) {
+        if (running) return; running = true;
+        var start = performance.now(), rows = [];
+        (function tick() {
+            var now = performance.now() - start;
+            var tn = document.getElementById('top-nav') || document.getElementById('topbar');
+            var c = tn && tn.querySelector('.nav-cluster');
+            if (c) {
+                var r = c.getBoundingClientRect(), cs = getComputedStyle(tn), ccs = getComputedStyle(c);
+                var sw = tn.querySelector('.view-switch, .nsq-switch');
+                rows.push([Math.round(now), (+cs.opacity).toFixed(2), cs.transform === 'none' ? '-' : cs.transform.replace(/matrix\(1, 0, 0, 1, /, 'T(').slice(0, 20), Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height), ccs.backgroundColor.replace(/ /g, ''), (+ccs.opacity).toFixed(2), sw ? Math.round(sw.getBoundingClientRect().width) : 'none', (tn.className || '').replace(/\s+/g, '.'), ['data-nav-carry', 'data-card-return', 'data-intro-done'].filter(function (a) { return root().hasAttribute(a); }).join('|')].join(' '));
+            }
+            if (now < 1600) requestAnimationFrame(tick); else { push({ p: page, ev: 'frames-' + tag, rows: rows }); running = false; }
+        })();
+    }
+    function root() { return document.documentElement; }
+})();
+/*NSQDBG-END*/
 // One nav across pages, with the card / grid switch (Jen, Nov 16).
 //
 // Home's nav pill has the card / grid switch at its right end; About Me and
@@ -13,9 +44,8 @@
 //  - About Me / Playground: a copy of the switch (and the gap before it) is
 //    put in the pill before the first frame, then squashed away and removed.
 //  - Home: the real switch starts squashed, then opens out.
-// The squash is a scaleX on the switch from its left edge, while a matching
-// negative right margin closes the space it held, so the pill's right edge
-// moves in step with the switch's.
+// The switch itself is never scaled (its icons keep their shape): the pill's
+// right edge slides in over it, clipping it as it goes, and it fades out.
 // Must be a plain script in <head>: pagereveal fires before the first frame.
 (function () {
     'use strict';
@@ -55,13 +85,18 @@
     var cleanup = null;
 
     function frames(sw, gap, w) {
-        // full -> squashed. Only the width goes: the pill keeps one height on
-        // every page (peel.css), so the logo and links never move up or down.
+        // full -> tucked away. Nov 16 (Jen: "don't squash the width of the
+        // element"): the switch is never scaled, so its icons keep their exact
+        // shape. Instead the pill's right edge slides in over it: a negative
+        // right margin pulls the edge in while a clip of the same width hides
+        // whatever has passed under it, and the switch fades on the way out.
+        // The pill keeps one height on every page (peel.css), so the logo and
+        // links never move up or down.
         return {
             sw: [
-                { transform: 'scaleX(1)', marginRight: '0px', opacity: 1, offset: 0 },
-                { opacity: 1, offset: 0.55 },
-                { transform: 'scaleX(0)', marginRight: (-w) + 'px', opacity: 0, offset: 1 }
+                { clipPath: 'inset(0 0px 0 0 round 13px)', marginRight: '0px', opacity: 1, offset: 0 },
+                { opacity: 1, offset: 0.4 },
+                { clipPath: 'inset(0 ' + w + 'px 0 0 round 13px)', marginRight: (-w) + 'px', opacity: 0, offset: 1 }
             ],
             gap: [
                 { flexBasis: gap + 'px', width: gap + 'px' },
@@ -120,9 +155,8 @@
             built = true;
             var f2 = frames(sw2, gap2.offsetWidth || 20, sw2.offsetWidth);
             var o2 = { duration: DUR, easing: EASE, direction: 'reverse', fill: 'backwards' };
-            sw2.style.transformOrigin = 'left center';
             anims = [sw2.animate(f2.sw, o2), gap2.animate(f2.gap, o2)];
-            cleanup = function () { sw2.style.transformOrigin = ''; };
+            cleanup = null;
         }
         // Hold on the first frame until the page's transition is over.
         anims.forEach(function (a) { a.pause(); a.currentTime = 0; });

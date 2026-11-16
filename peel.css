@@ -257,7 +257,6 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber { wid
   background: rgba(240, 240, 244, 0.5);
   box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
-  transform-origin: left center;
   pointer-events: none;
 }
 .nsq-thumb {

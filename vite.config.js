@@ -65,6 +65,7 @@ const CLASSIC_SCRIPTS = [
     'felt.js',
     'footer-deck.js',
     'grid-table.js',
+    'nav-squeeze.js',
     'peel.js',
     'photo-viewer.js',
     'puregym-test.js',

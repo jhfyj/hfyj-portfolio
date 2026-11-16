@@ -225,3 +225,74 @@ html[data-restore-view="grid"] #view-toggle {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* -- Nov 16 (Jen) --------------------------------------------------------- */
+
+/* The peel uncovers the nav with the rest of the page (peel.js adds
+   .is-peeling for the length of the peel). Its page-to-page name made it a
+   layer of its own, which switched theme ahead of the paper. */
+html.is-peeling .nav-cluster { view-transition-name: none !important; }
+
+/* The tick bar under the cards, slightly longer: 156px -> 196px. The track's
+   side padding stays half the width so the tick standing on the current
+   card is still in the middle. */
+#view-toggle.is-open[data-active="cards"] #scrubber,
+html[data-intro-done] #view-toggle[data-active="cards"] #scrubber { width: 196px; }
+html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber { width: 0; }
+#scrubber-track-wrap { width: 196px; }
+#scrubber-track { padding: 0 98px; }
+
+/* The card / grid switch being smashed out of the pill on About Me and
+   Playground (nav-squeeze.js). A copy of the nav switch above, same sizes
+   and colours, drawn only for the squash and then removed. */
+.nsq-gap { flex: 0 0 20px; width: 20px; height: 1px; pointer-events: none; }
+.nsq-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: 13px;
+  background: rgba(240, 240, 244, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
+  transform-origin: left center;
+  pointer-events: none;
+}
+.nsq-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 46px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.nsq-switch[data-active="grid"] .nsq-thumb { transform: translateX(100%); }
+.nsq-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 46px;
+  height: 34px;
+  color: rgba(var(--ink-rgb), 0.35);
+}
+.nsq-btn.is-on { color: var(--accent); }
+.nsq-btn[data-view="cards"] svg { width: 28px; height: 19px; }
+.nsq-btn[data-view="grid"] svg { width: 19px; height: 19px; }
+.nsq-btn[data-view="cards"] .card-left,
+.nsq-btn[data-view="cards"] .card-right { fill: #ffffff; transform-origin: 9px 16px; }
+.nsq-btn[data-view="cards"].is-on .card-left { transform: rotate(-12deg); }
+.nsq-btn[data-view="cards"].is-on .card-right { transform: rotate(12deg); }
+:root[data-theme="dark"] .nsq-switch {
+  background: rgba(40, 40, 44, 0.88);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+}
+:root[data-theme="dark"] .nsq-thumb { background: #3d3d3d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+:root[data-theme="dark"] .nsq-btn[data-view="cards"] .card-left,
+:root[data-theme="dark"] .nsq-btn[data-view="cards"] .card-right { fill: #2a2a2a; }

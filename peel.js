@@ -139,6 +139,12 @@
         // left corner of the window once the box is W + H / 0.526 wide.
         var D = Math.ceil(W + H / 0.526) + 80;
         peel.style.viewTransitionName = 'theme-peel';
+        // Nov 16 (Jen: "the colors are changing before the paper reaches
+        // that position"): the nav pill is named for the page-to-page
+        // carry-over, which made it its own layer here too, drawn over the
+        // page and swapped to the new theme at once. Unnamed for the peel, it
+        // is part of the page and is uncovered with everything else.
+        root.classList.add('is-peeling');
         var vt = document.startViewTransition(function () {
             pressToggle();
             // The curl being swept across is the page being peeled off, so it
@@ -167,6 +173,7 @@
             // Put the corner back at nothing, then let it curl in fresh,
             // now showing what is behind the new side.
             peel.style.viewTransitionName = '';
+            root.classList.remove('is-peeling');
             peel.classList.remove('is-in');
             peel.style.width = '';
             peel.style.height = '';

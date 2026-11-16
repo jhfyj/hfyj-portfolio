@@ -1652,30 +1652,51 @@ html[data-restore-view="grid"] #grid-view {
    it can never shift the icon's own position, so that feedback loop can't
    happen. */
 .gh-card-label {
+  /* Jen, Nov 6: a small card that pops up ABOVE the icon, the same way the
+     Contact card opens (page colour, soft shadow, hairline, blur-in). It used
+     to slide open to the right, which needed room held at the end of the
+     line and pushed "Physics" onto its own line. Out of flow and above the
+     line, it takes no room, so the text wraps naturally. */
   position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  max-width: 0;
-  /* Fixed padding (not an animated margin) so the gap between icon and text
-     is always part of the label's own box — and thus always hoverable. A
-     margin there is empty space outside the box, not part of it: moving the
-     pointer from the icon across that gap would cross a dead zone with no
-     hoverable element underneath, dropping :hover on .gh-card-hover before
-     the pointer reaches the text (same class of bug as the old popover's
-     gap, just sideways instead of vertical). */
-  padding-left: 4px;
-  overflow: hidden;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translate(-50%, 6px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(var(--ink-rgb), 0.08);
   white-space: nowrap;
-  opacity: 0;
-  color: var(--accent);
+  color: var(--t2);
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
   text-decoration: none;
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(4px);
   pointer-events: none;
-  transition: max-width 420ms ease, opacity 200ms ease;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.18s ease, color 0.15s ease, visibility 0s linear 0.22s;
   z-index: 20;
+}
+/* invisible strip over the 10px gap, so the pointer can move from the icon up
+   to the card without it closing */
+.gh-card-label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 12px;
+}
+.gh-card-label .ss-icon { flex: none; width: 14px; height: 14px; color: var(--t3); transition: color 0.15s ease; }
+:root[data-theme="dark"] .gh-card-label {
+  background: rgb(var(--panel-rgb));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(var(--ink-rgb), 0.1);
 }
 
 .gh-tail { white-space: nowrap; }
@@ -1693,28 +1714,19 @@ html[data-restore-view="grid"] #grid-view {
   }
   .gh-card-hover:hover .gh-card-label,
   .gh-card-hover:focus-within .gh-card-label {
-    max-width: 300px;
     opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    filter: none;
     pointer-events: auto;
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                filter 0.18s ease, color 0.15s ease, visibility 0s linear 0s;
   }
-  .gh-card-label:hover {
-    text-decoration: underline;
-  }
-  /* The label above is out of flow, so on its own the line would wrap as if
-     it were not there and the opened label would run off the edge. This
-     invisible copy holds its width in the line instead, and .gh-tail keeps
-     the last word, the icon and that room together, so the text wraps early
-     enough for the opened label to always fit. */
-  .gh-label-room {
-    display: inline-block;
-    padding-left: 4px;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    vertical-align: middle;
-    visibility: hidden;
-    pointer-events: none;
-  }
+  .gh-card-label:hover,
+  .gh-card-label:focus-visible { color: var(--t1); outline: none; }
+  .gh-card-label:hover .ss-icon,
+  .gh-card-label:focus-visible .ss-icon { color: var(--accent); }
+  /* No room held at the end of the line any more: the card opens above (Jen, Nov 6) */
 }
 
 .gh-card-tooltip-card.back {
@@ -2057,12 +2069,9 @@ html.gh-handle-drag .gh-handle.br::before {
   transition: transform 250ms ease;
   transform-origin: center;
 }
-.grid-card:hover .grid-card-image,
-.grid-card:hover .grid-card-video {
-  transform: scale(0.99);
-  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.02);
-}
-
+/* Hover (Jen, Nov 4): the frame stays exactly where it is and the picture
+   inside it grows, so you lean into the work instead of the tile backing away.
+   The frame's overflow clips the zoom to its rounded corners. */
 .grid-card-image img,
 .grid-card-image video {
   width: 100%;
@@ -2070,6 +2079,18 @@ html.gh-handle-drag .gh-handle.br::before {
   display: block;
   object-fit: cover;
   border-radius: 0.75rem;
+  transform-origin: center;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.grid-card:hover .grid-card-image img,
+.grid-card:hover .grid-card-image video {
+  transform: scale(1.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .grid-card-image img,
+  .grid-card-image video { transition: none; }
+  .grid-card:hover .grid-card-image img,
+  .grid-card:hover .grid-card-image video { transform: none; }
 }
 
 .grid-card-image--padded {

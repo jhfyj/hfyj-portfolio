@@ -55,14 +55,13 @@
     var cleanup = null;
 
     function frames(sw, gap, w) {
-        // full -> squashed. 7px off top and bottom brings a 42px switch down
-        // to the 28px row the logo and links sit on, so the pill gets
-        // shorter as well as narrower.
+        // full -> squashed. Only the width goes: the pill keeps one height on
+        // every page (peel.css), so the logo and links never move up or down.
         return {
             sw: [
-                { transform: 'scaleX(1)', marginRight: '0px', marginTop: '0px', marginBottom: '0px', opacity: 1, offset: 0 },
+                { transform: 'scaleX(1)', marginRight: '0px', opacity: 1, offset: 0 },
                 { opacity: 1, offset: 0.55 },
-                { transform: 'scaleX(0)', marginRight: (-w) + 'px', marginTop: '-7px', marginBottom: '-7px', opacity: 0, offset: 1 }
+                { transform: 'scaleX(0)', marginRight: (-w) + 'px', opacity: 0, offset: 1 }
             ],
             gap: [
                 { flexBasis: gap + 'px', width: gap + 'px' },

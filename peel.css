@@ -296,3 +296,27 @@ html[data-restore-view="grid"] #view-toggle[data-active="cards"] #scrubber { wid
 :root[data-theme="dark"] .nsq-thumb { background: #3d3d3d; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 :root[data-theme="dark"] .nsq-btn[data-view="cards"] .card-left,
 :root[data-theme="dark"] .nsq-btn[data-view="cards"] .card-right { fill: #2a2a2a; }
+
+/* Same pill height on every page (Jen, Nov 16: "when I'm switching between
+   About and Playground, the nav bar position shifts up"). Home's pill holds
+   the 42px card/grid switch, so it is 62px tall; About Me and Playground
+   have no switch and came out 48px, which lifted the logo and links 7px.
+   Holding those pills at 62px keeps the row on the same line everywhere. */
+#topbar.home-nav .nav-cluster { min-height: 62px; }
+
+/* The places in the grid header line link out (Jen, Nov 16). Same grey as
+   the line, a faint underline that darkens on hover. */
+#grid-hero .gh-org {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--ink-rgb), 0.22);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+#grid-hero .gh-org:hover,
+#grid-hero .gh-org:focus-visible {
+  color: var(--t1);
+  text-decoration-color: currentColor;
+  outline: none;
+}

@@ -2497,3 +2497,85 @@ html[data-card-return] body::after {
 @media (prefers-reduced-motion: reduce) {
   html[data-card-return] body::after { content: none; animation: none; }
 }
+
+/* Phone grid (Jen, Nov 24), modeled on kaachow.xyz's phone view: one
+   column of full-width tiles, barely rounded (4px), each tile at its own
+   picture's shape, and the title on the left with the year on the right,
+   one line underneath. No tile is white: the cut-out covers (BMW, Nenos,
+   PureGym, SPOT) sit on their project's gradient, and tech@nyu's clip
+   (white backdrop baked in) is multiplied onto its gradient. The Dial is
+   the exception: it stays plain white, because the white is the work.
+   Tile pictures and grounds (the cut-out covers on their gradients) apply
+   at every width (Jen, Nov 24: "the video changes should apply in desktop
+   too"); the layout (shape, 4px corners, year line) is phone only. */
+
+/* Every width: what is inside each tile. */
+.grid-card-image .grid-card-alt { display: none; }
+:root .grid-card-image.grid-card-image--tone:not(.grid-card-image--tech) { background: var(--tile-bg); }
+.grid-card-image:has(.grid-card-alt) > :not(.grid-card-alt) { display: none; }
+.grid-card-image .grid-card-alt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+}
+
+.grid-card-image--bmw     { --tile-ratio: 2345 / 1600; --tile-bg: linear-gradient(160deg, #E3EDF9 0%, #DCF0E4 100%); }
+/* The Dial stays white (Jen, Nov 24): its white is part of the work, so no gradient and no blend */
+.grid-card-image--dial    { --tile-ratio: 5 / 3;       --tile-bg: #FFFFFF; }
+.grid-card-image--dial.grid-card-image--blend video { mix-blend-mode: normal; }
+.grid-card-image--nenos   { --tile-ratio: 1250 / 1004; --tile-bg: linear-gradient(160deg, #FFE5CC 0%, #FFF2E4 100%); }
+/* PureGym stays a video (Jen, Nov 24): the blue-pink tint is baked into the clip
+   (puregym-bg-tint.mp4) on the background behind the phones only, so the phones
+   and their screens keep their own colours. No blend: the clip plays as is.
+   The clip is padded to 5:3 (puregym-bg-tint-pad.mp4, Jen Nov 24: more space on
+   top and bottom), so the laptop tile shows the whole frame with nothing cut. */
+.grid-card-image--puregym { --tile-ratio: 1266 / 760;   --tile-bg: linear-gradient(135deg, #CDE8FA 0%, #FBD3E1 100%); }
+.grid-card-image--puregym video { mix-blend-mode: normal; }
+.grid-card-image--clarus  { --tile-ratio: 16 / 9;      --tile-bg: #151515; }
+.grid-card-image--spot    { --tile-ratio: 2434 / 1826; --tile-bg: linear-gradient(160deg, #FFF7B0 0%, #FFE94F 100%); }
+/* POVI (live until SPOT ships): its clip has the white backdrop baked in, so the tile stays white like before */
+.grid-card-image--povi    { --tile-ratio: 5 / 3;       --tile-bg: #FFFFFF; }
+
+/* Tablet too (Jen, Nov 24: "tablet view should be the same new layout as
+   mobile"): the layout runs up to 1160px, where the grid is one column. */
+@media (max-width: 1160px) {
+  .grid-card { gap: 10px; }
+
+  .grid-card-image {
+    aspect-ratio: var(--tile-ratio, 4 / 3);
+    border-radius: 4px;
+    box-shadow: none;
+  }
+  .grid-card-image img,
+  .grid-card-image video { border-radius: 0; }
+
+  :root .grid-card-image.grid-card-image--tech { background: var(--tile-bg); }
+  .grid-card-image--blend:not(.grid-card-image--dial) video { mix-blend-mode: multiply; }
+  .grid-card-image--tech    { --tile-ratio: 4 / 3;       --tile-bg: linear-gradient(160deg, #E5DCFF 0%, #D8E5FF 100%); }
+
+  /* One line under each tile: year sits right after the title in grey
+     (Jen, Nov 24: next to the title, not pushed right, so it isn't a copy). */
+  .grid-card-info[data-year] {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .grid-card-info[data-year]::after {
+    content: attr(data-year);
+    flex: none;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--t2);
+    white-space: nowrap;
+  }
+  .grid-card-info[data-year] .grid-card-swap { font-size: 1rem; gap: 0; min-width: 0; }
+  .grid-card-info[data-year] .grid-card-title { font-weight: 400; }
+  .grid-card-info[data-year] .grid-card-desc-row,
+  .grid-card-info[data-year] .grid-card-desc,
+  .grid-card-info[data-year] .grid-card-arrow { display: none; }
+}

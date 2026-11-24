@@ -1,0 +1,57 @@
+/* Phone grid, tech@nyu tile (Jen, Nov 24): instead of the old clip
+   multiplied onto a gradient, the tile plays the moving poster wall from the
+   top of the Tech@NYU page itself (techatnyu-reel.css, .reel-wall): six
+   columns of Fall 2026 posters drifting up and down on a tilted plane.
+   Same posters, tilt, gaps and speeds, scaled to the tile. The posters run
+   to the tile's edges, so nothing in the tile is white. Laptop and tablet
+   keep the clip. */
+.gw-plane { display: none; }
+
+/* Every width now (Jen, Nov 24: "the video changes should apply in desktop too") */
+@media all {
+  .grid-card-image--tech {
+    position: relative;
+    overflow: hidden;
+    perspective: 1600px;
+    background: #1b1530;
+  }
+  :root .grid-card-image.grid-card-image--tech { background: #1b1530; }
+  .grid-card-image--tech > video { display: none; }
+
+  .grid-card-image--tech .gw-plane {
+    display: grid;
+    position: absolute; left: 50%; top: 50%; width: 138%; height: 260%;
+    grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px;
+    transform: translate(-50%, -50%) rotateX(24deg) rotateZ(-16deg);
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+  .gw-col { position: relative; overflow: visible; }
+  .gw-track {
+    display: flex; flex-direction: column; gap: 7px;
+    animation: gw-up 46s linear infinite;
+    will-change: transform;
+  }
+  .gw-col:nth-child(even) .gw-track { animation-name: gw-down; animation-duration: 54s; }
+  .gw-col:nth-child(3) .gw-track { animation-duration: 40s; }
+  .gw-col:nth-child(5) .gw-track { animation-duration: 50s; }
+  .gw-col:nth-child(6) .gw-track { animation-duration: 58s; }
+  .gw-col:nth-child(2) .gw-track { animation-delay: -11s; }
+  .gw-col:nth-child(3) .gw-track { animation-delay: -23s; }
+  .gw-col:nth-child(4) .gw-track { animation-delay: -7s; }
+  .gw-col:nth-child(5) .gw-track { animation-delay: -31s; }
+  .gw-col:nth-child(6) .gw-track { animation-delay: -17s; }
+  .grid-card-image--tech .gw-track img {
+    display: block;
+    width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover;
+    border-radius: 3px;
+    box-shadow: 0 12px 22px -12px rgba(0, 0, 0, .45), 0 4px 8px -5px rgba(0, 0, 0, .3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-track { animation: none; }
+}
+
+@keyframes gw-up   { from { transform: translateY(0); } to { transform: translateY(calc(-50% - 3.5px)); } }
+@keyframes gw-down { from { transform: translateY(calc(-50% - 3.5px)); } to { transform: translateY(0); } }

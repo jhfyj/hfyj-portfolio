@@ -176,6 +176,7 @@
     <script src="./skeleton.js"></script>
     <link rel="stylesheet" href="./panel.css">
     <link rel="stylesheet" href="./case-modal.css">
+<link rel="stylesheet" href="./grid-tech-wall.css">
     <link rel="stylesheet" href="peel.css" vite-ignore>
     <link rel="expect" href="#top-nav" blocking="render">
     <script src="nav-squeeze.js"></script>
@@ -262,64 +263,78 @@
         </div>
         <div class="grid-container">
             <a class="grid-card" href="bmw.html">
-                <div class="grid-card-image">
+                <div class="grid-card-image grid-card-image--tone grid-card-image--bmw">
+                    <!-- Phone grid (Jen, Nov 24): the cut-out cover sits on its project gradient, so no tile is white -->
+                    <img class="grid-card-alt" src="./Cards/covers/bmw-cover-dark.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
                     <img src="https://jhfyj.github.io/New-Website-Code/Cards/bmw-mockups.webp" alt="BMW Designworks" data-skel loading="lazy" decoding="async" fetchpriority="low">
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2026">
                     <h3 class="grid-card-title">BMW Designworks<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">Product Design Internship across B2B, consumer, and more at BMW Designworks</p>
                 </div>
             </a>
             <a class="grid-card" href="the-dial.html">
-                <div class="grid-card-image">
+                <div class="grid-card-image grid-card-image--tone grid-card-image--dial grid-card-image--blend">
                     <video class="grid-card-media" src="assets/grid/the-dial.mp4" muted loop playsinline preload="none" aria-label="The Dial"></video>
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2026">
                     <h3 class="grid-card-title">The Dial<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc grid-card-desc--accent-blue">Open Doors x Framer Challenge</p>
                 </div>
             </a>
             <a class="grid-card" href="techatnyu.html">
-                <div class="grid-card-image">
+                <div class="grid-card-image grid-card-image--tone grid-card-image--tech grid-card-image--blend">
                     <video class="grid-card-media" src="assets/grid/tech.mp4" muted loop playsinline preload="none" aria-label="tech@nyu"></video>
+                    <!-- Phone grid (Jen, Nov 24): the moving poster wall from the top of the Tech@NYU page, in place of the clip on a gradient (grid-tech-wall.css) -->
+                    <div class="gw-plane" aria-hidden="true">
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/buildathon-nysw.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-open.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/state-of-ai.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/kickoff.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+<div class="gw-col"><div class="gw-track"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/club-fest.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/apps-timeline.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/tech-treks.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"><img src="assets/techatnyu/f26/mentorship-devteam.jpg" alt="" width="820" height="1024" loading="lazy" decoding="async"></div></div>
+                    </div>
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2025-26">
                     <h3 class="grid-card-title">tech@nyu<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">Redefining not just a brand, but a vision</p>
                 </div>
             </a>
             <a class="grid-card" href="#" data-coming-soon>
-                <div class="grid-card-image">
+                <div class="grid-card-image grid-card-image--tone grid-card-image--nenos">
+                    <!-- Phone grid (Jen, Nov 24): the cut-out cover sits on its project gradient, so no tile is white -->
+                    <img class="grid-card-alt" src="./Cards/covers/nenos-cover-dark.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
                     <img src="https://jhfyj.github.io/New-Website-Code/Cards/nenos-mockups.webp" alt="Nenos Inc." data-skel loading="lazy" decoding="async" fetchpriority="low">
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="Soon">
                     <h3 class="grid-card-title">Nenos Inc.<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">Design Manager working with 7 designers to design the Places feature in a B2C product, from ideation to handoff</p>
                 </div>
             </a>
             <a class="grid-card" href="puregym.html">
-                <div class="grid-card-image">
-                    <video class="grid-card-media" src="assets/grid/puregym.mp4" muted loop playsinline preload="none" aria-label="PureGym"></video>
+                <div class="grid-card-image grid-card-image--tone grid-card-image--puregym">
+                    <!-- PureGym stays a video (Jen, Nov 24): blue-pink only on the background behind the phones, baked into the clip; padded to 5:3 so the phones have room above and below -->
+                    <video class="grid-card-media" src="assets/grid/puregym-bg-tint-pad.mp4" muted loop playsinline preload="none" aria-label="PureGym"></video>
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2026">
                     <h3 class="grid-card-title">PureGym<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">Recognize, understand, research, and iterate</p>
                 </div>
             </a>
             <a class="grid-card" href="clarusai.html">
-                <div class="grid-card-image">
+                <div class="grid-card-image grid-card-image--tone grid-card-image--clarus">
                     <video class="grid-card-media" src="assets/grid/clarus.mp4" muted loop playsinline preload="none" aria-label="Clarus AI"></video>
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2025">
                     <h3 class="grid-card-title">Clarus AI<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">An interactive way to recognize AI energy consumption</p>
                 </div>
             </a>
             <a class="grid-card" href="povi.html">
-                <div class="grid-card-image grid-card-image--padded">
+                <div class="grid-card-image grid-card-image--padded grid-card-image--tone grid-card-image--povi">
                     <video class="grid-card-media" src="assets/grid/POVI.mp4" muted loop playsinline preload="none" aria-label="POVI"></video>
                 </div>
-                <div class="grid-card-info">
+                <div class="grid-card-info" data-year="2026">
                     <h3 class="grid-card-title">POVI<svg class="grid-card-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M18 6L16.57 7.393 24.15 15 4 15 4 17 24.15 17 16.57 24.573 18 26 28 16 18 6z"/></svg></h3>
                     <p class="grid-card-desc">Speculative design that reimagines the future of wearable technology</p>
                 </div>
